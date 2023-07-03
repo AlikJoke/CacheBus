@@ -1,7 +1,6 @@
 package net.cache.bus.core.transport;
 
 import net.cache.bus.core.CacheEntryEvent;
-import net.cache.bus.core.configuration.CacheBusConfiguration;
 
 import javax.annotation.Nonnull;
 
@@ -10,24 +9,15 @@ import javax.annotation.Nonnull;
  *
  * @author Alik
  * @see CacheEntryEvent
- * @see CacheEntryEventSerializer
  */
 public interface CacheEntryEventMessageSender {
 
     /**
-     * Выполняет отправку событий об изменении элементов кэша на другие сервера.
+     * Выполняет отправку сериализованного события об изменении элемента кэша на другие сервера.
      *
-     * @param event событие об изменении элемента кэша, не может быть {@code null}.
-     * @param <K>   тип ключа элемента кэша
-     * @param <V>   тип значения элемента кэша
+     * @param serializedEvent событие об изменении элемента кэша в сериализованном виде, не может быть {@code null}.
+     * @param targetEndpoint  целевая конечная точка для отправки событий об изменении элемента кэша, не может быть {@code null}.
+     * @param <T>             тип сериализованного представления события об изменении элемента кэша
      */
-    <K, V> void send(@Nonnull CacheEntryEvent<K, V> event);
-
-    /**
-     * Устанавливает конфигурацию шины кэшей, содержащую информацию о транспортных настройках для отправки событий.
-     *
-     * @param cacheConfigurations конфигурация шины, не может быть {@code null}.
-     * @see CacheBusConfiguration
-     */
-    void setCacheConfigurations(@Nonnull CacheBusConfiguration cacheConfigurations);
+    <T> void send(@Nonnull T serializedEvent, @Nonnull String targetEndpoint);
 }

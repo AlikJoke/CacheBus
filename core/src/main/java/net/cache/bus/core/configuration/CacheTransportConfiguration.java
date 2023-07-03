@@ -4,6 +4,7 @@ import net.cache.bus.core.transport.CacheEntryEventDeserializer;
 import net.cache.bus.core.transport.CacheEntryEventSerializer;
 
 import javax.annotation.Nonnull;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -25,6 +26,9 @@ public interface CacheTransportConfiguration {
     @Nonnull
     Set<TargetEndpointConfiguration> targetConfigurations();
 
+    @Nonnull
+    Optional<TargetEndpointConfiguration> getTargetConfigurationByEndpointName(@Nonnull String endpointName);
+
     /**
      * Возвращает набор конфигураций транспорта для получения данных об изменениях элементов удаленных экземпляров кэша.
      *
@@ -33,6 +37,9 @@ public interface CacheTransportConfiguration {
      */
     @Nonnull
     Set<SourceEndpointConfiguration> sourceConfigurations();
+
+    @Nonnull
+    Optional<SourceEndpointConfiguration> getSourceConfigurationByEndpointName(@Nonnull String endpointName);
 
     /**
      * Конфигурация конечной точки для отправки данных об изменениях элементов кэша.

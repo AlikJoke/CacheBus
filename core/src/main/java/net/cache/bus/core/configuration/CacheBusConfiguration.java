@@ -1,5 +1,6 @@
 package net.cache.bus.core.configuration;
 
+import net.cache.bus.core.CacheManager;
 import net.cache.bus.core.transport.CacheEntryEventMessageSender;
 
 import javax.annotation.Nonnull;
@@ -34,8 +35,17 @@ public interface CacheBusConfiguration {
 
     /**
      * Возвращает отправителя сообщений, используемого для шины кэшей.
+     *
      * @return отправитель сообщений, не может быть {@code null}.
      */
     @Nonnull
     CacheEntryEventMessageSender messageSender();
+
+    /**
+     * Возвращает менеджер кэшей.
+     *
+     * @return не может быть {@code null}.
+     */
+    @Nonnull
+    CacheManager cacheManager();
 }
