@@ -71,7 +71,7 @@ public interface CacheEntryEvent<K, V> {
      *
      * @param cache инвалидационный кэш, не может быть {@code null}.
      */
-    default void applyToInvalidatedCache(@Nonnull Cache<K> cache) {
+    default void applyToInvalidatedCache(@Nonnull Cache<K, V> cache) {
         processEviction(cache);
     }
 
@@ -80,16 +80,17 @@ public interface CacheEntryEvent<K, V> {
      *
      * @param cache реплицируемый кэш, не может быть {@code null}.
      */
-    default void applyToReplicatedCache(@Nonnull Cache<K> cache) {
+    default void applyToReplicatedCache(@Nonnull Cache<K, V> cache) {
         final V newVal = newValue();
         if (newVal == null) {
             processEviction(cache);
         } else {
-            cache.merge(key(), newVal, (v1, v2) -> v1.equals(oldValue()) ? v2 : null);
+            // TODO implementation based on timestamp of event
+            cache.merge(key(), newVal, (v1, v2) -> oldValue() == null || v1.equals(oldValue()) ? v2 : null);
         }
     }
 
-    private void processEviction(@Nonnull Cache<K> cache) {
+    private void processEviction(@Nonnull Cache<K, V> cache) {
         if (ALL_ENTRIES_KEY.equals(key())) {
             cache.clear();
         } else {

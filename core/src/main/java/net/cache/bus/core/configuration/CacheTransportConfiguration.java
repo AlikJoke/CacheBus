@@ -26,6 +26,13 @@ public interface CacheTransportConfiguration {
     @Nonnull
     Set<TargetEndpointConfiguration> targetConfigurations();
 
+    /**
+     * Возвращает конфигурацию транспорта для отправки данных об изменениях элементов локального кэша по имени конечной точки.
+     *
+     * @param endpointName идентификатор конечной точки, не может быть {@code null}.
+     * @return не может быть {@code null}.
+     * @see TargetEndpointConfiguration
+     */
     @Nonnull
     Optional<TargetEndpointConfiguration> getTargetConfigurationByEndpointName(@Nonnull String endpointName);
 
@@ -38,6 +45,13 @@ public interface CacheTransportConfiguration {
     @Nonnull
     Set<SourceEndpointConfiguration> sourceConfigurations();
 
+    /**
+     * Возвращает конфигурацию транспорта для получения данных об изменениях элементов удаленных экземпляров кэша по имени конечной точки.
+     *
+     * @param endpointName идентификатор конечной точки, не может быть {@code null}.
+     * @return не может быть {@code null}.
+     * @see SourceEndpointConfiguration
+     */
     @Nonnull
     Optional<SourceEndpointConfiguration> getSourceConfigurationByEndpointName(@Nonnull String endpointName);
 

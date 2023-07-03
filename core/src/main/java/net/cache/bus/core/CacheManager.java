@@ -2,7 +2,6 @@ package net.cache.bus.core;
 
 import javax.annotation.Nonnull;
 import java.util.Optional;
-import java.util.Set;
 
 /**
  * Менеджер кэшей. Предоставляет доступ к кэшам разного рода, а также
@@ -20,20 +19,12 @@ public interface CacheManager {
      * провайдера кэширования - в таком случае реализация должна генерировать
      * исключение {@linkplain UnsupportedOperationException}.
      *
+     * @param managerType тип исходного менеджера кэшей, не может быть {@code null}.
      * @return нижестоящий менеджер кэшей некоторого провайдера кэширования, если таковой имеется; не может быть {@code null}.
      * @throws UnsupportedOperationException если нижестоящий менеджер кэшей не существует
      */
     @Nonnull
-    <T> T getUnderlyingCacheManager();
-
-    /**
-     * Возвращает список названий кэшей, управляемых данным менеджером.
-     *
-     * @return список названий кэшей, не может быть {@code null}.
-     * @see #getCache(String)
-     */
-    @Nonnull
-    Set<String> getCacheNames();
+    <T> T getUnderlyingCacheManager(@Nonnull Class<T> managerType);
 
     /**
      * Возвращает кэш по его имени.
@@ -43,5 +34,5 @@ public interface CacheManager {
      * @see Cache
      */
     @Nonnull
-    <K> Optional<Cache<K>> getCache(@Nonnull String cacheName);
+    <K, V> Optional<Cache<K, V>> getCache(@Nonnull String cacheName);
 }

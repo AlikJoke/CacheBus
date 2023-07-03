@@ -1,9 +1,9 @@
 package net.cache.bus.core.impl;
 
-import lombok.extern.slf4j.Slf4j;
 import net.cache.bus.core.Cache;
 import net.cache.bus.core.CacheBus;
 import net.cache.bus.core.CacheEntryEvent;
+import net.cache.bus.core.CacheEntryEventType;
 import net.cache.bus.core.configuration.CacheBusConfiguration;
 import net.cache.bus.core.configuration.CacheConfiguration;
 import net.cache.bus.core.configuration.CacheTransportConfiguration;
@@ -11,12 +11,15 @@ import net.cache.bus.core.configuration.CacheType;
 import net.cache.bus.core.transport.CacheEntryEventMessageSender;
 
 import javax.annotation.Nonnull;
+import javax.annotation.concurrent.ThreadSafe;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.logging.Logger;
 
-@Slf4j
+@ThreadSafe
 public final class DefaultCacheBus implements CacheBus {
 
+    private static final Logger logger = Logger.getLogger(DefaultCacheBus.class.getCanonicalName());
     private static final ThreadLocal<Boolean> locked = new ThreadLocal<>();
 
     private CacheBusConfiguration configuration;
@@ -33,20 +36,9 @@ public final class DefaultCacheBus implements CacheBus {
         }
 
         final Optional<CacheConfiguration> cacheConfiguration = this.configuration.getCacheConfigurationByName(event.cacheName());
-        cacheConfiguration.ifPresent(cacheConfig -> {
-            final CacheEntryEventMessageSender messageSender = this.configuration.messageSender();
-            final CacheTransportConfiguration transportConfiguration = cacheConfig.transportConfiguration();
-
-            transportConfiguration
-                    .targetConfigurations()
-                    .forEach(targetConfig -> {
-
-                        log.debug("Event {} will be sent to {}", event, targetConfig.endpoint());
-
-                        final Object serializedEvent = targetConfig.serializer().serialize(event);
-                        messageSender.send(serializedEvent, targetConfig.endpoint());
-                    });
-        });
+        cacheConfiguration
+                .filter(cacheConfig -> needToSendEvent(cacheConfig, event.eventType()))
+                .ifPresent(cacheConfig -> sendToEndpoints(cacheConfig, event));
     }
 
     @Override
@@ -66,15 +58,38 @@ public final class DefaultCacheBus implements CacheBus {
         this.configuration = Objects.requireNonNull(configuration, "configuration");
     }
 
-    private void applyEvent(final CacheEntryEvent<Object, ?> event, final CacheConfiguration configuration) {
+    private void sendToEndpoints(final CacheConfiguration cacheConfig, final CacheEntryEvent<?, ?> event) {
 
-        final Optional<Cache<Object>> cache = this.configuration.cacheManager().getCache(event.cacheName());
+        final CacheEntryEventMessageSender messageSender = this.configuration.messageSender();
+        final CacheTransportConfiguration transportConfiguration = cacheConfig.transportConfiguration();
+
+        transportConfiguration
+                .targetConfigurations()
+                .forEach(targetConfig -> {
+
+                    logger.fine(() -> "Event %s will be sent to %s".formatted(event.toString(), targetConfig.endpoint()));
+
+                    final Object serializedEvent = targetConfig.serializer().serialize(event);
+                    messageSender.send(serializedEvent, targetConfig.endpoint());
+                });
+    }
+
+    private boolean needToSendEvent(final CacheConfiguration cacheConfiguration, final CacheEntryEventType eventType) {
+        return eventType != CacheEntryEventType.EVICTED || cacheConfiguration.cacheType() != CacheType.INVALIDATED;
+    }
+
+    private void applyEvent(final CacheEntryEvent<Object, Object> event, final CacheConfiguration configuration) {
+
+        final Optional<Cache<Object, Object>> cache = this.configuration.cacheManager().getCache(event.cacheName());
         cache.ifPresent(c -> processEvent(configuration.cacheType(), c, event));
     }
 
-    private void processEvent(final CacheType cacheType, final Cache<Object> cache, final CacheEntryEvent<Object, ?> event) {
+    private void processEvent(
+            final CacheType cacheType,
+            final Cache<Object, Object> cache,
+            final CacheEntryEvent<Object, Object> event) {
 
-        log.debug("Process event {} with cacheType {}", event, cacheType);
+        logger.fine(() -> "Process event %s with cacheType %s".formatted(event.toString(), cacheType.name()));
 
         locked.set(Boolean.TRUE);
 
@@ -88,7 +103,7 @@ public final class DefaultCacheBus implements CacheBus {
         }
     }
 
-    private Optional<CacheEntryEvent<Object, ?>> convertFromSerializedEvent(
+    private Optional<CacheEntryEvent<Object, Object>> convertFromSerializedEvent(
             final CacheConfiguration cacheConfiguration,
             final String endpoint,
             final Object event) {

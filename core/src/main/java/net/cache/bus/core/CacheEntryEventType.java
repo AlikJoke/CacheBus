@@ -14,6 +14,11 @@ public enum CacheEntryEventType {
     ADDED,
 
     /**
+     * Удаление элемента кэша по TTL
+     */
+    EXPIRED,
+
+    /**
      * Удаление элемента из кэша
      */
     EVICTED,

@@ -2,6 +2,7 @@ package net.cache.bus.core;
 
 import javax.annotation.CheckReturnValue;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.BiFunction;
@@ -21,7 +22,7 @@ import java.util.function.Function;
  *
  * @author Alik
  */
-public interface Cache<K> {
+public interface Cache<K, V> {
 
     /**
      * Получает из кэша значение по ключу, если оно имеется в кэше.
@@ -29,12 +30,11 @@ public interface Cache<K> {
      * то можно использовать {@link Object}.
      *
      * @param key       ключ элемента в кэше, не может быть {@code null}.
-     * @param valueType токен типа значения кэша, не может быть {@code null}.
      * @return значение в кэше по указанному ключу, обернутое в {@link Optional}. Значение может отсутствовать.
      */
     @Nonnull
     @CheckReturnValue
-    <V> Optional<V> get(@Nonnull K key, @Nonnull Class<V> valueType);
+    Optional<V> get(@Nonnull K key);
 
     /**
      * Удаляет элемент из кэша по ключу. Если элемента с таким ключом
@@ -49,34 +49,27 @@ public interface Cache<K> {
      * Если элемента с таким ключом не существует, возвращает {@code null}.
      *
      * @param key       ключ элемента в кэше, не может быть {@code null}.
-     * @param valueType токен типа значения кэша, не может быть {@code null}.
      * @return значение, ранее ассоциированное с данным ключем, обернутое в {@link Optional}. Значение может отсутствовать.
      */
     @Nonnull
     @CheckReturnValue
-    <V> Optional<V> remove(@Nonnull K key, @Nonnull Class<V> valueType);
+    Optional<V> remove(@Nonnull K key);
 
     /**
      * Добавляет элемент в кэш. Производит замену элемента на новое значение, если элемент уже есть в кэше.
      *
      * @param key   ключ элемента, не может быть {@code null}.
-     * @param value значение элемента, не может быть {@code null}.
-     * @return предыдущее значение элемета с данным ключом в кэше, если такое имелось, обернутое в {@link Optional}. Значение может отсутствовать.
+     * @param value значение элемента, может быть {@code null}.
      */
-    @Nonnull
-    @CheckReturnValue
-    <V> Optional<V> put(@Nonnull K key, @Nonnull V value);
+    void put(@Nonnull K key, @Nullable V value);
 
     /**
      * Добавляет элемент в кэш, если еще нет ассоциированного с данным ключом значения.
      *
      * @param key   ключ элемента, не может быть {@code null}.
-     * @param value значение элемента, не может быть {@code null}.
-     * @return предыдущее значение элемета с данным ключом в кэше, если такое имелось, обернутое в {@link Optional}. Значение может отсутствовать.
+     * @param value значение элемента, может быть {@code null}.
      */
-    @Nonnull
-    @CheckReturnValue
-    <V> Optional<V> putIfAbsent(@Nonnull K key, @Nonnull V value);
+    void putIfAbsent(@Nonnull K key, @Nullable V value);
 
     /**
      * Выполняет очистку данного кэша.
@@ -99,7 +92,7 @@ public interface Cache<K> {
      */
     @Nonnull
     @CheckReturnValue
-    <V> Optional<V> merge(@Nonnull K key, @Nonnull V value, @Nonnull BiFunction<? super V, ? super V, ? extends V> mergeFunction);
+    Optional<V> merge(@Nonnull K key, @Nonnull V value, @Nonnull BiFunction<? super V, ? super V, ? extends V> mergeFunction);
 
     /**
      * Выполняет вычисление элемента в кэше, если его не существовало до этого.
@@ -113,5 +106,5 @@ public interface Cache<K> {
      */
     @CheckReturnValue
     @Nonnull
-    <V> Optional<V> computeIfAbsent(@Nonnull K key, @Nonnull Function<? super K, ? extends V> valueFunction);
+    Optional<V> computeIfAbsent(@Nonnull K key, @Nonnull Function<? super K, ? extends V> valueFunction);
 }
