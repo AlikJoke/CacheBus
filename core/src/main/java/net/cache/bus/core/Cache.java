@@ -34,7 +34,7 @@ public interface Cache<K> {
      */
     @Nonnull
     @CheckReturnValue
-    <T> Optional<T> get(@Nonnull K key, @Nonnull Class<T> valueType);
+    <V> Optional<V> get(@Nonnull K key, @Nonnull Class<V> valueType);
 
     /**
      * Удаляет элемент из кэша по ключу. Если элемента с таким ключом
@@ -54,7 +54,7 @@ public interface Cache<K> {
      */
     @Nonnull
     @CheckReturnValue
-    <T> Optional<T> remove(@Nonnull K key, @Nonnull Class<T> valueType);
+    <V> Optional<V> remove(@Nonnull K key, @Nonnull Class<V> valueType);
 
     /**
      * Добавляет элемент в кэш. Производит замену элемента на новое значение, если элемент уже есть в кэше.
@@ -65,7 +65,7 @@ public interface Cache<K> {
      */
     @Nonnull
     @CheckReturnValue
-    <T> Optional<T> put(@Nonnull K key, @Nonnull T value);
+    <V> Optional<V> put(@Nonnull K key, @Nonnull V value);
 
     /**
      * Добавляет элемент в кэш, если еще нет ассоциированного с данным ключом значения.
@@ -76,7 +76,7 @@ public interface Cache<K> {
      */
     @Nonnull
     @CheckReturnValue
-    <T> Optional<T> putIfAbsent(@Nonnull K key, @Nonnull T value);
+    <V> Optional<V> putIfAbsent(@Nonnull K key, @Nonnull V value);
 
     /**
      * Выполняет очистку данного кэша.
@@ -99,7 +99,7 @@ public interface Cache<K> {
      */
     @Nonnull
     @CheckReturnValue
-    <T> Optional<T> merge(@Nonnull K key, @Nonnull T value, @Nonnull BiFunction<? super T, ? super T, ? extends T> mergeFunction);
+    <V> Optional<V> merge(@Nonnull K key, @Nonnull V value, @Nonnull BiFunction<? super V, ? super V, ? extends V> mergeFunction);
 
     /**
      * Выполняет вычисление элемента в кэше, если его не существовало до этого.
@@ -113,5 +113,5 @@ public interface Cache<K> {
      */
     @CheckReturnValue
     @Nonnull
-    <T> Optional<T> computeIfAbsent(@Nonnull K key, @Nonnull Function<? super K, ? extends T> valueFunction);
+    <V> Optional<V> computeIfAbsent(@Nonnull K key, @Nonnull Function<? super K, ? extends V> valueFunction);
 }
