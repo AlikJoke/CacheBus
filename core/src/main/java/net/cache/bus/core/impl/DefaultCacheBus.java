@@ -23,6 +23,7 @@ public final class DefaultCacheBus implements CacheBus {
     private static final ThreadLocal<Boolean> locked = new ThreadLocal<>();
 
     private CacheBusConfiguration configuration;
+    private volatile boolean started;
 
     public DefaultCacheBus(@Nonnull CacheBusConfiguration configuration) {
         setConfiguration(configuration);
@@ -31,7 +32,7 @@ public final class DefaultCacheBus implements CacheBus {
     @Override
     public <K, V> void send(@Nonnull CacheEntryEvent<K, V> event) {
         // To prevent calls from the receiving execution thread
-        if (locked.get() != null && locked.get()) {
+        if (!this.started || locked.get() != null && locked.get()) {
             return;
         }
 
@@ -47,6 +48,10 @@ public final class DefaultCacheBus implements CacheBus {
             @Nonnull String cacheName,
             @Nonnull T event) {
 
+        if (!this.started) {
+            return;
+        }
+
         final Optional<CacheConfiguration> cacheConfiguration = this.configuration.getCacheConfigurationByName(cacheName);
         cacheConfiguration
                 .flatMap(cacheConfig -> convertFromSerializedEvent(cacheConfig, endpoint, event))
@@ -55,7 +60,27 @@ public final class DefaultCacheBus implements CacheBus {
 
     @Override
     public void setConfiguration(@Nonnull CacheBusConfiguration configuration) {
+
+        if (this.started) {
+            throw new IllegalStateException("Changing of configuration is forbidden in active state");
+        }
+
         this.configuration = Objects.requireNonNull(configuration, "configuration");
+    }
+
+    @Override
+    public void start() {
+
+        if (this.configuration == null) {
+            throw new IllegalStateException("Activation of bus is forbidden while configuration is not set");
+        }
+        // TODO инициализация
+        this.started = true;
+    }
+
+    @Override
+    public void stop() {
+        this.started = false;
     }
 
     private void sendToEndpoints(final CacheConfiguration cacheConfig, final CacheEntryEvent<?, ?> event) {
@@ -75,7 +100,7 @@ public final class DefaultCacheBus implements CacheBus {
     }
 
     private boolean needToSendEvent(final CacheConfiguration cacheConfiguration, final CacheEntryEventType eventType) {
-        return eventType != CacheEntryEventType.EVICTED || cacheConfiguration.cacheType() != CacheType.INVALIDATED;
+        return eventType != CacheEntryEventType.EVICTED && eventType != CacheEntryEventType.ADDED || cacheConfiguration.cacheType() != CacheType.INVALIDATED;
     }
 
     private void applyEvent(final CacheEntryEvent<Object, Object> event, final CacheConfiguration configuration) {

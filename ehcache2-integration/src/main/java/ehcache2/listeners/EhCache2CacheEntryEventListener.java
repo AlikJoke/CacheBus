@@ -3,6 +3,7 @@ package ehcache2.listeners;
 import net.cache.bus.core.CacheBus;
 import net.cache.bus.core.CacheEntryEvent;
 import net.cache.bus.core.CacheEntryEventType;
+import net.cache.bus.core.CacheEventListener;
 import net.cache.bus.core.impl.ImmutableCacheEntryEvent;
 import net.sf.ehcache.CacheException;
 import net.sf.ehcache.Ehcache;
@@ -17,7 +18,7 @@ import java.util.Objects;
 
 @ThreadSafe
 @Immutable
-public final class EhCache2CacheEntryEventListener extends CacheEventListenerAdapter {
+final class EhCache2CacheEntryEventListener<K, V> extends CacheEventListenerAdapter implements CacheEventListener<K, V> {
 
     private final CacheBus cacheBus;
 

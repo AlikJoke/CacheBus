@@ -20,16 +20,25 @@ import java.util.function.Function;
  * <br>
  * Конкретной реализацией может быть как локальный кэш, так и инвалидационной или реплицируемый. <br>
  *
+ * @param <K> тип ключа элементов кэша
+ * @param <V> тип значения элементов кэша
  * @author Alik
  */
 public interface Cache<K, V> {
+
+    /**
+     * Возвращает имя кэша.
+     *
+     * @return не может быть {@code null}.
+     */
+    String getName();
 
     /**
      * Получает из кэша значение по ключу, если оно имеется в кэше.
      * Для более строгой типизации используется паттерн "токен типа", если тип значения не известен,
      * то можно использовать {@link Object}.
      *
-     * @param key       ключ элемента в кэше, не может быть {@code null}.
+     * @param key ключ элемента в кэше, не может быть {@code null}.
      * @return значение в кэше по указанному ключу, обернутое в {@link Optional}. Значение может отсутствовать.
      */
     @Nonnull
@@ -48,7 +57,7 @@ public interface Cache<K, V> {
      * Удаляет элемент из кэша по ключу. Возвращает значение, ранее ассоциированное с ключом.
      * Если элемента с таким ключом не существует, возвращает {@code null}.
      *
-     * @param key       ключ элемента в кэше, не может быть {@code null}.
+     * @param key ключ элемента в кэше, не может быть {@code null}.
      * @return значение, ранее ассоциированное с данным ключем, обернутое в {@link Optional}. Значение может отсутствовать.
      */
     @Nonnull
@@ -107,4 +116,12 @@ public interface Cache<K, V> {
     @CheckReturnValue
     @Nonnull
     Optional<V> computeIfAbsent(@Nonnull K key, @Nonnull Function<? super K, ? extends V> valueFunction);
+
+    /**
+     * Регистрирует слушатель событий изменения элементов кэша.
+     *
+     * @param listener слушатель событий, не может быть {@code null}.
+     * @see CacheEventListener
+     */
+    void registerEventListener(@Nonnull CacheEventListener<K, V> listener);
 }

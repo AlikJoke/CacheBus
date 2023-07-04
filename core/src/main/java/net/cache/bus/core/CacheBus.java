@@ -47,4 +47,14 @@ public interface CacheBus {
      * @param configuration конфигурация шины кэшей, не может быть {@code null}.
      */
     void setConfiguration(@Nonnull CacheBusConfiguration configuration);
+
+    /**
+     * Выполняет активацию шины кэширования.
+     */
+    void start();
+
+    /**
+     * Выполняет остановку шины кэширования.
+     */
+    void stop();
 }

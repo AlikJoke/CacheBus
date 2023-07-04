@@ -1,6 +1,10 @@
 package net.cache.bus.infinispan.adapters;
 
 import net.cache.bus.core.Cache;
+import net.cache.bus.core.CacheAlreadyDefinedAsClusteredException;
+import net.cache.bus.core.CacheEventListener;
+import org.infinispan.configuration.cache.CacheMode;
+import org.infinispan.configuration.cache.Configuration;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -15,6 +19,16 @@ public final class InfinispanCacheAdapter<K, V> implements Cache<K, V> {
 
     public InfinispanCacheAdapter(@Nonnull org.infinispan.Cache<K, V> cache) {
         this.cache = Objects.requireNonNull(cache, "cache");
+
+        final Configuration cacheConfig = cache.getCacheConfiguration();
+        if (cacheConfig.clustering().cacheMode() != CacheMode.LOCAL) {
+            throw new CacheAlreadyDefinedAsClusteredException(cache.getName());
+        }
+    }
+
+    @Override
+    public String getName() {
+        return this.cache.getName();
     }
 
     @Nonnull
@@ -59,5 +73,10 @@ public final class InfinispanCacheAdapter<K, V> implements Cache<K, V> {
     @Override
     public Optional<V> computeIfAbsent(@Nonnull K key, @Nonnull Function<? super K, ? extends V> valueFunction) {
         return Optional.ofNullable(this.cache.computeIfAbsent(key, valueFunction));
+    }
+
+    @Override
+    public void registerEventListener(@Nonnull CacheEventListener<K, V> listener) {
+        this.cache.addListener(listener);
     }
 }

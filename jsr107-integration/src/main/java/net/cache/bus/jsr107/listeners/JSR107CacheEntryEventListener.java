@@ -2,6 +2,7 @@ package net.cache.bus.jsr107.listeners;
 
 import net.cache.bus.core.CacheBus;
 import net.cache.bus.core.CacheEntryEventType;
+import net.cache.bus.core.CacheEventListener;
 import net.cache.bus.core.impl.ImmutableCacheEntryEvent;
 
 import javax.annotation.Nonnull;
@@ -13,9 +14,9 @@ import java.util.Objects;
 
 @ThreadSafe
 @Immutable
-public final class JSR107CacheEntryEventListener<K, V>
+final class JSR107CacheEntryEventListener<K, V>
         implements CacheEntryCreatedListener<K, V>, CacheEntryUpdatedListener<K, V>,
-        CacheEntryExpiredListener<K, V>, CacheEntryRemovedListener<K, V> {
+        CacheEntryExpiredListener<K, V>, CacheEntryRemovedListener<K, V>, CacheEventListener<K, V> {
 
     private final CacheBus cacheBus;
 

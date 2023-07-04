@@ -1,10 +1,16 @@
 package net.cache.bus.jsr107.adapters;
 
 import net.cache.bus.core.Cache;
-import net.cache.bus.core.impl.ConcurrentActionExecutor;
+import net.cache.bus.core.CacheEventListener;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import javax.cache.configuration.CacheEntryListenerConfiguration;
+import javax.cache.configuration.MutableCacheEntryListenerConfiguration;
+import javax.cache.event.CacheEntryEvent;
+import javax.cache.event.CacheEntryEventFilter;
+import javax.cache.event.CacheEntryListener;
+import javax.cache.event.CacheEntryListenerException;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.BiFunction;
@@ -13,13 +19,14 @@ import java.util.function.Function;
 public final class JSR107CacheAdapter<K, V> implements Cache<K, V> {
 
     private final javax.cache.Cache<K, V> cache;
-    private final ConcurrentActionExecutor concurrentActionExecutor;
 
-    public JSR107CacheAdapter(
-            @Nonnull javax.cache.Cache<K, V> cache,
-            @Nonnull ConcurrentActionExecutor concurrentActionExecutor) {
+    public JSR107CacheAdapter(@Nonnull javax.cache.Cache<K, V> cache) {
         this.cache = Objects.requireNonNull(cache, "cache");
-        this.concurrentActionExecutor = Objects.requireNonNull(concurrentActionExecutor, "concurrentActionExecutor");
+    }
+
+    @Override
+    public String getName() {
+        return this.cache.getName();
     }
 
     @Nonnull
@@ -64,17 +71,17 @@ public final class JSR107CacheAdapter<K, V> implements Cache<K, V> {
         Objects.requireNonNull(key, "key");
         Objects.requireNonNull(value, "value");
 
-        return Objects.requireNonNull(this.concurrentActionExecutor.execute(key, () -> {
-            final Optional<V> oldValue = get(key);
-            final V newValue = oldValue.isEmpty() ? value : mergeFunction.apply(oldValue.get(), value);
-            if (newValue == null) {
-                this.cache.remove(key);
-            } else {
-                this.cache.put(key, newValue);
-            }
+        final Optional<V> oldValue = get(key);
+        final V newValue = oldValue.isEmpty() ? value : mergeFunction.apply(oldValue.get(), value);
+        if (newValue == null) {
+            this.cache.remove(key, oldValue.get());
+        } else if (oldValue.isEmpty()) {
+            this.cache.putIfAbsent(key, newValue);
+        } else {
+            this.cache.replace(key, oldValue.get(), newValue);
+        }
 
-            return Optional.ofNullable(newValue);
-        }));
+        return Optional.ofNullable(newValue);
     }
 
     @Nonnull
@@ -84,18 +91,41 @@ public final class JSR107CacheAdapter<K, V> implements Cache<K, V> {
         Objects.requireNonNull(key, "key");
         Objects.requireNonNull(valueFunction, "valueFunction");
 
-        return Objects.requireNonNull(this.concurrentActionExecutor.execute(key, () -> {
-            final V v = this.cache.get(key);
-            if (v == null) {
+        final V v = this.cache.get(key);
+        if (v == null) {
 
-                final V newValue = valueFunction.apply(key);
-                if (newValue != null) {
-                    this.cache.put(key, newValue);
-                    return Optional.of(newValue);
-                }
+            final V newValue = valueFunction.apply(key);
+            if (newValue != null) {
+                return Optional.ofNullable(this.cache.putIfAbsent(key, newValue) ? newValue : this.cache.get(key));
             }
+        }
 
-            return Optional.ofNullable(v);
-        }));
+        return Optional.ofNullable(v);
+    }
+
+    @Override
+    public void registerEventListener(@Nonnull CacheEventListener<K, V> listener) {
+
+        if (!(listener instanceof CacheEntryListener<?,?>)) {
+            throw new ClassCastException("Cache listener implementation must implement " + CacheEntryListener.class.getCanonicalName());
+        }
+
+        @SuppressWarnings("unchecked")
+        final CacheEntryListener<K, V> eventListener = (CacheEntryListener<K, V>) listener;
+        final CacheEntryListenerConfiguration<K, V> configuration = new MutableCacheEntryListenerConfiguration<>(
+                () -> eventListener,
+                AcceptAllFilter::new,
+                true,
+                true
+        );
+        this.cache.registerCacheEntryListener(configuration);
+    }
+
+    private static class AcceptAllFilter<K, V> implements CacheEntryEventFilter<K, V> {
+
+        @Override
+        public boolean evaluate(CacheEntryEvent<? extends K, ? extends V> cacheEntryEvent) throws CacheEntryListenerException {
+            return true;
+        }
     }
 }

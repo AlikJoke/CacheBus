@@ -16,7 +16,7 @@ import java.util.Objects;
 
 @ThreadSafe
 @Immutable
-public final class EhCache3CacheEntryEventListener<K, V> implements CacheEventListener<K, V> {
+final class EhCache3CacheEntryEventListener<K, V> implements CacheEventListener<K, V>, net.cache.bus.core.CacheEventListener<K, V> {
 
     private final CacheBus cacheBus;
     private final String cacheName;

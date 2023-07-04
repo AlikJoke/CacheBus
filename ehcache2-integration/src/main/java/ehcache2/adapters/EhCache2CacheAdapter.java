@@ -2,8 +2,9 @@ package ehcache2.adapters;
 
 import net.cache.bus.core.Cache;
 import net.cache.bus.core.CacheAlreadyDefinedAsClusteredException;
-import net.cache.bus.core.impl.ConcurrentActionExecutor;
 import net.sf.ehcache.Element;
+import net.sf.ehcache.event.CacheEventListener;
+import net.sf.ehcache.event.NotificationScope;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -15,18 +16,18 @@ import java.util.function.Function;
 public final class EhCache2CacheAdapter implements Cache<Object, Object> {
 
     private final net.sf.ehcache.Cache cache;
-    private final ConcurrentActionExecutor concurrentActionExecutor;
 
-    public EhCache2CacheAdapter(
-            @Nonnull net.sf.ehcache.Cache cache,
-            @Nonnull ConcurrentActionExecutor concurrentActionExecutor) {
+    public EhCache2CacheAdapter(@Nonnull net.sf.ehcache.Cache cache) {
         this.cache = Objects.requireNonNull(cache, "cache");
 
         if (cache.isTerracottaClustered()) {
             throw new CacheAlreadyDefinedAsClusteredException(cache.getName());
         }
+    }
 
-        this.concurrentActionExecutor = Objects.requireNonNull(concurrentActionExecutor, "concurrentActionExecutor");
+    @Override
+    public String getName() {
+        return this.cache.getName();
     }
 
     @Nonnull
@@ -71,7 +72,8 @@ public final class EhCache2CacheAdapter implements Cache<Object, Object> {
         Objects.requireNonNull(key, "key");
         Objects.requireNonNull(value, "value");
 
-        return Objects.requireNonNull(this.concurrentActionExecutor.execute(key, () -> {
+        this.cache.acquireWriteLockOnKey(key);
+        try {
             final Optional<Object> oldValue = get(key);
             final Object newValue = oldValue.isEmpty() ? value : mergeFunction.apply(oldValue.get(), value);
             if (newValue == null) {
@@ -81,7 +83,9 @@ public final class EhCache2CacheAdapter implements Cache<Object, Object> {
             }
 
             return Optional.ofNullable(newValue);
-        }));
+        } finally {
+            this.cache.releaseWriteLockOnKey(key);
+        }
     }
 
     @Nonnull
@@ -91,7 +95,8 @@ public final class EhCache2CacheAdapter implements Cache<Object, Object> {
         Objects.requireNonNull(key, "key");
         Objects.requireNonNull(valueFunction, "valueFunction");
 
-        return Objects.requireNonNull(this.concurrentActionExecutor.execute(key, () -> {
+        this.cache.acquireWriteLockOnKey(key);
+        try {
             final Element v = this.cache.get(key);
             if (v == null || v.getObjectValue() == null) {
                 final Object newValue = valueFunction.apply(key);
@@ -102,6 +107,18 @@ public final class EhCache2CacheAdapter implements Cache<Object, Object> {
             }
 
             return Optional.ofNullable(v == null ? null : v.getObjectValue());
-        }));
+        } finally {
+            this.cache.releaseWriteLockOnKey(key);
+        }
+    }
+
+    @Override
+    public void registerEventListener(@Nonnull net.cache.bus.core.CacheEventListener<Object, Object> listener) {
+
+        if (listener instanceof CacheEventListener eventListener) {
+            this.cache.getCacheEventNotificationService().registerListener(eventListener, NotificationScope.LOCAL);
+        } else {
+            throw new ClassCastException("Cache listener implementation must implement " + CacheEventListener.class.getCanonicalName());
+        }
     }
 }
