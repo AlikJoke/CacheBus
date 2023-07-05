@@ -1,7 +1,5 @@
 package net.cache.bus.core;
 
-import net.cache.bus.core.configuration.CacheBusConfiguration;
-
 import javax.annotation.Nonnull;
 
 /**
@@ -40,21 +38,4 @@ public interface CacheBus {
             @Nonnull String cacheName,
             @Nonnull T event
     );
-
-    /**
-     * Устанавливает конфигурацию шины кэшей.
-     *
-     * @param configuration конфигурация шины кэшей, не может быть {@code null}.
-     */
-    void setConfiguration(@Nonnull CacheBusConfiguration configuration);
-
-    /**
-     * Выполняет активацию шины кэширования.
-     */
-    void start();
-
-    /**
-     * Выполняет остановку шины кэширования.
-     */
-    void stop();
 }

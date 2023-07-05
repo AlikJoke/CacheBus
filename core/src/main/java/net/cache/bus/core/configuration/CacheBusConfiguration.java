@@ -1,6 +1,6 @@
 package net.cache.bus.core.configuration;
 
-import net.cache.bus.core.CacheEventListenerFactory;
+import net.cache.bus.core.CacheEventListenerRegistrar;
 import net.cache.bus.core.CacheManager;
 import net.cache.bus.core.transport.CacheEntryEventMessageSender;
 
@@ -52,12 +52,11 @@ public interface CacheBusConfiguration {
     CacheManager cacheManager();
 
     /**
-     * Возвращает фабрику по созданию слушателей событий изменения для кэшей.
+     * Возвращает регистратор слушателей событий изменения для кэшей.
      *
      * @return не может быть {@code null}.
-     * @see CacheEventListenerFactory
-     * @see net.cache.bus.core.CacheEventListener
+     * @see CacheEventListenerRegistrar
      */
     @Nonnull
-    CacheEventListenerFactory cacheEventListenerFactory();
+    CacheEventListenerRegistrar cacheEventListenerRegistrar();
 }

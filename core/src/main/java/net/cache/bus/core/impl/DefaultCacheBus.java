@@ -1,9 +1,6 @@
 package net.cache.bus.core.impl;
 
-import net.cache.bus.core.Cache;
-import net.cache.bus.core.CacheBus;
-import net.cache.bus.core.CacheEntryEvent;
-import net.cache.bus.core.CacheEntryEventType;
+import net.cache.bus.core.*;
 import net.cache.bus.core.configuration.CacheBusConfiguration;
 import net.cache.bus.core.configuration.CacheConfiguration;
 import net.cache.bus.core.configuration.CacheTransportConfiguration;
@@ -17,7 +14,7 @@ import java.util.Optional;
 import java.util.logging.Logger;
 
 @ThreadSafe
-public final class DefaultCacheBus implements CacheBus {
+public final class DefaultCacheBus implements ExtendedCacheBus {
 
     private static final Logger logger = Logger.getLogger(DefaultCacheBus.class.getCanonicalName());
     private static final ThreadLocal<Boolean> locked = new ThreadLocal<>();
@@ -60,7 +57,6 @@ public final class DefaultCacheBus implements CacheBus {
 
     @Override
     public void setConfiguration(@Nonnull CacheBusConfiguration configuration) {
-
         if (this.started) {
             throw new IllegalStateException("Changing of configuration is forbidden in active state");
         }
@@ -69,17 +65,28 @@ public final class DefaultCacheBus implements CacheBus {
     }
 
     @Override
-    public void start() {
+    @Nonnull
+    public CacheBusConfiguration getConfiguration() {
+        if (!this.started) {
+            throw new IllegalStateException("CacheBus must be in started state");
+        }
+
+        return this.configuration;
+    }
+
+    @Override
+    public synchronized void start() {
 
         if (this.configuration == null) {
             throw new IllegalStateException("Activation of bus is forbidden while configuration is not set");
         }
-        // TODO инициализация
+
+        initialize();
         this.started = true;
     }
 
     @Override
-    public void stop() {
+    public synchronized void stop() {
         this.started = false;
     }
 
@@ -137,5 +144,17 @@ public final class DefaultCacheBus implements CacheBus {
                 .transportConfiguration()
                 .getSourceConfigurationByEndpointName(endpoint)
                 .map(sourceConfig -> sourceConfig.deserializer().deserialize(event));
+    }
+
+    private void initialize() {
+
+        final CacheManager cacheManager = this.configuration.cacheManager();
+        final CacheEventListenerRegistrar cacheEventListenerRegistrar = this.configuration.cacheEventListenerRegistrar();
+        this.configuration.cacheConfigurations()
+                .stream()
+                .map(CacheConfiguration::cacheName)
+                .map(cacheManager::getCache)
+                .flatMap(Optional::stream)
+                .forEach(cacheEventListenerRegistrar::registerFor);
     }
 }

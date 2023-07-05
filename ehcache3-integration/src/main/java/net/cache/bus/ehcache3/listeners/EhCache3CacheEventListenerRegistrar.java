@@ -3,7 +3,7 @@ package net.cache.bus.ehcache3.listeners;
 import net.cache.bus.core.Cache;
 import net.cache.bus.core.CacheBus;
 import net.cache.bus.core.CacheEventListener;
-import net.cache.bus.core.CacheEventListenerFactory;
+import net.cache.bus.core.CacheEventListenerRegistrar;
 
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.Immutable;
@@ -12,17 +12,17 @@ import java.util.Objects;
 
 @ThreadSafe
 @Immutable
-public final class EhCache3CacheEventListenerFactory implements CacheEventListenerFactory {
+public final class EhCache3CacheEventListenerRegistrar implements CacheEventListenerRegistrar {
 
     private final CacheBus cacheBus;
 
-    public EhCache3CacheEventListenerFactory(@Nonnull CacheBus cacheBus) {
+    public EhCache3CacheEventListenerRegistrar(@Nonnull CacheBus cacheBus) {
         this.cacheBus = Objects.requireNonNull(cacheBus, "cacheBus");
     }
 
-    @Nonnull
     @Override
-    public <K, V> CacheEventListener<K, V> create(@Nonnull Cache<K, V> cache) {
-        return new EhCache3CacheEntryEventListener<>(this.cacheBus, cache.getName());
+    public <K, V> void registerFor(@Nonnull Cache<K, V> cache) {
+        final CacheEventListener<K, V> listener = new EhCache3CacheEntryEventListener<>(this.cacheBus, cache.getName());
+        cache.registerEventListener(listener);
     }
 }
