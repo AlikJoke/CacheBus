@@ -11,7 +11,7 @@
         <relativePath/>
     </parent>
     <artifactId>jms-connector</artifactId>
-    <name>JMS Transport Connector</name>
+    <name>CacheBus JMS Transport Connector</name>
     <description>Connector to JMS implementation of transport</description>
 
     <dependencies>
@@ -20,6 +20,12 @@
             <artifactId>javax.jms-api</artifactId>
             <version>2.0.1</version>
             <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>net.cache-bus</groupId>
+            <artifactId>transport-addons</artifactId>
+            <version>${project.version}</version>
         </dependency>
 
         <dependency>

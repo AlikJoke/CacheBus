@@ -9,21 +9,17 @@ import javax.annotation.Nonnull;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.ThreadSafe;
 import java.io.Serializable;
-import java.util.Objects;
 
 @ThreadSafe
 @Immutable
 public final class EhCache3CacheEventListenerRegistrar implements CacheEventListenerRegistrar {
 
-    private final CacheBus cacheBus;
-
-    public EhCache3CacheEventListenerRegistrar(@Nonnull CacheBus cacheBus) {
-        this.cacheBus = Objects.requireNonNull(cacheBus, "cacheBus");
-    }
-
     @Override
-    public <K extends Serializable, V extends Serializable> void registerFor(@Nonnull Cache<K, V> cache) {
-        final CacheEventListener<K, V> listener = new EhCache3CacheEntryEventListener<>(this.cacheBus, cache.getName());
+    public <K extends Serializable, V extends Serializable> void registerFor(
+            @Nonnull CacheBus cacheBus,
+            @Nonnull Cache<K, V> cache) {
+
+        final CacheEventListener<K, V> listener = new EhCache3CacheEntryEventListener<>(cacheBus, cache.getName());
         cache.registerEventListener(listener);
     }
 }

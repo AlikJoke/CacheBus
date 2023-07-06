@@ -1,22 +1,18 @@
 package net.cache.bus.core.impl;
 
 import net.cache.bus.core.*;
-import net.cache.bus.core.configuration.CacheBusConfiguration;
-import net.cache.bus.core.configuration.CacheBusTransportConfiguration;
-import net.cache.bus.core.configuration.CacheConfiguration;
-import net.cache.bus.core.configuration.CacheType;
+import net.cache.bus.core.configuration.*;
+import net.cache.bus.core.transport.CacheBusMessageChannel;
 import net.cache.bus.core.transport.CacheEntryEventDeserializer;
-import net.cache.bus.core.transport.CacheEntryEventMessageSender;
 import net.cache.bus.core.transport.CacheEntryEventSerializer;
 import net.cache.bus.core.transport.CacheEntryOutputMessage;
 
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.ThreadSafe;
 import java.io.Serializable;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 @ThreadSafe
@@ -25,14 +21,11 @@ public final class DefaultCacheBus implements ExtendedCacheBus {
     private static final Logger logger = Logger.getLogger(DefaultCacheBus.class.getCanonicalName());
     private static final ThreadLocal<Boolean> locked = new ThreadLocal<>();
 
-    private final String hostName;
-
-    private CacheBusConfiguration configuration;
+    private final CacheBusConfiguration configuration;
     private volatile boolean started;
 
     public DefaultCacheBus(@Nonnull CacheBusConfiguration configuration) {
-        setConfiguration(configuration);
-        this.hostName = resolveHostName();
+        this.configuration = Objects.requireNonNull(configuration, "configuration");
     }
 
     @Override
@@ -56,17 +49,17 @@ public final class DefaultCacheBus implements ExtendedCacheBus {
         }
 
         final CacheEntryEvent<Serializable, Serializable> event = convertFromSerializedEvent(binaryEventData);
+        if (event == null) {
+            return;
+        }
+
         this.configuration.getCacheConfigurationByName(event.cacheName())
                             .ifPresent(cacheConfiguration -> applyEvent(event, cacheConfiguration));
     }
 
     @Override
     public void setConfiguration(@Nonnull CacheBusConfiguration configuration) {
-        if (this.started) {
-            throw new IllegalStateException("Changing of configuration is forbidden in active state");
-        }
-
-        this.configuration = Objects.requireNonNull(configuration, "configuration");
+        throw new UnsupportedOperationException("Configuration can be set only via constructor in this implementation of CacheBus");
     }
 
     @Override
@@ -81,17 +74,18 @@ public final class DefaultCacheBus implements ExtendedCacheBus {
 
     @Override
     public synchronized void start() {
-
-        if (this.configuration == null) {
-            throw new IllegalStateException("Activation of bus is forbidden while configuration is not set");
-        }
-
-        initialize();
+        initializeCacheEventListeners();
         this.started = true;
+        initializeInputMessageChannelSubscriber();
     }
 
     @Override
     public synchronized void stop() {
+        final CacheBusTransportConfiguration transportConfiguration = this.configuration.transportConfiguration();
+        final CacheBusMessageChannel<CacheBusMessageChannelConfiguration> messageChannel = transportConfiguration.messageChannel();
+
+        messageChannel.unsubscribe();
+
         this.started = false;
     }
 
@@ -99,15 +93,15 @@ public final class DefaultCacheBus implements ExtendedCacheBus {
 
         final CacheBusTransportConfiguration transportConfiguration = this.configuration.transportConfiguration();
 
-        logger.fine(() -> "Event %s will be sent to %s".formatted(event, transportConfiguration.targetEndpoint()));
+        logger.fine(() -> "Event %s will be sent to endpoint".formatted(event));
 
         final CacheEntryEventSerializer serializer = transportConfiguration.serializer();
         final byte[] binaryEventData = serializer.serialize(event, cacheConfiguration.cacheType().serializeValueFields());
 
-        final CacheEntryOutputMessage outputMessage = new ImmutableCacheEntryOutputMessage(event, binaryEventData, this.hostName);
-        final CacheEntryEventMessageSender sender = transportConfiguration.messageSender();
+        final CacheEntryOutputMessage outputMessage = new ImmutableCacheEntryOutputMessage(event, binaryEventData);
+        final CacheBusMessageChannel<CacheBusMessageChannelConfiguration> messageChannel = transportConfiguration.messageChannel();
 
-        sender.send(outputMessage, transportConfiguration.targetEndpoint());
+        messageChannel.send(outputMessage);
     }
 
     private boolean needToSendEvent(final CacheConfiguration cacheConfiguration, final CacheEntryEventType eventType) {
@@ -134,6 +128,9 @@ public final class DefaultCacheBus implements ExtendedCacheBus {
                 case INVALIDATED -> event.applyToInvalidatedCache(cache);
                 case REPLICATED -> event.applyToReplicatedCache(cache);
             }
+        } catch (RuntimeException ex) {
+            // If we fail then remove value from cache by key and ack receiving of message
+            event.applyToInvalidatedCache(cache);
         } finally {
             locked.remove();
         }
@@ -143,19 +140,19 @@ public final class DefaultCacheBus implements ExtendedCacheBus {
 
         final CacheBusTransportConfiguration transportConfiguration = this.configuration.transportConfiguration();
         final CacheEntryEventDeserializer deserializer = transportConfiguration.deserializer();
-        return deserializer.deserialize(binaryEventData);
-    }
-
-    private String resolveHostName() {
         try {
-            return InetAddress.getLocalHost().getHostName().toLowerCase();
-        } catch (UnknownHostException e) {
-            throw new RuntimeException(e);
+            return deserializer.deserialize(binaryEventData);
+        } catch (RuntimeException ex) {
+            logger.log(Level.WARNING, "Unable to deserialize message", ex);
+            return null;
         }
     }
 
-    private void initialize() {
+    private void initializeCacheEventListeners() {
 
+        /*
+         * Регистрируем подписчиков на кэшах
+         */
         final CacheManager cacheManager = this.configuration.cacheManager();
         final CacheEventListenerRegistrar cacheEventListenerRegistrar = this.configuration.cacheEventListenerRegistrar();
         this.configuration.cacheConfigurations()
@@ -163,6 +160,18 @@ public final class DefaultCacheBus implements ExtendedCacheBus {
                 .map(CacheConfiguration::cacheName)
                 .map(cacheManager::getCache)
                 .flatMap(Optional::stream)
-                .forEach(cacheEventListenerRegistrar::registerFor);
+                .forEach(cache -> cacheEventListenerRegistrar.registerFor(this, cache));
+    }
+
+    private void initializeInputMessageChannelSubscriber() {
+
+        /*
+         * Активируем канал сообщений и подписываемся на входящий поток сообщений об изменениях элементов кэшей
+         */
+        final CacheBusTransportConfiguration transportConfiguration = this.configuration.transportConfiguration();
+        final CacheBusMessageChannel<CacheBusMessageChannelConfiguration> channel = transportConfiguration.messageChannel();
+
+        channel.activate(transportConfiguration.messageChannelConfiguration());
+        channel.subscribe(this::receive);
     }
 }

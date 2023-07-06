@@ -30,14 +30,6 @@ public interface CacheEntryOutputMessage {
     CacheEntryEventType eventType();
 
     /**
-     * Возвращает имя хоста, на котором произошло изменение.
-     *
-     * @return не может быть {@code null}.
-     */
-    @Nonnull
-    String hostName();
-
-    /**
      * Возвращает бинарное представление события об изменении элемента кэша
      *
      * @return не может быть {@code null}.

@@ -1,7 +1,7 @@
 package net.cache.bus.core.configuration;
 
 import net.cache.bus.core.transport.CacheEntryEventDeserializer;
-import net.cache.bus.core.transport.CacheEntryEventMessageSender;
+import net.cache.bus.core.transport.CacheBusMessageChannel;
 import net.cache.bus.core.transport.CacheEntryEventSerializer;
 
 import javax.annotation.Nonnull;
@@ -13,16 +13,9 @@ import javax.annotation.Nonnull;
  * @see CacheEntryEventSerializer
  * @see CacheEntryEventDeserializer
  * @see CacheBusConfiguration
+ * @see CacheBusMessageChannel
  */
 public interface CacheBusTransportConfiguration {
-
-    /**
-     * Возвращает имя конечной точки для отправки данных об изменениях элементов кэша.
-     *
-     * @return не может быть {@code null}.
-     */
-    @Nonnull
-    String targetEndpoint();
 
     /**
      * Возвращает сериализатор для формирования "транспортного" представления события об изменении элемента кэша.
@@ -32,14 +25,6 @@ public interface CacheBusTransportConfiguration {
      */
     @Nonnull
     CacheEntryEventSerializer serializer();
-
-    /**
-     * Возвращает имя конечной точки для получения данных об изменениях элементов кэша.
-     *
-     * @return не может быть {@code null}.
-     */
-    @Nonnull
-    String sourceEndpoint();
 
     /**
      * Возвращает десериализатор для формирования объекта {@link net.cache.bus.core.CacheEntryEvent} из
@@ -52,10 +37,20 @@ public interface CacheBusTransportConfiguration {
     CacheEntryEventDeserializer deserializer();
 
     /**
-     * Возвращает отправителя сообщений, используемого для шины кэшей.
+     * Возвращает канал сообщений, используемый для взаимодействия с другими серверами.
      *
-     * @return отправитель сообщений, не может быть {@code null}.
+     * @return канал сообщений, не может быть {@code null}.
+     * @see CacheBusMessageChannel
      */
     @Nonnull
-    CacheEntryEventMessageSender messageSender();
+    CacheBusMessageChannel<CacheBusMessageChannelConfiguration> messageChannel();
+
+    /**
+     * Возвращает конфигурацию канала сообщений шины кэшей.
+     *
+     * @return не может быть {@code null}.
+     * @see CacheBusMessageChannelConfiguration
+     */
+    @Nonnull
+    CacheBusMessageChannelConfiguration messageChannelConfiguration();
 }

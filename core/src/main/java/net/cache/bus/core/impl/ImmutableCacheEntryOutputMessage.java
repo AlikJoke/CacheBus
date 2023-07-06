@@ -10,17 +10,14 @@ final class ImmutableCacheEntryOutputMessage implements CacheEntryOutputMessage 
 
     private final String cacheName;
     private final CacheEntryEventType eventType;
-    private final String hostName;
     private final byte[] messageBody;
 
     public ImmutableCacheEntryOutputMessage(
             @Nonnull final CacheEntryEvent<?, ?> sourceEvent,
-            @Nonnull final byte[] messageBody,
-            @Nonnull final String hostName) {
+            @Nonnull final byte[] messageBody) {
         this.cacheName = sourceEvent.cacheName();
         this.eventType = sourceEvent.eventType();
         this.messageBody = messageBody;
-        this.hostName = hostName;
     }
 
     @Nonnull
@@ -33,12 +30,6 @@ final class ImmutableCacheEntryOutputMessage implements CacheEntryOutputMessage 
     @Override
     public CacheEntryEventType eventType() {
         return this.eventType;
-    }
-
-    @Nonnull
-    @Override
-    public String hostName() {
-        return this.hostName;
     }
 
     @Nonnull
