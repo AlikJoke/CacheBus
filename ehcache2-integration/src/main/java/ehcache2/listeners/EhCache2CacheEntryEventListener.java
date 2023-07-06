@@ -13,12 +13,13 @@ import net.sf.ehcache.event.CacheEventListenerAdapter;
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.ThreadSafe;
+import java.io.Serializable;
 import java.time.Instant;
 import java.util.Objects;
 
 @ThreadSafe
 @Immutable
-final class EhCache2CacheEntryEventListener<K, V> extends CacheEventListenerAdapter implements CacheEventListener<K, V> {
+final class EhCache2CacheEntryEventListener<K extends Serializable, V extends Serializable> extends CacheEventListenerAdapter implements CacheEventListener<K, V> {
 
     private final CacheBus cacheBus;
 
@@ -33,10 +34,12 @@ final class EhCache2CacheEntryEventListener<K, V> extends CacheEventListenerAdap
 
     @Override
     public void notifyElementPut(@Nonnull Ehcache cache, @Nonnull Element element) throws CacheException {
-        final CacheEntryEvent<?, ?> event = composeCacheEntryEvent(
-                element.getObjectKey(),
+        @SuppressWarnings("unchecked")
+        final V newVal = (V) element.getObjectValue();
+        final CacheEntryEvent<?, V> event = composeCacheEntryEvent(
+                (Serializable) element.getObjectKey(),
                 null,
-                element.getObjectValue(),
+                newVal,
                 CacheEntryEventType.ADDED,
                 cache.getName()
         );
@@ -45,10 +48,12 @@ final class EhCache2CacheEntryEventListener<K, V> extends CacheEventListenerAdap
 
     @Override
     public void notifyElementUpdated(@Nonnull Ehcache cache, @Nonnull Element element) throws CacheException {
-        final CacheEntryEvent<?, ?> event = composeCacheEntryEvent(
-                element.getObjectKey(),
+        @SuppressWarnings("unchecked")
+        final V newVal = (V) element.getObjectValue();
+        final CacheEntryEvent<?, V> event = composeCacheEntryEvent(
+                (Serializable) element.getObjectKey(),
                 null,
-                element.getObjectValue(),
+                newVal,
                 CacheEntryEventType.UPDATED,
                 cache.getName()
         );
@@ -57,9 +62,11 @@ final class EhCache2CacheEntryEventListener<K, V> extends CacheEventListenerAdap
 
     @Override
     public void notifyElementExpired(@Nonnull Ehcache cache, @Nonnull Element element) {
-        final CacheEntryEvent<?, ?> event = composeCacheEntryEvent(
-                element.getObjectKey(),
-                element.getObjectValue(),
+        @SuppressWarnings("unchecked")
+        final V oldVal = (V) element.getObjectValue();
+        final CacheEntryEvent<?, V> event = composeCacheEntryEvent(
+                (Serializable) element.getObjectKey(),
+                oldVal,
                 null,
                 CacheEntryEventType.EXPIRED,
                 cache.getName()
@@ -69,9 +76,11 @@ final class EhCache2CacheEntryEventListener<K, V> extends CacheEventListenerAdap
 
     @Override
     public void notifyElementEvicted(@Nonnull Ehcache cache, @Nonnull Element element) {
-        final CacheEntryEvent<?, ?> event = composeCacheEntryEvent(
-                element.getObjectKey(),
-                element.getObjectValue(),
+        @SuppressWarnings("unchecked")
+        final V oldVal = (V) element.getObjectValue();
+        final CacheEntryEvent<?, V> event = composeCacheEntryEvent(
+                (Serializable) element.getObjectKey(),
+                oldVal,
                 null,
                 CacheEntryEventType.EVICTED,
                 cache.getName()
@@ -81,7 +90,7 @@ final class EhCache2CacheEntryEventListener<K, V> extends CacheEventListenerAdap
 
     @Override
     public void notifyRemoveAll(@Nonnull Ehcache cache) {
-        final CacheEntryEvent<?, ?> event = composeCacheEntryEvent(
+        final CacheEntryEvent<?, V> event = composeCacheEntryEvent(
                 CacheEntryEvent.ALL_ENTRIES_KEY,
                 null,
                 null,
@@ -91,10 +100,10 @@ final class EhCache2CacheEntryEventListener<K, V> extends CacheEventListenerAdap
         this.cacheBus.send(event);
     }
 
-    private CacheEntryEvent<?, ?> composeCacheEntryEvent(
-            final Object key,
-            final Object oldValue,
-            final Object newValue,
+    private CacheEntryEvent<Serializable, V> composeCacheEntryEvent(
+            final Serializable key,
+            final V oldValue,
+            final V newValue,
             final CacheEntryEventType eventType,
             final String cacheName) {
 

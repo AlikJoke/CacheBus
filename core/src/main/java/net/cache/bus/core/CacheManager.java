@@ -1,6 +1,7 @@
 package net.cache.bus.core;
 
 import javax.annotation.Nonnull;
+import java.io.Serializable;
 import java.util.Optional;
 
 /**
@@ -34,5 +35,5 @@ public interface CacheManager {
      * @see Cache
      */
     @Nonnull
-    <K, V> Optional<Cache<K, V>> getCache(@Nonnull String cacheName);
+    <K extends Serializable, V extends Serializable> Optional<Cache<K, V>> getCache(@Nonnull String cacheName);
 }

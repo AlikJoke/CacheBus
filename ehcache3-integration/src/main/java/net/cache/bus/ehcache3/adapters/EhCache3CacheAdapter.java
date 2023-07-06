@@ -8,13 +8,14 @@ import org.ehcache.event.EventType;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.io.Serializable;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
-public final class EhCache3CacheAdapter<K, V> implements Cache<K, V> {
+public final class EhCache3CacheAdapter<K extends Serializable, V extends Serializable> implements Cache<K, V> {
 
     private final org.ehcache.Cache<K, V> cache;
     private final String name;
@@ -63,9 +64,8 @@ public final class EhCache3CacheAdapter<K, V> implements Cache<K, V> {
         this.cache.clear();
     }
 
-    @Nonnull
     @Override
-    public Optional<V> merge(@Nonnull K key, @Nonnull V value, @Nonnull BiFunction<? super V, ? super V, ? extends V> mergeFunction) {
+    public void merge(@Nonnull K key, @Nonnull V value, @Nonnull BiFunction<? super V, ? super V, ? extends V> mergeFunction) {
 
         Objects.requireNonNull(mergeFunction, "mergeFunction");
         Objects.requireNonNull(key, "key");
@@ -81,7 +81,6 @@ public final class EhCache3CacheAdapter<K, V> implements Cache<K, V> {
             this.cache.replace(key, oldValue.get(), newValue);
         }
 
-        return Optional.ofNullable(newValue);
     }
 
     @Nonnull

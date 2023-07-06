@@ -9,12 +9,13 @@ import javax.annotation.Nonnull;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.ThreadSafe;
 import javax.cache.event.*;
+import java.io.Serializable;
 import java.time.Instant;
 import java.util.Objects;
 
 @ThreadSafe
 @Immutable
-final class JSR107CacheEntryEventListener<K, V>
+final class JSR107CacheEntryEventListener<K extends Serializable, V extends Serializable>
         implements CacheEntryCreatedListener<K, V>, CacheEntryUpdatedListener<K, V>,
         CacheEntryExpiredListener<K, V>, CacheEntryRemovedListener<K, V>, CacheEventListener<K, V> {
 

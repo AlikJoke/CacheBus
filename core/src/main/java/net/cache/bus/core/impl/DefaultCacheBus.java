@@ -2,13 +2,19 @@ package net.cache.bus.core.impl;
 
 import net.cache.bus.core.*;
 import net.cache.bus.core.configuration.CacheBusConfiguration;
+import net.cache.bus.core.configuration.CacheBusTransportConfiguration;
 import net.cache.bus.core.configuration.CacheConfiguration;
-import net.cache.bus.core.configuration.CacheTransportConfiguration;
 import net.cache.bus.core.configuration.CacheType;
+import net.cache.bus.core.transport.CacheEntryEventDeserializer;
 import net.cache.bus.core.transport.CacheEntryEventMessageSender;
+import net.cache.bus.core.transport.CacheEntryEventSerializer;
+import net.cache.bus.core.transport.CacheEntryOutputMessage;
 
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.ThreadSafe;
+import java.io.Serializable;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.logging.Logger;
@@ -19,15 +25,18 @@ public final class DefaultCacheBus implements ExtendedCacheBus {
     private static final Logger logger = Logger.getLogger(DefaultCacheBus.class.getCanonicalName());
     private static final ThreadLocal<Boolean> locked = new ThreadLocal<>();
 
+    private final String hostName;
+
     private CacheBusConfiguration configuration;
     private volatile boolean started;
 
     public DefaultCacheBus(@Nonnull CacheBusConfiguration configuration) {
         setConfiguration(configuration);
+        this.hostName = resolveHostName();
     }
 
     @Override
-    public <K, V> void send(@Nonnull CacheEntryEvent<K, V> event) {
+    public <K extends Serializable, V extends Serializable> void send(@Nonnull CacheEntryEvent<K, V> event) {
         // To prevent calls from the receiving execution thread
         if (!this.started || locked.get() != null && locked.get()) {
             return;
@@ -36,23 +45,19 @@ public final class DefaultCacheBus implements ExtendedCacheBus {
         final Optional<CacheConfiguration> cacheConfiguration = this.configuration.getCacheConfigurationByName(event.cacheName());
         cacheConfiguration
                 .filter(cacheConfig -> needToSendEvent(cacheConfig, event.eventType()))
-                .ifPresent(cacheConfig -> sendToEndpoints(cacheConfig, event));
+                .ifPresent(cacheConfig -> sendToEndpoint(cacheConfig, event));
     }
 
     @Override
-    public <T> void receive(
-            @Nonnull String endpoint,
-            @Nonnull String cacheName,
-            @Nonnull T event) {
+    public void receive(@Nonnull byte[] binaryEventData) {
 
         if (!this.started) {
             return;
         }
 
-        final Optional<CacheConfiguration> cacheConfiguration = this.configuration.getCacheConfigurationByName(cacheName);
-        cacheConfiguration
-                .flatMap(cacheConfig -> convertFromSerializedEvent(cacheConfig, endpoint, event))
-                .ifPresent(cacheEvent -> applyEvent(cacheEvent, cacheConfiguration.get()));
+        final CacheEntryEvent<Serializable, Serializable> event = convertFromSerializedEvent(binaryEventData);
+        this.configuration.getCacheConfigurationByName(event.cacheName())
+                            .ifPresent(cacheConfiguration -> applyEvent(event, cacheConfiguration));
     }
 
     @Override
@@ -90,36 +95,35 @@ public final class DefaultCacheBus implements ExtendedCacheBus {
         this.started = false;
     }
 
-    private void sendToEndpoints(final CacheConfiguration cacheConfig, final CacheEntryEvent<?, ?> event) {
+    private void sendToEndpoint(final CacheConfiguration cacheConfiguration, final CacheEntryEvent<?, ?> event) {
 
-        final CacheEntryEventMessageSender messageSender = this.configuration.messageSender();
-        final CacheTransportConfiguration transportConfiguration = cacheConfig.transportConfiguration();
+        final CacheBusTransportConfiguration transportConfiguration = this.configuration.transportConfiguration();
 
-        transportConfiguration
-                .targetConfigurations()
-                .forEach(targetConfig -> {
+        logger.fine(() -> "Event %s will be sent to %s".formatted(event, transportConfiguration.targetEndpoint()));
 
-                    logger.fine(() -> "Event %s will be sent to %s".formatted(event.toString(), targetConfig.endpoint()));
+        final CacheEntryEventSerializer serializer = transportConfiguration.serializer();
+        final byte[] binaryEventData = serializer.serialize(event, cacheConfiguration.cacheType().serializeValueFields());
 
-                    final Object serializedEvent = targetConfig.serializer().serialize(event);
-                    messageSender.send(serializedEvent, targetConfig.endpoint());
-                });
+        final CacheEntryOutputMessage outputMessage = new ImmutableCacheEntryOutputMessage(event, binaryEventData, this.hostName);
+        final CacheEntryEventMessageSender sender = transportConfiguration.messageSender();
+
+        sender.send(outputMessage, transportConfiguration.targetEndpoint());
     }
 
     private boolean needToSendEvent(final CacheConfiguration cacheConfiguration, final CacheEntryEventType eventType) {
         return eventType != CacheEntryEventType.EVICTED && eventType != CacheEntryEventType.ADDED || cacheConfiguration.cacheType() != CacheType.INVALIDATED;
     }
 
-    private void applyEvent(final CacheEntryEvent<Object, Object> event, final CacheConfiguration configuration) {
+    private void applyEvent(final CacheEntryEvent<Serializable, Serializable> event, final CacheConfiguration cacheConfiguration) {
 
-        final Optional<Cache<Object, Object>> cache = this.configuration.cacheManager().getCache(event.cacheName());
-        cache.ifPresent(c -> processEvent(configuration.cacheType(), c, event));
+        final Optional<Cache<Serializable, Serializable>> cache = this.configuration.cacheManager().getCache(event.cacheName());
+        cache.ifPresent(c -> processEvent(cacheConfiguration.cacheType(), c, event));
     }
 
     private void processEvent(
             final CacheType cacheType,
-            final Cache<Object, Object> cache,
-            final CacheEntryEvent<Object, Object> event) {
+            final Cache<Serializable, Serializable> cache,
+            final CacheEntryEvent<Serializable, Serializable> event) {
 
         logger.fine(() -> "Process event %s with cacheType %s".formatted(event.toString(), cacheType.name()));
 
@@ -135,15 +139,19 @@ public final class DefaultCacheBus implements ExtendedCacheBus {
         }
     }
 
-    private Optional<CacheEntryEvent<Object, Object>> convertFromSerializedEvent(
-            final CacheConfiguration cacheConfiguration,
-            final String endpoint,
-            final Object event) {
+    private CacheEntryEvent<Serializable, Serializable> convertFromSerializedEvent(final byte[] binaryEventData) {
 
-        return cacheConfiguration
-                .transportConfiguration()
-                .getSourceConfigurationByEndpointName(endpoint)
-                .map(sourceConfig -> sourceConfig.deserializer().deserialize(event));
+        final CacheBusTransportConfiguration transportConfiguration = this.configuration.transportConfiguration();
+        final CacheEntryEventDeserializer deserializer = transportConfiguration.deserializer();
+        return deserializer.deserialize(binaryEventData);
+    }
+
+    private String resolveHostName() {
+        try {
+            return InetAddress.getLocalHost().getHostName().toLowerCase();
+        } catch (UnknownHostException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private void initialize() {

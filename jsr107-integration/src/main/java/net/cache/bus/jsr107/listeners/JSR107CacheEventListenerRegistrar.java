@@ -6,6 +6,7 @@ import net.cache.bus.core.CacheEventListener;
 import net.cache.bus.core.CacheEventListenerRegistrar;
 
 import javax.annotation.Nonnull;
+import java.io.Serializable;
 import java.util.Objects;
 
 public final class JSR107CacheEventListenerRegistrar implements CacheEventListenerRegistrar {
@@ -17,7 +18,7 @@ public final class JSR107CacheEventListenerRegistrar implements CacheEventListen
     }
 
     @Override
-    public <K, V> void registerFor(@Nonnull Cache<K, V> cache) {
+    public <K extends Serializable, V extends Serializable> void registerFor(@Nonnull Cache<K, V> cache) {
         final CacheEventListener<K, V> listener = new JSR107CacheEntryEventListener<>(this.cacheBus);
         cache.registerEventListener(listener);
     }

@@ -8,6 +8,7 @@ import net.cache.bus.core.CacheEventListenerRegistrar;
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.ThreadSafe;
+import java.io.Serializable;
 import java.util.Objects;
 
 @ThreadSafe
@@ -21,7 +22,7 @@ public final class EhCache3CacheEventListenerRegistrar implements CacheEventList
     }
 
     @Override
-    public <K, V> void registerFor(@Nonnull Cache<K, V> cache) {
+    public <K extends Serializable, V extends Serializable> void registerFor(@Nonnull Cache<K, V> cache) {
         final CacheEventListener<K, V> listener = new EhCache3CacheEntryEventListener<>(this.cacheBus, cache.getName());
         cache.registerEventListener(listener);
     }

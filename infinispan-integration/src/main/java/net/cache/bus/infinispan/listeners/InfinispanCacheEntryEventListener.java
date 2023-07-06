@@ -9,11 +9,12 @@ import org.infinispan.notifications.cachelistener.annotation.*;
 import org.infinispan.notifications.cachelistener.event.*;
 
 import javax.annotation.Nonnull;
+import java.io.Serializable;
 import java.time.Instant;
 import java.util.Objects;
 
 @Listener
-final class InfinispanCacheEntryEventListener<K, V> implements CacheEventListener<K, V> {
+final class InfinispanCacheEntryEventListener<K extends Serializable, V extends Serializable> implements CacheEventListener<K, V> {
 
     private final CacheBus cacheBus;
 

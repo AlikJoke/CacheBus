@@ -10,10 +10,25 @@ public enum CacheType {
     /**
      * Инвалидационный кэш
      */
-    INVALIDATED,
+    INVALIDATED(false),
 
     /**
      * Реплицируемый кэш
      */
-    REPLICATED
+    REPLICATED(true);
+
+    private final boolean serializeValueFields;
+
+    CacheType(final boolean serializeValueFields) {
+        this.serializeValueFields = serializeValueFields;
+    }
+
+    /**
+     * Возвращает признак, нужно ли сериализовывать поля с новым и старым значением элемента кэша.
+     *
+     * @return признак, нужно ли сериализовывать поля с новым и старым значением элемента кэша.
+     */
+    public boolean serializeValueFields() {
+        return this.serializeValueFields;
+    }
 }

@@ -2,7 +2,6 @@ package net.cache.bus.core.configuration;
 
 import net.cache.bus.core.CacheEventListenerRegistrar;
 import net.cache.bus.core.CacheManager;
-import net.cache.bus.core.transport.CacheEntryEventMessageSender;
 
 import javax.annotation.Nonnull;
 import java.util.Optional;
@@ -13,7 +12,7 @@ import java.util.Set;
  *
  * @author Alik
  * @see CacheConfiguration
- * @see CacheTransportConfiguration
+ * @see CacheBusTransportConfiguration
  */
 public interface CacheBusConfiguration {
 
@@ -35,12 +34,13 @@ public interface CacheBusConfiguration {
     Optional<CacheConfiguration> getCacheConfigurationByName(@Nonnull String cacheName);
 
     /**
-     * Возвращает отправителя сообщений, используемого для шины кэшей.
+     * Возвращает конфигурацию транспорта для данной шины кэшей.
      *
-     * @return отправитель сообщений, не может быть {@code null}.
+     * @return конфигурацию транспорта, не может быть {@code null}.
+     * @see CacheBusTransportConfiguration
      */
     @Nonnull
-    CacheEntryEventMessageSender messageSender();
+    CacheBusTransportConfiguration transportConfiguration();
 
     /**
      * Возвращает менеджер кэшей.

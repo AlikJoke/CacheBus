@@ -8,12 +8,13 @@ import org.infinispan.configuration.cache.Configuration;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.io.Serializable;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
-public final class InfinispanCacheAdapter<K, V> implements Cache<K, V> {
+public final class InfinispanCacheAdapter<K extends Serializable, V extends Serializable> implements Cache<K, V> {
 
     private final org.infinispan.Cache<K, V> cache;
 
@@ -63,10 +64,9 @@ public final class InfinispanCacheAdapter<K, V> implements Cache<K, V> {
         this.cache.clear();
     }
 
-    @Nonnull
     @Override
-    public Optional<V> merge(@Nonnull K key, @Nonnull V value, @Nonnull BiFunction<? super V, ? super V, ? extends V> mergeFunction) {
-        return Optional.ofNullable(this.cache.merge(key, value, mergeFunction));
+    public void merge(@Nonnull K key, @Nonnull V value, @Nonnull BiFunction<? super V, ? super V, ? extends V> mergeFunction) {
+        this.cache.merge(key, value, mergeFunction);
     }
 
     @Nonnull

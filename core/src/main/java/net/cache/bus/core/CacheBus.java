@@ -1,6 +1,7 @@
 package net.cache.bus.core;
 
 import javax.annotation.Nonnull;
+import java.io.Serializable;
 
 /**
  * Базовая абстракция шины изменений в кэше, выполняющей распространение событий по серверам.
@@ -22,20 +23,13 @@ public interface CacheBus {
      * @param <K>   тип ключа кэша
      * @param <V>   тип значения кэша
      */
-    <K, V> void send(@Nonnull CacheEntryEvent<K, V> event);
+    <K extends Serializable, V extends Serializable> void send(@Nonnull CacheEntryEvent<K, V> event);
 
     /**
-     * Выполняет получение сериализованного представления события об изменении элемента кэша с других серверов
+     * Выполняет получение сериализованного бинарного представления события об изменении элемента кэша с других серверов
      * и применяет его к локальному кэшу.
      *
-     * @param sourceEndpoint конечная точка, откуда было получено событие об изменении элемента кэша, не может быть {@code null}.
-     * @param cacheName      имя удаленного кэша, в котором произошло изменение, не может быть {@code null}.
-     * @param event          сериализованное представление события изменения элемента удаленного кэша, не может быть {@code null}.
-     * @param <T>            тип сериализованного представления события изменения элемента кэша
+     * @param binaryEventData сериализованное бинарное представление события изменения элемента удаленного кэша, не может быть {@code null}.
      */
-    <T> void receive(
-            @Nonnull String sourceEndpoint,
-            @Nonnull String cacheName,
-            @Nonnull T event
-    );
+    void receive(@Nonnull byte[] binaryEventData);
 }

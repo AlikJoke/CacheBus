@@ -7,12 +7,13 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.ThreadSafe;
+import java.io.Serializable;
 import java.time.Instant;
 import java.util.Objects;
 
 @Immutable
 @ThreadSafe
-public record ImmutableCacheEntryEvent<K, V>(
+public record ImmutableCacheEntryEvent<K extends Serializable, V extends Serializable>(
         @Nonnull K key,
         @Nullable V oldValue,
         @Nullable V newValue,

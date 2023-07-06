@@ -12,6 +12,7 @@
         <module>ehcache2-integration</module>
         <module>jsr107-integration</module>
         <module>infinispan-integration</module>
+        <module>jms-connector</module>
     </modules>
 
     <properties>

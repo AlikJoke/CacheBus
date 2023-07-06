@@ -3,6 +3,7 @@ package net.cache.bus.core;
 import javax.annotation.CheckReturnValue;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.io.Serializable;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.BiFunction;
@@ -20,11 +21,11 @@ import java.util.function.Function;
  * <br>
  * Конкретной реализацией может быть как локальный кэш, так и инвалидационной или реплицируемый. <br>
  *
- * @param <K> тип ключа элементов кэша
- * @param <V> тип значения элементов кэша
+ * @param <K> тип ключа элементов кэша, должен быть сериализуемым
+ * @param <V> тип значения элементов кэша, должен быть сериализуемым
  * @author Alik
  */
-public interface Cache<K, V> {
+public interface Cache<K extends Serializable, V extends Serializable> {
 
     /**
      * Возвращает имя кэша.
@@ -97,11 +98,8 @@ public interface Cache<K, V> {
      * @param key           ключ элемента в кэше; не может быть {@code null}.
      * @param value         новое значение элемента для добавления или модификации; не может быть {@code null}.
      * @param mergeFunction функция слияния нового значения с уже существующим в кэше, не может быть {@code null}.
-     * @return предыдущее значение элемента в кэше, обернутое в {@link Optional}.
      */
-    @Nonnull
-    @CheckReturnValue
-    Optional<V> merge(@Nonnull K key, @Nonnull V value, @Nonnull BiFunction<? super V, ? super V, ? extends V> mergeFunction);
+    void merge(@Nonnull K key, @Nonnull V value, @Nonnull BiFunction<? super V, ? super V, ? extends V> mergeFunction);
 
     /**
      * Выполняет вычисление элемента в кэше, если его не существовало до этого.

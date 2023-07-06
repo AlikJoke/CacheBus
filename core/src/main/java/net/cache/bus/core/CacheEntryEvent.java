@@ -2,17 +2,18 @@ package net.cache.bus.core;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.io.Serializable;
 import java.time.Instant;
 
 /**
  * Событие изменения элемента кэша.
  *
- * @param <K> тип ключа кэша
- * @param <V> тип значения кэша
+ * @param <K> тип ключа кэша, должен быть сериализуемым
+ * @param <V> тип значения кэша, должен быть сериализуемым
  * @author Alik
  * @see CacheEntryEventType
  */
-public interface CacheEntryEvent<K, V> {
+public interface CacheEntryEvent<K extends Serializable, V extends Serializable> {
 
     String ALL_ENTRIES_KEY = "*";
 

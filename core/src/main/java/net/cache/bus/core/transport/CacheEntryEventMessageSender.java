@@ -9,15 +9,15 @@ import javax.annotation.Nonnull;
  *
  * @author Alik
  * @see CacheEntryEvent
+ * @see CacheEntryOutputMessage
  */
 public interface CacheEntryEventMessageSender {
 
     /**
      * Выполняет отправку сериализованного события об изменении элемента кэша на другие сервера.
      *
-     * @param serializedEvent событие об изменении элемента кэша в сериализованном виде, не может быть {@code null}.
-     * @param targetEndpoint  целевая конечная точка для отправки событий об изменении элемента кэша, не может быть {@code null}.
-     * @param <T>             тип сериализованного представления события об изменении элемента кэша
+     * @param eventOutputMessage исходящее сообщение с информацией об изменении элемента кэша, не может быть {@code null}.
+     * @param targetEndpoint     целевая конечная точка для отправки событий об изменении элемента кэша, не может быть {@code null}.
      */
-    <T> void send(@Nonnull T serializedEvent, @Nonnull String targetEndpoint);
+    void send(@Nonnull CacheEntryOutputMessage eventOutputMessage, @Nonnull String targetEndpoint);
 }

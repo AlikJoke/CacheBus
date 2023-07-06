@@ -8,12 +8,13 @@ import net.sf.ehcache.event.NotificationScope;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.io.Serializable;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
-public final class EhCache2CacheAdapter implements Cache<Object, Object> {
+public final class EhCache2CacheAdapter implements Cache<Serializable, Serializable> {
 
     private final net.sf.ehcache.Cache cache;
 
@@ -32,30 +33,30 @@ public final class EhCache2CacheAdapter implements Cache<Object, Object> {
 
     @Nonnull
     @Override
-    public Optional<Object> get(@Nonnull Object key) {
+    public Optional<Serializable> get(@Nonnull Serializable key) {
         final Element value = this.cache.get(Objects.requireNonNull(key, "key"));
-        return Optional.ofNullable(value == null ? null : value.getObjectValue());
+        return Optional.ofNullable(value == null ? null : (Serializable) value.getObjectValue());
     }
 
     @Override
-    public void evict(@Nonnull Object key) {
+    public void evict(@Nonnull Serializable key) {
         this.cache.remove(Objects.requireNonNull(key, "key"));
     }
 
     @Nonnull
     @Override
-    public Optional<Object> remove(@Nonnull Object key) {
+    public Optional<Serializable> remove(@Nonnull Serializable key) {
         final Element value = this.cache.get(Objects.requireNonNull(key, "key"));
-        return Optional.ofNullable(value == null ? null : value.getObjectValue());
+        return Optional.ofNullable(value == null ? null : (Serializable) value.getObjectValue());
     }
 
     @Override
-    public void put(@Nonnull Object key, @Nullable Object value) {
+    public void put(@Nonnull Serializable key, @Nullable Serializable value) {
         this.cache.put(new Element(key, value), true);
     }
 
     @Override
-    public void putIfAbsent(@Nonnull Object key, @Nullable Object value) {
+    public void putIfAbsent(@Nonnull Serializable key, @Nullable Serializable value) {
         this.cache.putIfAbsent(new Element(key, value), true);
     }
 
@@ -64,9 +65,8 @@ public final class EhCache2CacheAdapter implements Cache<Object, Object> {
         this.cache.removeAll(true);
     }
 
-    @Nonnull
     @Override
-    public Optional<Object> merge(@Nonnull Object key, @Nonnull Object value, @Nonnull BiFunction<? super Object, ? super Object, ?> mergeFunction) {
+    public void merge(@Nonnull Serializable key, @Nonnull Serializable value, @Nonnull BiFunction<? super Serializable, ? super Serializable, ? extends Serializable> mergeFunction) {
 
         Objects.requireNonNull(mergeFunction, "mergeFunction");
         Objects.requireNonNull(key, "key");
@@ -74,7 +74,7 @@ public final class EhCache2CacheAdapter implements Cache<Object, Object> {
 
         this.cache.acquireWriteLockOnKey(key);
         try {
-            final Optional<Object> oldValue = get(key);
+            final Optional<Serializable> oldValue = get(key);
             final Object newValue = oldValue.isEmpty() ? value : mergeFunction.apply(oldValue.get(), value);
             if (newValue == null) {
                 this.cache.remove(key);
@@ -82,7 +82,6 @@ public final class EhCache2CacheAdapter implements Cache<Object, Object> {
                 this.cache.put(new Element(key, newValue), true);
             }
 
-            return Optional.ofNullable(newValue);
         } finally {
             this.cache.releaseWriteLockOnKey(key);
         }
@@ -90,7 +89,7 @@ public final class EhCache2CacheAdapter implements Cache<Object, Object> {
 
     @Nonnull
     @Override
-    public Optional<Object> computeIfAbsent(@Nonnull Object key, @Nonnull Function<? super Object, ?> valueFunction) {
+    public Optional<Serializable> computeIfAbsent(@Nonnull Serializable key, @Nonnull Function<? super Serializable, ? extends Serializable> valueFunction) {
 
         Objects.requireNonNull(key, "key");
         Objects.requireNonNull(valueFunction, "valueFunction");
@@ -99,21 +98,21 @@ public final class EhCache2CacheAdapter implements Cache<Object, Object> {
         try {
             final Element v = this.cache.get(key);
             if (v == null || v.getObjectValue() == null) {
-                final Object newValue = valueFunction.apply(key);
+                final Serializable newValue = valueFunction.apply(key);
                 if (newValue != null) {
                     this.cache.put(new Element(key, newValue), true);
                     return Optional.of(newValue);
                 }
             }
 
-            return Optional.ofNullable(v == null ? null : v.getObjectValue());
+            return Optional.ofNullable(v == null ? null : (Serializable) v.getObjectValue());
         } finally {
             this.cache.releaseWriteLockOnKey(key);
         }
     }
 
     @Override
-    public void registerEventListener(@Nonnull net.cache.bus.core.CacheEventListener<Object, Object> listener) {
+    public void registerEventListener(@Nonnull net.cache.bus.core.CacheEventListener<Serializable, Serializable> listener) {
 
         if (listener instanceof CacheEventListener eventListener) {
             this.cache.getCacheEventNotificationService().registerListener(eventListener, NotificationScope.LOCAL);

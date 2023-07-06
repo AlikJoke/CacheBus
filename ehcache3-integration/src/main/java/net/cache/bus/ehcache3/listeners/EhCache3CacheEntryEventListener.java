@@ -11,12 +11,13 @@ import org.ehcache.event.EventType;
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.ThreadSafe;
+import java.io.Serializable;
 import java.time.Instant;
 import java.util.Objects;
 
 @ThreadSafe
 @Immutable
-final class EhCache3CacheEntryEventListener<K, V> implements CacheEventListener<K, V>, net.cache.bus.core.CacheEventListener<K, V> {
+final class EhCache3CacheEntryEventListener<K extends Serializable, V extends Serializable> implements CacheEventListener<K, V>, net.cache.bus.core.CacheEventListener<K, V> {
 
     private final CacheBus cacheBus;
     private final String cacheName;

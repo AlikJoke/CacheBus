@@ -25,11 +25,4 @@ public interface CacheConfiguration {
      */
     @Nonnull
     CacheType cacheType();
-
-    /**
-     * Возвращает конфигурацию транспорта для кэша.
-     * @return конфигурация транспорта для кэша, не может быть {@code null}.
-     */
-    @Nonnull
-    CacheTransportConfiguration transportConfiguration();
 }

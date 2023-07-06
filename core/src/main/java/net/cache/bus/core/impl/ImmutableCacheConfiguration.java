@@ -1,7 +1,6 @@
 package net.cache.bus.core.impl;
 
 import net.cache.bus.core.configuration.CacheConfiguration;
-import net.cache.bus.core.configuration.CacheTransportConfiguration;
 import net.cache.bus.core.configuration.CacheType;
 
 import javax.annotation.Nonnull;
@@ -13,11 +12,9 @@ import java.util.Objects;
 @ThreadSafe
 public record ImmutableCacheConfiguration(
         @Nonnull String cacheName,
-        @Nonnull CacheType cacheType,
-        @Nonnull CacheTransportConfiguration transportConfiguration) implements CacheConfiguration {
+        @Nonnull CacheType cacheType) implements CacheConfiguration {
 
     public ImmutableCacheConfiguration {
-        Objects.requireNonNull(transportConfiguration, "transportConfiguration");
         Objects.requireNonNull(cacheType, "cacheType");
 
         if (cacheName == null || cacheName.isEmpty()) {
@@ -48,7 +45,6 @@ public record ImmutableCacheConfiguration(
         return "ImmutableCacheConfiguration{" +
                 "cacheName='" + cacheName + '\'' +
                 ", cacheType=" + cacheType +
-                ", transportConfiguration=" + transportConfiguration +
                 '}';
     }
 }
