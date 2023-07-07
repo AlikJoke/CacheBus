@@ -1,8 +1,5 @@
 package net.cache.bus.core.configuration;
 
-import net.cache.bus.core.CacheEventListenerRegistrar;
-import net.cache.bus.core.CacheManager;
-
 import javax.annotation.Nonnull;
 import java.util.Optional;
 import java.util.Set;
@@ -13,6 +10,7 @@ import java.util.Set;
  * @author Alik
  * @see CacheConfiguration
  * @see CacheBusTransportConfiguration
+ * @see CacheProviderConfiguration
  */
 public interface CacheBusConfiguration {
 
@@ -43,20 +41,11 @@ public interface CacheBusConfiguration {
     CacheBusTransportConfiguration transportConfiguration();
 
     /**
-     * Возвращает менеджер кэшей.
+     * Возвращает конфигурацию, специфичную провайдеру кэширования.
      *
      * @return не может быть {@code null}.
-     * @see CacheManager
+     * @see CacheProviderConfiguration
      */
     @Nonnull
-    CacheManager cacheManager();
-
-    /**
-     * Возвращает регистратор слушателей событий изменения для кэшей.
-     *
-     * @return не может быть {@code null}.
-     * @see CacheEventListenerRegistrar
-     */
-    @Nonnull
-    CacheEventListenerRegistrar cacheEventListenerRegistrar();
+    CacheProviderConfiguration providerConfiguration();
 }

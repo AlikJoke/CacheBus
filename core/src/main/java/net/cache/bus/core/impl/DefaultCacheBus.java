@@ -109,7 +109,8 @@ public final class DefaultCacheBus implements ExtendedCacheBus {
 
     private void applyEvent(final CacheEntryEvent<Serializable, Serializable> event, final CacheConfiguration cacheConfiguration) {
 
-        final Optional<Cache<Serializable, Serializable>> cache = this.configuration.cacheManager().getCache(event.cacheName());
+        final CacheProviderConfiguration providerConfiguration = this.configuration.providerConfiguration();
+        final Optional<Cache<Serializable, Serializable>> cache = providerConfiguration.cacheManager().getCache(event.cacheName());
         cache.ifPresent(c -> processEvent(cacheConfiguration.cacheType(), c, event));
     }
 
@@ -152,8 +153,9 @@ public final class DefaultCacheBus implements ExtendedCacheBus {
         /*
          * Регистрируем подписчиков на кэшах
          */
-        final CacheManager cacheManager = this.configuration.cacheManager();
-        final CacheEventListenerRegistrar cacheEventListenerRegistrar = this.configuration.cacheEventListenerRegistrar();
+        final CacheProviderConfiguration providerConfiguration = this.configuration.providerConfiguration();
+        final CacheManager cacheManager = providerConfiguration.cacheManager();
+        final CacheEventListenerRegistrar cacheEventListenerRegistrar = providerConfiguration.cacheEventListenerRegistrar();
         this.configuration.cacheConfigurations()
                 .stream()
                 .map(CacheConfiguration::cacheName)

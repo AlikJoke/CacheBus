@@ -46,6 +46,7 @@ public final class JSR107CacheAdapter<K extends Serializable, V extends Serializ
     @Override
     public Optional<V> remove(@Nonnull K key) {
         final V value = this.cache.get(Objects.requireNonNull(key, "key"));
+        this.cache.remove(key);
         return Optional.ofNullable(value);
     }
 

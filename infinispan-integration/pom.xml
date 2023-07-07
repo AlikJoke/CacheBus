@@ -14,18 +14,22 @@
     <name>CacheBus Infinispan Integration</name>
     <description>Integration with Infinispan Cache Provider</description>
 
+    <properties>
+        <infinispan.version>14.0.11.Final</infinispan.version>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>org.infinispan</groupId>
             <artifactId>infinispan-core</artifactId>
-            <version>14.0.11.Final</version>
+            <version>${infinispan.version}</version>
             <scope>provided</scope>
         </dependency>
 
         <dependency>
             <groupId>org.infinispan</groupId>
             <artifactId>infinispan-component-annotations</artifactId>
-            <version>14.0.11.Final</version>
+            <version>${infinispan.version}</version>
             <scope>compile</scope>
         </dependency>
 
@@ -34,6 +38,14 @@
             <artifactId>core</artifactId>
             <version>${project.version}</version>
         </dependency>
+
+        <dependency>
+            <groupId>net.cache-bus</groupId>
+            <artifactId>core</artifactId>
+            <version>${project.version}</version>
+            <type>test-jar</type>
+        </dependency>
+
     </dependencies>
 
 </project>

@@ -1,10 +1,9 @@
 package net.cache.bus.core.impl;
 
-import net.cache.bus.core.CacheEventListenerRegistrar;
-import net.cache.bus.core.CacheManager;
 import net.cache.bus.core.configuration.CacheBusConfiguration;
 import net.cache.bus.core.configuration.CacheBusTransportConfiguration;
 import net.cache.bus.core.configuration.CacheConfiguration;
+import net.cache.bus.core.configuration.CacheProviderConfiguration;
 
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.Immutable;
@@ -21,26 +20,23 @@ public final class ImmutableCacheBusConfiguration implements CacheBusConfigurati
     private final Set<CacheConfiguration> cacheConfigurations;
     private final Map<String, CacheConfiguration> cacheConfigurationsMap;
     private final CacheBusTransportConfiguration transportConfiguration;
-    private final CacheManager cacheManager;
-    private final CacheEventListenerRegistrar cacheEventListenerRegistrar;
+    private final CacheProviderConfiguration providerConfiguration;
 
     public ImmutableCacheBusConfiguration(@Nonnull CacheBusConfiguration configuration) {
-        this(configuration.cacheConfigurations(), configuration.transportConfiguration(), configuration.cacheManager(), configuration.cacheEventListenerRegistrar());
+        this(configuration.cacheConfigurations(), configuration.transportConfiguration(), configuration.providerConfiguration());
     }
 
     public ImmutableCacheBusConfiguration(
             @Nonnull Set<CacheConfiguration> cacheConfigurations,
             @Nonnull CacheBusTransportConfiguration transportConfiguration,
-            @Nonnull CacheManager cacheManager,
-            @Nonnull CacheEventListenerRegistrar cacheEventListenerRegistrar) {
+            @Nonnull CacheProviderConfiguration providerConfiguration) {
         this.cacheConfigurations = Collections.unmodifiableSet(Objects.requireNonNull(cacheConfigurations, "cacheConfigurations"));
         this.cacheConfigurationsMap = cacheConfigurations
                                             .stream()
                                             .collect(Collectors.toUnmodifiableMap(CacheConfiguration::cacheName, Function.identity()));
 
-        this.cacheEventListenerRegistrar = Objects.requireNonNull(cacheEventListenerRegistrar, "cacheEventListenerRegistrar");
+        this.providerConfiguration = Objects.requireNonNull(providerConfiguration, "providerConfiguration");
         this.transportConfiguration = Objects.requireNonNull(transportConfiguration, "transportConfiguration");
-        this.cacheManager = Objects.requireNonNull(cacheManager, "cacheManager");
     }
 
     @Nonnull
@@ -63,14 +59,8 @@ public final class ImmutableCacheBusConfiguration implements CacheBusConfigurati
 
     @Nonnull
     @Override
-    public CacheManager cacheManager() {
-        return this.cacheManager;
-    }
-
-    @Nonnull
-    @Override
-    public CacheEventListenerRegistrar cacheEventListenerRegistrar() {
-        return this.cacheEventListenerRegistrar;
+    public CacheProviderConfiguration providerConfiguration() {
+        return this.providerConfiguration;
     }
 
     @Override
@@ -78,8 +68,7 @@ public final class ImmutableCacheBusConfiguration implements CacheBusConfigurati
         return "ImmutableCacheBusConfiguration{" +
                 "cacheConfigurations=" + cacheConfigurations +
                 ", transportConfiguration=" + transportConfiguration +
-                ", cacheManager=" + cacheManager +
-                ", cacheEventListenerRegistrar=" + cacheEventListenerRegistrar +
+                ", providerConfiguration=" + providerConfiguration +
                 '}';
     }
 
@@ -93,8 +82,7 @@ public final class ImmutableCacheBusConfiguration implements CacheBusConfigurati
 
         private final Set<CacheConfiguration> cacheConfigurations = new HashSet<>();
         private CacheBusTransportConfiguration transportConfiguration;
-        private CacheManager cacheManager;
-        private CacheEventListenerRegistrar cacheEventListenerRegistrar;
+        private CacheProviderConfiguration providerConfiguration;
 
         public Builder addCacheConfiguration(@Nonnull CacheConfiguration cacheConfiguration) {
             this.cacheConfigurations.add(Objects.requireNonNull(cacheConfiguration, "cacheConfiguration"));
@@ -112,13 +100,8 @@ public final class ImmutableCacheBusConfiguration implements CacheBusConfigurati
             return this;
         }
 
-        public Builder setCacheManager(@Nonnull CacheManager cacheManager) {
-            this.cacheManager = cacheManager;
-            return this;
-        }
-
-        public Builder setCacheEventListenerRegistrar(@Nonnull CacheEventListenerRegistrar cacheEventListenerRegistrar) {
-            this.cacheEventListenerRegistrar = cacheEventListenerRegistrar;
+        public Builder setProviderConfiguration(@Nonnull CacheProviderConfiguration providerConfiguration) {
+            this.providerConfiguration = providerConfiguration;
             return this;
         }
 
@@ -127,8 +110,7 @@ public final class ImmutableCacheBusConfiguration implements CacheBusConfigurati
             return new ImmutableCacheBusConfiguration(
                     Collections.unmodifiableSet(this.cacheConfigurations),
                     this.transportConfiguration,
-                    this.cacheManager,
-                    this.cacheEventListenerRegistrar
+                    this.providerConfiguration
             );
         }
     }

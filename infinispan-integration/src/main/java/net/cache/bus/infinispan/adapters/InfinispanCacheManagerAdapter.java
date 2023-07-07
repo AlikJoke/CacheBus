@@ -11,12 +11,12 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
-public final class InfinispanCacheManager implements CacheManager {
+public final class InfinispanCacheManagerAdapter implements CacheManager {
 
     private final EmbeddedCacheManager cacheManager;
     private final Map<String, Optional<Cache<Serializable, Serializable>>> cachesMap;
 
-    public InfinispanCacheManager(@Nonnull EmbeddedCacheManager cacheManager) {
+    public InfinispanCacheManagerAdapter(@Nonnull EmbeddedCacheManager cacheManager) {
         this.cacheManager = Objects.requireNonNull(cacheManager, "cacheManager");
         this.cachesMap = new ConcurrentHashMap<>();
     }

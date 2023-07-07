@@ -9,6 +9,8 @@ import one.nio.serial.DeserializeStream;
 import one.nio.serial.SerializeStream;
 
 import javax.annotation.Nonnull;
+import javax.annotation.concurrent.Immutable;
+import javax.annotation.concurrent.ThreadSafe;
 import java.io.IOException;
 import java.io.ObjectOutput;
 import java.io.Serializable;
@@ -16,6 +18,8 @@ import java.time.Instant;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+@ThreadSafe
+@Immutable
 public final class OneNioCacheEntryEventConverter implements CacheEntryEventConverter {
 
     private static final Logger logger = Logger.getLogger(OneNioCacheEntryEventConverter.class.getCanonicalName());
