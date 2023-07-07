@@ -1,8 +1,7 @@
 package net.cache.bus.core.configuration;
 
-import net.cache.bus.core.transport.CacheEntryEventDeserializer;
 import net.cache.bus.core.transport.CacheBusMessageChannel;
-import net.cache.bus.core.transport.CacheEntryEventSerializer;
+import net.cache.bus.core.transport.CacheEntryEventConverter;
 
 import javax.annotation.Nonnull;
 
@@ -10,31 +9,22 @@ import javax.annotation.Nonnull;
  * Конфигурация транспорта для данной шины кэшей.
  *
  * @author Alik
- * @see CacheEntryEventSerializer
- * @see CacheEntryEventDeserializer
+ * @see CacheEntryEventConverter
  * @see CacheBusConfiguration
  * @see CacheBusMessageChannel
  */
 public interface CacheBusTransportConfiguration {
 
     /**
-     * Возвращает сериализатор для формирования "транспортного" представления события об изменении элемента кэша.
+     * Возвращает конвертер для формирования "транспортного" представления события
+     * об изменении элемента кэша и обратного преобразования из бинарного представления
+     * в объект типа {@link net.cache.bus.core.CacheEntryEvent}.
      *
      * @return не может быть {@code null}.
-     * @see CacheEntryEventSerializer
+     * @see CacheEntryEventConverter
      */
     @Nonnull
-    CacheEntryEventSerializer serializer();
-
-    /**
-     * Возвращает десериализатор для формирования объекта {@link net.cache.bus.core.CacheEntryEvent} из
-     * "транспортного" представления события об изменении элемента кэша.
-     *
-     * @return не может быть {@code null}.
-     * @see CacheEntryEventDeserializer
-     */
-    @Nonnull
-    CacheEntryEventDeserializer deserializer();
+    CacheEntryEventConverter converter();
 
     /**
      * Возвращает канал сообщений, используемый для взаимодействия с другими серверами.

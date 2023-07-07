@@ -14,12 +14,15 @@
         <module>infinispan-integration</module>
         <module>transport-addons</module>
         <module>jms-connector</module>
+        <module>one-nio-serialization</module>
     </modules>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.target>19</maven.compiler.target>
         <maven.compiler.source>19</maven.compiler.source>
+
+        <junit.version>5.9.3</junit.version>
     </properties>
 
     <scm>
@@ -35,6 +38,13 @@
             <artifactId>jsr305</artifactId>
             <version>3.0.2</version>
             <scope>compile</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-api</artifactId>
+            <version>${junit.version}</version>
+            <scope>test</scope>
         </dependency>
 
     </dependencies>

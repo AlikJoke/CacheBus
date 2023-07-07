@@ -3,8 +3,7 @@ package net.cache.bus.core.impl;
 import net.cache.bus.core.*;
 import net.cache.bus.core.configuration.*;
 import net.cache.bus.core.transport.CacheBusMessageChannel;
-import net.cache.bus.core.transport.CacheEntryEventDeserializer;
-import net.cache.bus.core.transport.CacheEntryEventSerializer;
+import net.cache.bus.core.transport.CacheEntryEventConverter;
 import net.cache.bus.core.transport.CacheEntryOutputMessage;
 
 import javax.annotation.Nonnull;
@@ -95,8 +94,8 @@ public final class DefaultCacheBus implements ExtendedCacheBus {
 
         logger.fine(() -> "Event %s will be sent to endpoint".formatted(event));
 
-        final CacheEntryEventSerializer serializer = transportConfiguration.serializer();
-        final byte[] binaryEventData = serializer.serialize(event, cacheConfiguration.cacheType().serializeValueFields());
+        final CacheEntryEventConverter converter = transportConfiguration.converter();
+        final byte[] binaryEventData = converter.toBinary(event, cacheConfiguration.cacheType().serializeValueFields());
 
         final CacheEntryOutputMessage outputMessage = new ImmutableCacheEntryOutputMessage(event, binaryEventData);
         final CacheBusMessageChannel<CacheBusMessageChannelConfiguration> messageChannel = transportConfiguration.messageChannel();
@@ -139,9 +138,9 @@ public final class DefaultCacheBus implements ExtendedCacheBus {
     private CacheEntryEvent<Serializable, Serializable> convertFromSerializedEvent(final byte[] binaryEventData) {
 
         final CacheBusTransportConfiguration transportConfiguration = this.configuration.transportConfiguration();
-        final CacheEntryEventDeserializer deserializer = transportConfiguration.deserializer();
+        final CacheEntryEventConverter converter = transportConfiguration.converter();
         try {
-            return deserializer.deserialize(binaryEventData);
+            return converter.fromBinary(binaryEventData);
         } catch (RuntimeException ex) {
             logger.log(Level.WARNING, "Unable to deserialize message", ex);
             return null;

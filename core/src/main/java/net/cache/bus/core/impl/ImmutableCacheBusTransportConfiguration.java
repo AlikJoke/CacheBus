@@ -2,9 +2,8 @@ package net.cache.bus.core.impl;
 
 import net.cache.bus.core.configuration.CacheBusMessageChannelConfiguration;
 import net.cache.bus.core.configuration.CacheBusTransportConfiguration;
-import net.cache.bus.core.transport.CacheEntryEventDeserializer;
 import net.cache.bus.core.transport.CacheBusMessageChannel;
-import net.cache.bus.core.transport.CacheEntryEventSerializer;
+import net.cache.bus.core.transport.CacheEntryEventConverter;
 
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.Immutable;
@@ -15,32 +14,23 @@ import java.util.Objects;
 @Immutable
 public final class ImmutableCacheBusTransportConfiguration implements CacheBusTransportConfiguration {
 
-    private final CacheEntryEventSerializer serializer;
-    private final CacheEntryEventDeserializer deserializer;
+    private final CacheEntryEventConverter converter;
     private final CacheBusMessageChannel<CacheBusMessageChannelConfiguration> messageChannel;
     private final CacheBusMessageChannelConfiguration messageChannelConfiguration;
 
     public ImmutableCacheBusTransportConfiguration(
-            @Nonnull CacheEntryEventSerializer serializer,
-            @Nonnull CacheEntryEventDeserializer deserializer,
+            @Nonnull CacheEntryEventConverter converter,
             @Nonnull CacheBusMessageChannel<CacheBusMessageChannelConfiguration> messageChannel,
             @Nonnull CacheBusMessageChannelConfiguration messageChannelConfiguration) {
-        this.serializer = Objects.requireNonNull(serializer, "serializer");
-        this.deserializer = Objects.requireNonNull(deserializer, "deserializer");
+        this.converter = Objects.requireNonNull(converter, "converter");
         this.messageChannel = Objects.requireNonNull(messageChannel, "messageChannel");
         this.messageChannelConfiguration = Objects.requireNonNull(messageChannelConfiguration, "messageChannelConfiguration");
     }
 
     @Nonnull
     @Override
-    public CacheEntryEventSerializer serializer() {
-        return this.serializer;
-    }
-
-    @Nonnull
-    @Override
-    public CacheEntryEventDeserializer deserializer() {
-        return this.deserializer;
+    public CacheEntryEventConverter converter() {
+        return this.converter;
     }
 
     @Nonnull
@@ -62,18 +52,12 @@ public final class ImmutableCacheBusTransportConfiguration implements CacheBusTr
 
     public static class Builder {
 
-        private CacheEntryEventSerializer serializer;
-        private CacheEntryEventDeserializer deserializer;
+        private CacheEntryEventConverter converter;
         private CacheBusMessageChannel<CacheBusMessageChannelConfiguration> messageChannel;
         private CacheBusMessageChannelConfiguration messageChannelConfiguration;
 
-        public Builder setSerializer(@Nonnull final CacheEntryEventSerializer serializer) {
-            this.serializer = serializer;
-            return this;
-        }
-
-        public Builder setDeserializer(@Nonnull final CacheEntryEventDeserializer deserializer) {
-            this.deserializer = deserializer;
+        public Builder setConverter(@Nonnull final CacheEntryEventConverter converter) {
+            this.converter = converter;
             return this;
         }
 
@@ -89,7 +73,7 @@ public final class ImmutableCacheBusTransportConfiguration implements CacheBusTr
 
         @Nonnull
         public CacheBusTransportConfiguration build() {
-            return new ImmutableCacheBusTransportConfiguration(this.serializer, this.deserializer, this.messageChannel, this.messageChannelConfiguration);
+            return new ImmutableCacheBusTransportConfiguration(this.converter, this.messageChannel, this.messageChannelConfiguration);
         }
     }
 }
