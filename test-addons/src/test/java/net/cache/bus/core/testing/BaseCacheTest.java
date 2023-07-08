@@ -1,5 +1,6 @@
-package net.cache.bus.core;
+package net.cache.bus.core.testing;
 
+import net.cache.bus.core.Cache;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 

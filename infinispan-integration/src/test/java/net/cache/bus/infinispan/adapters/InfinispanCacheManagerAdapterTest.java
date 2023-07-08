@@ -1,7 +1,7 @@
 package net.cache.bus.infinispan.adapters;
 
-import net.cache.bus.core.BaseCacheManagerTest;
 import net.cache.bus.core.CacheManager;
+import net.cache.bus.core.testing.BaseCacheManagerTest;
 import org.infinispan.Cache;
 import org.infinispan.configuration.cache.CacheMode;
 import org.infinispan.configuration.cache.ClusteringConfiguration;
@@ -10,12 +10,11 @@ import org.infinispan.manager.EmbeddedCacheManager;
 import org.mockito.Mock;
 
 import static org.mockito.Mockito.lenient;
-import static org.mockito.Mockito.when;
 
 public class InfinispanCacheManagerAdapterTest extends BaseCacheManagerTest {
 
     @Mock
-    private EmbeddedCacheManager cacheManager;
+    private EmbeddedCacheManager infinispanCacheManager;
     @Mock
     private Cache<Object, Object> cache;
     @Mock
@@ -29,10 +28,10 @@ public class InfinispanCacheManagerAdapterTest extends BaseCacheManagerTest {
         lenient().when(this.configuration.clustering()).thenReturn(this.clusteringConfiguration);
         lenient().when(cache.getCacheConfiguration()).thenReturn(this.configuration);
 
-        lenient().when(this.cacheManager.getCache(cacheName, false)).thenReturn(this.cache);
-        lenient().when(this.cacheManager.getCache("1", false)).thenReturn(this.cache);
+        lenient().when(this.infinispanCacheManager.getCache(cacheName, false)).thenReturn(this.cache);
+        lenient().when(this.infinispanCacheManager.getCache("1", false)).thenReturn(this.cache);
 
-        return new InfinispanCacheManagerAdapter(this.cacheManager);
+        return new InfinispanCacheManagerAdapter(this.infinispanCacheManager);
     }
 
     @Override

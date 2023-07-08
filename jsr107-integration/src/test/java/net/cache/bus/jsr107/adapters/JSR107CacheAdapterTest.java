@@ -1,7 +1,7 @@
 package net.cache.bus.jsr107.adapters;
 
-import net.cache.bus.core.BaseCacheTest;
 import net.cache.bus.core.Cache;
+import net.cache.bus.core.testing.BaseCacheTest;
 
 import javax.cache.CacheManager;
 import javax.cache.configuration.CacheEntryListenerConfiguration;

@@ -30,7 +30,7 @@
             <groupId>org.infinispan</groupId>
             <artifactId>infinispan-component-annotations</artifactId>
             <version>${infinispan.version}</version>
-            <scope>compile</scope>
+            <scope>provided</scope>
         </dependency>
 
         <dependency>
@@ -41,8 +41,9 @@
 
         <dependency>
             <groupId>net.cache-bus</groupId>
-            <artifactId>core</artifactId>
+            <artifactId>test-addons</artifactId>
             <version>${project.version}</version>
+            <scope>test</scope>
             <type>test-jar</type>
         </dependency>
 

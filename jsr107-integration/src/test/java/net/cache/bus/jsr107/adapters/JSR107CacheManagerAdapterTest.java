@@ -1,13 +1,12 @@
 package net.cache.bus.jsr107.adapters;
 
-import net.cache.bus.core.BaseCacheManagerTest;
 import net.cache.bus.core.CacheManager;
+import net.cache.bus.core.testing.BaseCacheManagerTest;
 import org.mockito.Mock;
 
 import javax.cache.Cache;
 
 import static org.mockito.Mockito.lenient;
-import static org.mockito.Mockito.when;
 
 public class JSR107CacheManagerAdapterTest extends BaseCacheManagerTest {
 
