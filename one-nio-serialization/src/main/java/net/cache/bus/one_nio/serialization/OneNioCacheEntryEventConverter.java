@@ -18,6 +18,13 @@ import java.time.Instant;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+/**
+ * Реализация конвертера на основе библиотеки OneNio.
+ * Является рекомендуемой по-умолчанию реализацией за счет своей скорости и компактности формата.
+ *
+ * @author Alik
+ * @see CacheEntryEventConverter
+ */
 @ThreadSafe
 @Immutable
 public final class OneNioCacheEntryEventConverter implements CacheEntryEventConverter {

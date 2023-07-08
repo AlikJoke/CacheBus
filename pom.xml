@@ -17,6 +17,7 @@
         <module>one-nio-serialization</module>
         <module>jdk-serialization</module>
         <module>test-addons</module>
+        <module>jackson-serialization</module>
     </modules>
 
     <properties>

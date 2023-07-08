@@ -13,6 +13,18 @@ import java.time.Instant;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+/**
+ * Реализация конвертера на основе стандартной JDK-сериализации.
+ * Не рекомендуется для использования в случае, если используется реплицируемый кэш
+ * со сложной структурой значений или если ключи кэширования имеют сложную структуру.
+ * Под "сложной" структурой тут имеется в виду структура, которая может часто меняться
+ * или содержит не сериализуемые поля.
+ * <br/>
+ * Транспортный формат обладает всеми недостатками обычного формата JDK-сериализации.
+ *
+ * @author Alik
+ * @see CacheEntryEventConverter
+ */
 @ThreadSafe
 @Immutable
 public final class JdkCacheEntryEventConverter implements CacheEntryEventConverter {
