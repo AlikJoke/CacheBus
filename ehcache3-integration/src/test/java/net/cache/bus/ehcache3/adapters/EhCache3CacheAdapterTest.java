@@ -15,7 +15,7 @@ public class EhCache3CacheAdapterTest extends BaseCacheTest {
 
     @Override
     protected Cache<String, String> createCacheAdapter(String cacheName, Map<String, String> valuesMap) {
-        return new EhCache3CacheAdapter<>(new org.ehcache.Cache<String, String>() {
+        return new EhCache3CacheAdapter<>(new org.ehcache.Cache<>() {
 
             private final Map<String, String> map = new HashMap<>(valuesMap);
 

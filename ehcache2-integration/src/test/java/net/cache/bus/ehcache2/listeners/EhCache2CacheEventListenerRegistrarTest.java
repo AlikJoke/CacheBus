@@ -1,7 +1,7 @@
 package net.cache.bus.ehcache2.listeners;
 
-import net.cache.bus.ehcache2.adapters.EhCache2CacheAdapter;
 import net.cache.bus.core.CacheBus;
+import net.cache.bus.ehcache2.adapters.EhCache2CacheAdapter;
 import net.sf.ehcache.Ehcache;
 import net.sf.ehcache.event.CacheEventListener;
 import net.sf.ehcache.event.NotificationScope;
@@ -15,7 +15,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)

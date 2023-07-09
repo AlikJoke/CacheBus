@@ -5,6 +5,8 @@ import net.cache.bus.core.CacheEntryEventType;
 import net.cache.bus.core.impl.ImmutableCacheEntryEvent;
 import net.cache.bus.core.transport.CacheEntryEventConverter;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.Execution;
+import org.junit.jupiter.api.parallel.ExecutionMode;
 
 import javax.annotation.Nonnull;
 import java.io.Serializable;
@@ -12,6 +14,7 @@ import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+@Execution(ExecutionMode.CONCURRENT)
 public abstract class BaseCacheEntryEventConverterTest {
 
     private final CacheEntryEventConverter converter = createConverter();

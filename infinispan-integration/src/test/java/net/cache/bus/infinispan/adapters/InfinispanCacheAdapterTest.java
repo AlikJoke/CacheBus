@@ -37,8 +37,8 @@ public class InfinispanCacheAdapterTest extends BaseCacheTest {
     @Override
     protected Cache<String, String> createCacheAdapter(String cacheName, Map<String, String> valuesMap) {
 
-        lenient().when(this.clusteringConfiguration.cacheMode()).thenReturn(CacheMode.LOCAL);
-        lenient().when(this.configuration.clustering()).thenReturn(this.clusteringConfiguration);
+        lenient().when(clusteringConfiguration.cacheMode()).thenReturn(CacheMode.LOCAL);
+        lenient().when(configuration.clustering()).thenReturn(clusteringConfiguration);
 
         return new InfinispanCacheAdapter<>(new org.infinispan.Cache<>() {
 
@@ -256,7 +256,7 @@ public class InfinispanCacheAdapterTest extends BaseCacheTest {
 
             @Override
             public String put(String key, String value) {
-                return this.map.put(key, value);
+                return map.put(key, value);
             }
 
             @Override
@@ -351,7 +351,7 @@ public class InfinispanCacheAdapterTest extends BaseCacheTest {
 
             @Override
             public String remove(Object key) {
-                return this.map.remove(key);
+                return map.remove(key);
             }
 
             @Override
@@ -376,7 +376,7 @@ public class InfinispanCacheAdapterTest extends BaseCacheTest {
 
             @Override
             public void evict(String key) {
-                this.map.remove(key);
+                map.remove(key);
             }
 
             @Override
@@ -401,7 +401,7 @@ public class InfinispanCacheAdapterTest extends BaseCacheTest {
 
             @Override
             public int size() {
-                return this.map.size();
+                return map.size();
             }
 
             @Override
@@ -421,7 +421,7 @@ public class InfinispanCacheAdapterTest extends BaseCacheTest {
 
             @Override
             public String get(Object key) {
-                return this.map.get(key);
+                return map.get(key);
             }
 
             @Override
@@ -441,7 +441,7 @@ public class InfinispanCacheAdapterTest extends BaseCacheTest {
 
             @Override
             public void clear() {
-                this.map.clear();
+                map.clear();
             }
 
             @Override
@@ -456,27 +456,27 @@ public class InfinispanCacheAdapterTest extends BaseCacheTest {
 
             @Override
             public String putIfAbsent(@Nonnull String key, String value) {
-                return this.map.putIfAbsent(key, value);
+                return map.putIfAbsent(key, value);
             }
 
             @Override
             public boolean remove(@Nonnull Object key, Object value) {
-                return this.map.remove(key, value);
+                return map.remove(key, value);
             }
 
             @Override
             public boolean replace(@Nonnull String key, @Nonnull String oldValue, @Nonnull String newValue) {
-                return this.map.replace(key, oldValue, newValue);
+                return map.replace(key, oldValue, newValue);
             }
 
             @Override
             public String replace(@Nonnull String key, @Nonnull String value) {
-                return this.map.replace(key, value);
+                return map.replace(key, value);
             }
 
             @Override
             public String computeIfAbsent(String key, Function<? super String, ? extends String> mappingFunction) {
-                return this.map.computeIfAbsent(key, mappingFunction);
+                return map.computeIfAbsent(key, mappingFunction);
             }
 
             @Override
@@ -491,7 +491,7 @@ public class InfinispanCacheAdapterTest extends BaseCacheTest {
 
             @Override
             public String merge(String key, String value, BiFunction<? super String, ? super String, ? extends String> remappingFunction) {
-                return this.map.merge(key, value, remappingFunction);
+                return map.merge(key, value, remappingFunction);
             }
         });
     }
