@@ -104,7 +104,7 @@ public final class DefaultCacheBus implements ExtendedCacheBus {
     }
 
     private boolean needToSendEvent(final CacheConfiguration cacheConfiguration, final CacheEntryEventType eventType) {
-        return eventType != CacheEntryEventType.EVICTED && eventType != CacheEntryEventType.ADDED || cacheConfiguration.cacheType() != CacheType.INVALIDATED;
+        return eventType != CacheEntryEventType.EXPIRED && eventType != CacheEntryEventType.ADDED || cacheConfiguration.cacheType() != CacheType.INVALIDATED;
     }
 
     private void applyEvent(final CacheEntryEvent<Serializable, Serializable> event, final CacheConfiguration cacheConfiguration) {

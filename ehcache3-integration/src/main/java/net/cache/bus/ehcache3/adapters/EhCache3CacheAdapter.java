@@ -46,6 +46,7 @@ public final class EhCache3CacheAdapter<K extends Serializable, V extends Serial
     @Override
     public Optional<V> remove(@Nonnull K key) {
         final V value = this.cache.get(Objects.requireNonNull(key, "key"));
+        this.cache.remove(key, value);
         return Optional.ofNullable(value);
     }
 

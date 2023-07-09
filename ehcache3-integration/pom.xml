@@ -33,5 +33,14 @@
             <artifactId>core</artifactId>
             <version>${project.version}</version>
         </dependency>
+
+        <dependency>
+            <groupId>net.cache-bus</groupId>
+            <artifactId>test-addons</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+            <type>test-jar</type>
+        </dependency>
+
     </dependencies>
 </project>

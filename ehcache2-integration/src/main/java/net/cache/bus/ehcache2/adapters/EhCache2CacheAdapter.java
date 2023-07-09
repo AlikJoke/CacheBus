@@ -1,7 +1,8 @@
-package ehcache2.adapters;
+package net.cache.bus.ehcache2.adapters;
 
 import net.cache.bus.core.Cache;
 import net.cache.bus.core.CacheAlreadyDefinedAsClusteredException;
+import net.sf.ehcache.Ehcache;
 import net.sf.ehcache.Element;
 import net.sf.ehcache.event.CacheEventListener;
 import net.sf.ehcache.event.NotificationScope;
@@ -14,14 +15,14 @@ import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
-public final class EhCache2CacheAdapter implements Cache<Serializable, Serializable> {
+public final class EhCache2CacheAdapter<K extends Serializable, V extends Serializable> implements Cache<K, V> {
 
-    private final net.sf.ehcache.Cache cache;
+    private final Ehcache cache;
 
-    public EhCache2CacheAdapter(@Nonnull net.sf.ehcache.Cache cache) {
+    public EhCache2CacheAdapter(@Nonnull Ehcache cache) {
         this.cache = Objects.requireNonNull(cache, "cache");
 
-        if (cache.isTerracottaClustered()) {
+        if (cache instanceof net.sf.ehcache.Cache c && c.isTerracottaClustered()) {
             throw new CacheAlreadyDefinedAsClusteredException(cache.getName());
         }
     }
@@ -33,30 +34,34 @@ public final class EhCache2CacheAdapter implements Cache<Serializable, Serializa
 
     @Nonnull
     @Override
-    public Optional<Serializable> get(@Nonnull Serializable key) {
+    public Optional<V> get(@Nonnull K key) {
         final Element value = this.cache.get(Objects.requireNonNull(key, "key"));
-        return Optional.ofNullable(value == null ? null : (Serializable) value.getObjectValue());
+        return Optional.ofNullable(value == null ? null : castValue(value.getObjectValue()));
     }
 
     @Override
-    public void evict(@Nonnull Serializable key) {
-        this.cache.remove(Objects.requireNonNull(key, "key"));
+    public void evict(@Nonnull K key) {
+        this.cache.remove(Objects.requireNonNull(key, "key"), true);
     }
 
     @Nonnull
     @Override
-    public Optional<Serializable> remove(@Nonnull Serializable key) {
+    public Optional<V> remove(@Nonnull K key) {
         final Element value = this.cache.get(Objects.requireNonNull(key, "key"));
-        return Optional.ofNullable(value == null ? null : (Serializable) value.getObjectValue());
+        if (value != null) {
+            this.cache.removeElement(value);
+        }
+
+        return Optional.ofNullable(value == null ? null : castValue(value.getObjectValue()));
     }
 
     @Override
-    public void put(@Nonnull Serializable key, @Nullable Serializable value) {
+    public void put(@Nonnull K key, @Nullable V value) {
         this.cache.put(new Element(key, value), true);
     }
 
     @Override
-    public void putIfAbsent(@Nonnull Serializable key, @Nullable Serializable value) {
+    public void putIfAbsent(@Nonnull K key, @Nullable V value) {
         this.cache.putIfAbsent(new Element(key, value), true);
     }
 
@@ -66,7 +71,7 @@ public final class EhCache2CacheAdapter implements Cache<Serializable, Serializa
     }
 
     @Override
-    public void merge(@Nonnull Serializable key, @Nonnull Serializable value, @Nonnull BiFunction<? super Serializable, ? super Serializable, ? extends Serializable> mergeFunction) {
+    public void merge(@Nonnull K key, @Nonnull V value, @Nonnull BiFunction<? super V, ? super V, ? extends V> mergeFunction) {
 
         Objects.requireNonNull(mergeFunction, "mergeFunction");
         Objects.requireNonNull(key, "key");
@@ -74,7 +79,7 @@ public final class EhCache2CacheAdapter implements Cache<Serializable, Serializa
 
         this.cache.acquireWriteLockOnKey(key);
         try {
-            final Optional<Serializable> oldValue = get(key);
+            final Optional<V> oldValue = get(key);
             final Object newValue = oldValue.isEmpty() ? value : mergeFunction.apply(oldValue.get(), value);
             if (newValue == null) {
                 this.cache.remove(key);
@@ -89,7 +94,7 @@ public final class EhCache2CacheAdapter implements Cache<Serializable, Serializa
 
     @Nonnull
     @Override
-    public Optional<Serializable> computeIfAbsent(@Nonnull Serializable key, @Nonnull Function<? super Serializable, ? extends Serializable> valueFunction) {
+    public Optional<V> computeIfAbsent(@Nonnull K key, @Nonnull Function<? super K, ? extends V> valueFunction) {
 
         Objects.requireNonNull(key, "key");
         Objects.requireNonNull(valueFunction, "valueFunction");
@@ -98,26 +103,32 @@ public final class EhCache2CacheAdapter implements Cache<Serializable, Serializa
         try {
             final Element v = this.cache.get(key);
             if (v == null || v.getObjectValue() == null) {
-                final Serializable newValue = valueFunction.apply(key);
+                final V newValue = valueFunction.apply(key);
                 if (newValue != null) {
                     this.cache.put(new Element(key, newValue), true);
                     return Optional.of(newValue);
                 }
             }
 
-            return Optional.ofNullable(v == null ? null : (Serializable) v.getObjectValue());
+            return Optional.ofNullable(v == null ? null : castValue(v.getObjectValue()));
         } finally {
             this.cache.releaseWriteLockOnKey(key);
         }
     }
 
     @Override
-    public void registerEventListener(@Nonnull net.cache.bus.core.CacheEventListener<Serializable, Serializable> listener) {
+    public void registerEventListener(@Nonnull net.cache.bus.core.CacheEventListener<K, V> listener) {
 
         if (listener instanceof CacheEventListener eventListener) {
             this.cache.getCacheEventNotificationService().registerListener(eventListener, NotificationScope.LOCAL);
         } else {
             throw new ClassCastException("Cache listener implementation must implement " + CacheEventListener.class.getCanonicalName());
         }
+    }
+
+    private V castValue(final Object value) {
+        @SuppressWarnings("unchecked")
+        final V result = (V) value;
+        return result;
     }
 }

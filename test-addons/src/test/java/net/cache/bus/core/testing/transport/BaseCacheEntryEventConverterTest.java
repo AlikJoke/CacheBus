@@ -8,7 +8,6 @@ import org.junit.jupiter.api.Test;
 
 import javax.annotation.Nonnull;
 import java.io.Serializable;
-import java.time.Instant;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -41,7 +40,6 @@ public abstract class BaseCacheEntryEventConverterTest {
 
         assertEquals(event.cacheName(), deserializedEventWithoutValues.cacheName(), "Cache name must be equal");
         assertEquals(event.eventType(), deserializedEventWithoutValues.eventType(), "Event type must be equal");
-        assertEquals(event.eventTime(), deserializedEventWithoutValues.eventTime(), "Event time must be equal");
         assertEquals(event.key(), deserializedEventWithoutValues.key(), "Cache key must be equal");
         assertNull(deserializedEventWithoutValues.oldValue(), "Old cache value must be null");
         assertNull(deserializedEventWithoutValues.newValue(), "New cache value must be null");
@@ -90,7 +88,7 @@ public abstract class BaseCacheEntryEventConverterTest {
             final V oldValue,
             final V newValue,
             final CacheEntryEventType eventType) {
-        return new ImmutableCacheEntryEvent<>(key, oldValue, newValue, Instant.now(), eventType, UUID.randomUUID().toString());
+        return new ImmutableCacheEntryEvent<>(key, oldValue, newValue, eventType, UUID.randomUUID().toString());
     }
 
     protected record Key(

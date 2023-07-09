@@ -1,4 +1,4 @@
-package ehcache2.listeners;
+package net.cache.bus.ehcache2.listeners;
 
 import net.cache.bus.core.Cache;
 import net.cache.bus.core.CacheBus;

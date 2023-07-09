@@ -1,4 +1,4 @@
-package ehcache2.adapters;
+package net.cache.bus.ehcache2.adapters;
 
 import net.cache.bus.core.Cache;
 import net.cache.bus.core.CacheManager;

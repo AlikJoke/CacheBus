@@ -8,7 +8,6 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.ThreadSafe;
 import java.io.Serializable;
-import java.time.Instant;
 import java.util.Objects;
 
 @Immutable
@@ -17,13 +16,11 @@ public record ImmutableCacheEntryEvent<K extends Serializable, V extends Seriali
         @Nonnull K key,
         @Nullable V oldValue,
         @Nullable V newValue,
-        @Nonnull Instant eventTime,
         @Nonnull CacheEntryEventType eventType,
         @Nonnull String cacheName) implements CacheEntryEvent<K, V> {
 
     public ImmutableCacheEntryEvent {
         Objects.requireNonNull(key, "key");
-        Objects.requireNonNull(eventTime, "eventTime");
         Objects.requireNonNull(eventType, "eventType");
 
         if (cacheName == null || cacheName.isEmpty()) {
@@ -46,8 +43,7 @@ public record ImmutableCacheEntryEvent<K extends Serializable, V extends Seriali
                 && eventType == that.eventType
                 && cacheName.equals(that.cacheName)
                 && Objects.equals(oldValue, that.oldValue)
-                && Objects.equals(newValue, that.newValue)
-                && eventTime.equals(that.eventTime);
+                && Objects.equals(newValue, that.newValue);
     }
 
     @Override
@@ -60,7 +56,6 @@ public record ImmutableCacheEntryEvent<K extends Serializable, V extends Seriali
         result = prime * result + cacheName.hashCode();
         result = prime * result + (oldValue == null ? 0 : oldValue.hashCode());
         result = prime * result + (newValue == null ? 0 : newValue.hashCode());
-        result = prime * result + eventTime.hashCode();
 
         return result;
     }
@@ -71,7 +66,6 @@ public record ImmutableCacheEntryEvent<K extends Serializable, V extends Seriali
                 "key=" + key +
                 ", oldValue=" + oldValue +
                 ", newValue=" + newValue +
-                ", eventTime=" + eventTime +
                 ", eventType=" + eventType +
                 ", cacheName='" + cacheName + '\'' +
                 '}';

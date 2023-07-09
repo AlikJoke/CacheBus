@@ -1,7 +1,7 @@
-package ehcache2.configuration;
+package net.cache.bus.ehcache2.configuration;
 
-import ehcache2.adapters.EhCache2CacheManagerAdapter;
-import ehcache2.listeners.EhCache2CacheEventListenerRegistrar;
+import net.cache.bus.ehcache2.adapters.EhCache2CacheManagerAdapter;
+import net.cache.bus.ehcache2.listeners.EhCache2CacheEventListenerRegistrar;
 import net.cache.bus.core.configuration.CacheProviderConfiguration;
 import net.cache.bus.core.impl.CacheProviderConfigurationTemplate;
 import net.sf.ehcache.CacheManager;

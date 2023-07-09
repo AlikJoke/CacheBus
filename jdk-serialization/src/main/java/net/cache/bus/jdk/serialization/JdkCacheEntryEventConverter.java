@@ -9,7 +9,6 @@ import javax.annotation.Nonnull;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.ThreadSafe;
 import java.io.*;
-import java.time.Instant;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -55,18 +54,19 @@ public final class JdkCacheEntryEventConverter implements CacheEntryEventConvert
 
         try (final var bis = new ByteArrayInputStream(data);
              final var ois = new ObjectInputStream(bis)) {
-            final K key = (K) ois.readObject();
-            final CacheEntryEventType eventType = CacheEntryEventType.valueOf(ois.readInt());
+            final byte keyType = ois.readByte();
+            final K key = (K) (keyType == 1 ? ois.readUTF() : ois.readObject());
+            final CacheEntryEventType eventType = CacheEntryEventType.valueOf(ois.readByte());
             if (eventType == null) {
                 throw new NullPointerException();
             }
 
             final String cacheName = ois.readUTF();
-            final Instant eventTime = (Instant) ois.readObject();
+
             final V oldValue = (V) ois.readObject();
             final V newValue = (V) ois.readObject();
 
-            return new ImmutableCacheEntryEvent<>(key, oldValue, newValue, eventTime, eventType, cacheName);
+            return new ImmutableCacheEntryEvent<>(key, oldValue, newValue, eventType, cacheName);
         } catch (IOException | ClassNotFoundException e) {
             throw new RuntimeException(e);
         }
@@ -76,11 +76,24 @@ public final class JdkCacheEntryEventConverter implements CacheEntryEventConvert
             final ObjectOutput output,
             final CacheEntryEvent<?, ?> event,
             final boolean serializeValueFields) throws IOException {
-        output.writeObject(event.key());
-        output.writeInt(event.eventType().getId());
+        // Небольшая оптимизация для строк: подавляющее большинство ключей в кэшах - строки. readUTF экономнее, чем readObject для строк.
+        final int keyType = getKeyType(event.key());
+        output.writeByte(keyType);
+
+        if (keyType == 1) {
+            output.writeUTF(event.key().toString());
+        } else {
+            output.writeObject(event.key());
+        }
+
+        output.writeByte(event.eventType().getId());
         output.writeUTF(event.cacheName());
-        output.writeObject(event.eventTime());
+
         output.writeObject(serializeValueFields ? event.oldValue() : null);
         output.writeObject(serializeValueFields ? event.newValue() : null);
+    }
+
+    private int getKeyType(final Object key) {
+        return key.getClass() == String.class ? 1 : 2;
     }
 }

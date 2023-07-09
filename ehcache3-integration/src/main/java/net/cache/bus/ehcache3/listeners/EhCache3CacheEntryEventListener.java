@@ -12,7 +12,6 @@ import javax.annotation.Nonnull;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.ThreadSafe;
 import java.io.Serializable;
-import java.time.Instant;
 import java.util.Objects;
 
 @ThreadSafe
@@ -33,7 +32,6 @@ final class EhCache3CacheEntryEventListener<K extends Serializable, V extends Se
                 cacheEvent.getKey(),
                 cacheEvent.getOldValue(),
                 cacheEvent.getNewValue(),
-                Instant.now(),
                 convertEhCacheEventType2BusType(cacheEvent.getType()),
                 this.cacheName
         );

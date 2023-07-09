@@ -10,7 +10,6 @@ import org.infinispan.notifications.cachelistener.event.*;
 
 import javax.annotation.Nonnull;
 import java.io.Serializable;
-import java.time.Instant;
 import java.util.Objects;
 
 @Listener
@@ -49,14 +48,12 @@ final class InfinispanCacheEntryEventListener<K extends Serializable, V extends 
 
     @CacheEntriesEvicted
     public void onEntriesEvicted(@Nonnull CacheEntriesEvictedEvent<K, V> event) {
-        final Instant eventTime = Instant.now();
         event.getEntries().forEach((key, value) -> {
 
             final net.cache.bus.core.CacheEntryEvent<K, V> busEvent = new ImmutableCacheEntryEvent<>(
                     key,
                     value,
                     null,
-                    eventTime,
                     CacheEntryEventType.EVICTED,
                     event.getCache().getName()
             );
@@ -74,7 +71,6 @@ final class InfinispanCacheEntryEventListener<K extends Serializable, V extends 
                 event.getKey(),
                 oldValue,
                 newValue,
-                Instant.now(),
                 eventType,
                 event.getCache().getName()
         );

@@ -1,4 +1,4 @@
-package ehcache2.listeners;
+package net.cache.bus.ehcache2.listeners;
 
 import net.cache.bus.core.CacheBus;
 import net.cache.bus.core.CacheEntryEvent;
@@ -14,7 +14,6 @@ import javax.annotation.Nonnull;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.ThreadSafe;
 import java.io.Serializable;
-import java.time.Instant;
 import java.util.Objects;
 
 @ThreadSafe
@@ -111,7 +110,6 @@ final class EhCache2CacheEntryEventListener<K extends Serializable, V extends Se
                 key,
                 oldValue,
                 newValue,
-                Instant.now(),
                 eventType,
                 cacheName
         );

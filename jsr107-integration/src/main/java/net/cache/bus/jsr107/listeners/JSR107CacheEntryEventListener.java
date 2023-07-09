@@ -10,7 +10,6 @@ import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.ThreadSafe;
 import javax.cache.event.*;
 import java.io.Serializable;
-import java.time.Instant;
 import java.util.Objects;
 
 @ThreadSafe
@@ -53,7 +52,6 @@ final class JSR107CacheEntryEventListener<K extends Serializable, V extends Seri
                     cacheEvent.getKey(),
                     cacheEvent.getOldValue(),
                     cacheEvent.getValue(),
-                    Instant.now(),
                     convertJSR107CacheEventType2BusType(cacheEvent.getEventType()),
                     cacheEvent.getSource().getName()
             );

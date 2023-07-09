@@ -14,7 +14,6 @@ import javax.annotation.concurrent.ThreadSafe;
 import java.io.IOException;
 import java.io.ObjectOutput;
 import java.io.Serializable;
-import java.time.Instant;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -56,18 +55,19 @@ public final class OneNioCacheEntryEventConverter implements CacheEntryEventConv
     public <K extends Serializable, V extends Serializable> CacheEntryEvent<K, V> fromBinary(@Nonnull byte[] data) {
 
         try (final DeserializeStream in = new DeserializeStream(data)) {
-            final K key = (K) in.readObject();
-            final CacheEntryEventType eventType = CacheEntryEventType.valueOf(in.readInt());
+            final byte keyType = in.readByte();
+            final K key = (K) (keyType == 1 ? in.readUTF() : in.readObject());
+            final CacheEntryEventType eventType = CacheEntryEventType.valueOf(in.readByte());
             if (eventType == null) {
                 throw new NullPointerException();
             }
 
             final String cacheName = in.readUTF();
-            final Instant eventTime = (Instant) in.readObject();
+
             final V oldValue = (V) in.readObject();
             final V newValue = (V) in.readObject();
 
-            return new ImmutableCacheEntryEvent<>(key, oldValue, newValue, eventTime, eventType, cacheName);
+            return new ImmutableCacheEntryEvent<>(key, oldValue, newValue, eventType, cacheName);
         } catch (IOException | ClassNotFoundException e) {
             throw new RuntimeException(e);
         }
@@ -77,11 +77,24 @@ public final class OneNioCacheEntryEventConverter implements CacheEntryEventConv
             final ObjectOutput output,
             final CacheEntryEvent<?, ?> event,
             final boolean serializeValueFields) throws IOException {
-        output.writeObject(event.key());
-        output.writeInt(event.eventType().getId());
+        // Небольшая оптимизация для строк: подавляющее большинство ключей в кэшах - строки. readUTF экономнее, чем readObject для строк.
+        final int keyType = getKeyType(event.key());
+        output.writeByte(keyType);
+
+        if (keyType == 1) {
+            output.writeUTF(event.key().toString());
+        } else {
+            output.writeObject(event.key());
+        }
+
+        output.writeByte(event.eventType().getId());
         output.writeUTF(event.cacheName());
-        output.writeObject(event.eventTime());
+
         output.writeObject(serializeValueFields ? event.oldValue() : null);
         output.writeObject(serializeValueFields ? event.newValue() : null);
+    }
+
+    private int getKeyType(final Object key) {
+        return key.getClass() == String.class ? 1 : 2;
     }
 }

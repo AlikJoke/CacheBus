@@ -29,7 +29,6 @@ public class InfinispanCacheManagerAdapterTest extends BaseCacheManagerTest {
         lenient().when(cache.getCacheConfiguration()).thenReturn(this.configuration);
 
         lenient().when(this.infinispanCacheManager.getCache(cacheName, false)).thenReturn(this.cache);
-        lenient().when(this.infinispanCacheManager.getCache("1", false)).thenReturn(this.cache);
 
         return new InfinispanCacheManagerAdapter(this.infinispanCacheManager);
     }

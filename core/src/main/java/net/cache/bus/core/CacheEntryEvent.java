@@ -3,7 +3,6 @@ package net.cache.bus.core;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.Serializable;
-import java.time.Instant;
 
 /**
  * Событие изменения элемента кэша.
@@ -41,14 +40,6 @@ public interface CacheEntryEvent<K extends Serializable, V extends Serializable>
      */
     @Nullable
     V newValue();
-
-    /**
-     * Возвращает время изменения элемента кэша.
-     *
-     * @return не может быть {@code null}.
-     */
-    @Nonnull
-    Instant eventTime();
 
     /**
      * Возвращает тип изменения элемента кэша.
