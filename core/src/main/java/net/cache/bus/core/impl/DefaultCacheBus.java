@@ -2,15 +2,20 @@ package net.cache.bus.core.impl;
 
 import net.cache.bus.core.*;
 import net.cache.bus.core.configuration.*;
+import net.cache.bus.core.impl.internal.AsynchronousCacheEventMessageConsumer;
+import net.cache.bus.core.impl.internal.ImmutableCacheEntryOutputMessage;
+import net.cache.bus.core.impl.internal.SynchronousCacheEventMessageConsumer;
 import net.cache.bus.core.transport.CacheBusMessageChannel;
 import net.cache.bus.core.transport.CacheEntryEventConverter;
 import net.cache.bus.core.transport.CacheEntryOutputMessage;
+import net.cache.bus.core.impl.internal.util.StripedRingBuffersContainer;
 
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.ThreadSafe;
 import java.io.Serializable;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.ExecutorService;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -22,6 +27,7 @@ public final class DefaultCacheBus implements ExtendedCacheBus {
 
     private final CacheBusConfiguration configuration;
     private volatile boolean started;
+    private volatile CacheEventMessageConsumer messageConsumer;
 
     public DefaultCacheBus(@Nonnull CacheBusConfiguration configuration) {
         this.configuration = Objects.requireNonNull(configuration, "configuration");
@@ -84,6 +90,7 @@ public final class DefaultCacheBus implements ExtendedCacheBus {
         final CacheBusMessageChannel<CacheBusMessageChannelConfiguration> messageChannel = transportConfiguration.messageChannel();
 
         messageChannel.unsubscribe();
+        this.messageConsumer.close();
 
         this.started = false;
     }
@@ -167,12 +174,23 @@ public final class DefaultCacheBus implements ExtendedCacheBus {
     private void initializeInputMessageChannelSubscriber() {
 
         /*
-         * Активируем канал сообщений и подписываемся на входящий поток сообщений об изменениях элементов кэшей
+         * Активируем канал сообщений
          */
         final CacheBusTransportConfiguration transportConfiguration = this.configuration.transportConfiguration();
         final CacheBusMessageChannel<CacheBusMessageChannelConfiguration> channel = transportConfiguration.messageChannel();
 
         channel.activate(transportConfiguration.messageChannelConfiguration());
-        channel.subscribe(this::receive);
+
+        /*
+         *  Формируем обработчик сообщений и подписываемся на входящий поток сообщений об изменениях элементов кэшей
+         */
+        final int buffersCount = transportConfiguration.maxConcurrentProcessingThreads();
+        final ExecutorService processingPool = transportConfiguration.processingPool();
+
+        this.messageConsumer = transportConfiguration.useSynchronousProcessing()
+                ? new SynchronousCacheEventMessageConsumer(this)
+                : new AsynchronousCacheEventMessageConsumer(this, new StripedRingBuffersContainer<>(buffersCount), processingPool);
+
+        channel.subscribe(this.messageConsumer);
     }
 }

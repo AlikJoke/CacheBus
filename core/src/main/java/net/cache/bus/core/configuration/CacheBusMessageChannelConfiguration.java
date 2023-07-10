@@ -14,14 +14,6 @@ import java.util.concurrent.ExecutorService;
 public interface CacheBusMessageChannelConfiguration {
 
     /**
-     * Возвращает пул потоков, на котором производится получение и обработка сообщений с других серверов.
-     *
-     * @return не может быть {@code null}.
-     */
-    @Nonnull
-    ExecutorService receivingPool();
-
-    /**
      * Возвращает идентификатор канала сообщений.
      *
      * @return не может быть {@code null}.
@@ -39,11 +31,10 @@ public interface CacheBusMessageChannelConfiguration {
     HostNameResolver hostNameResolver();
 
     /**
-     * Обязательно ли сохранение порядка обрабатываемых сообщений.
-     * В конфигурациях, когда используются только инвалидационные кэши и порядок не важен,
-     * позволяет повысить производительность обработки, если не сохранять порядок.
+     * Возвращает пул потоков, на котором производится получение сообщений с других серверов.
      *
-     * @return {@code true} - если нужно сохранять порядок, {@code false} - иначе.
+     * @return не может быть {@code null}.
      */
-    boolean preserveOrder();
+    @Nonnull
+    ExecutorService subscribingPool();
 }

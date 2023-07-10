@@ -1,10 +1,10 @@
 package net.cache.bus.core.transport;
 
 import net.cache.bus.core.CacheEntryEvent;
+import net.cache.bus.core.CacheEventMessageConsumer;
 import net.cache.bus.core.configuration.CacheBusMessageChannelConfiguration;
 
 import javax.annotation.Nonnull;
-import java.util.function.Consumer;
 
 /**
  * Абстракция канала сообщений об изменении элементов кэша.
@@ -18,8 +18,9 @@ public interface CacheBusMessageChannel<T extends CacheBusMessageChannelConfigur
 
     /**
      * Производит активацию канала сообщений шины кэшей.
-     * @see CacheBusMessageChannelConfiguration
+     *
      * @param configuration конфигурация канала, не может быть {@code null}.
+     * @see CacheBusMessageChannelConfiguration
      */
     void activate(@Nonnull T configuration);
 
@@ -33,9 +34,9 @@ public interface CacheBusMessageChannel<T extends CacheBusMessageChannelConfigur
     /**
      * Создает подписку на входящий поток сообщений канала на выделенном пуле потоков.
      *
-     * @param consumer функция обработки тел сообщений, не может быть {@code null}.
+     * @param consumer функция обработки сообщений, не может быть {@code null}.
      */
-    void subscribe(@Nonnull Consumer<byte[]> consumer);
+    void subscribe(@Nonnull CacheEventMessageConsumer consumer);
 
     /**
      * Производит отписку от входящего потока сообщений канала.

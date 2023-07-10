@@ -5,44 +5,31 @@ import net.cache.bus.core.configuration.CacheBusTransportConfiguration;
 import net.cache.bus.core.transport.CacheBusMessageChannel;
 import net.cache.bus.core.transport.CacheEntryEventConverter;
 
+import javax.annotation.Nonnegative;
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.ThreadSafe;
 import java.util.Objects;
+import java.util.concurrent.ExecutorService;
 
 @ThreadSafe
 @Immutable
-public final class ImmutableCacheBusTransportConfiguration implements CacheBusTransportConfiguration {
+public record ImmutableCacheBusTransportConfiguration(
+        @Nonnull CacheEntryEventConverter converter,
+        @Nonnull CacheBusMessageChannel<CacheBusMessageChannelConfiguration> messageChannel,
+        @Nonnull CacheBusMessageChannelConfiguration messageChannelConfiguration,
+        @Nonnull ExecutorService processingPool,
+        @Nonnegative int maxConcurrentProcessingThreads) implements CacheBusTransportConfiguration {
 
-    private final CacheEntryEventConverter converter;
-    private final CacheBusMessageChannel<CacheBusMessageChannelConfiguration> messageChannel;
-    private final CacheBusMessageChannelConfiguration messageChannelConfiguration;
+    public ImmutableCacheBusTransportConfiguration {
+        Objects.requireNonNull(converter, "converter");
+        Objects.requireNonNull(messageChannel, "messageChannel");
+        Objects.requireNonNull(messageChannelConfiguration, "messageChannelConfiguration");
+        Objects.requireNonNull(processingPool, "processingPool");
 
-    public ImmutableCacheBusTransportConfiguration(
-            @Nonnull CacheEntryEventConverter converter,
-            @Nonnull CacheBusMessageChannel<CacheBusMessageChannelConfiguration> messageChannel,
-            @Nonnull CacheBusMessageChannelConfiguration messageChannelConfiguration) {
-        this.converter = Objects.requireNonNull(converter, "converter");
-        this.messageChannel = Objects.requireNonNull(messageChannel, "messageChannel");
-        this.messageChannelConfiguration = Objects.requireNonNull(messageChannelConfiguration, "messageChannelConfiguration");
-    }
-
-    @Nonnull
-    @Override
-    public CacheEntryEventConverter converter() {
-        return this.converter;
-    }
-
-    @Nonnull
-    @Override
-    public CacheBusMessageChannel<CacheBusMessageChannelConfiguration> messageChannel() {
-        return this.messageChannel;
-    }
-
-    @Nonnull
-    @Override
-    public CacheBusMessageChannelConfiguration messageChannelConfiguration() {
-        return this.messageChannelConfiguration;
+        if (maxConcurrentProcessingThreads < 0) {
+            throw new IllegalArgumentException("maxConcurrentProcessingThreads can not be negative");
+        }
     }
 
     @Nonnull
@@ -55,6 +42,8 @@ public final class ImmutableCacheBusTransportConfiguration implements CacheBusTr
         private CacheEntryEventConverter converter;
         private CacheBusMessageChannel<CacheBusMessageChannelConfiguration> messageChannel;
         private CacheBusMessageChannelConfiguration messageChannelConfiguration;
+        private ExecutorService processingPool;
+        private int maxConcurrentProcessingThreads = 1;
 
         public Builder setConverter(@Nonnull final CacheEntryEventConverter converter) {
             this.converter = converter;
@@ -71,9 +60,32 @@ public final class ImmutableCacheBusTransportConfiguration implements CacheBusTr
             return this;
         }
 
+        public Builder setProcessingPool(@Nonnull final ExecutorService processingPool) {
+            this.processingPool = processingPool;
+            return this;
+        }
+
+        /**
+         * Устанавливает максимальное количество потоков обработки поступающих сообщений с других серверов.
+         * По-умолчанию используется значение {@literal 1}, т.е. обработка производится независимо от
+         * потока получения (производитель и потребитель "развязаны") и выполняется в один поток.
+         * @param maxConcurrentProcessingThreads максимальное количество потоков, которое может использоваться для обработки поступающих сообщений, не может быть {@code отрицательным.}
+         * @return не может быть {@code null}
+         */
+        public Builder setMaxConcurrentReceivingThreads(@Nonnegative final int maxConcurrentProcessingThreads) {
+            this.maxConcurrentProcessingThreads = maxConcurrentProcessingThreads;
+            return this;
+        }
+
         @Nonnull
         public CacheBusTransportConfiguration build() {
-            return new ImmutableCacheBusTransportConfiguration(this.converter, this.messageChannel, this.messageChannelConfiguration);
+            return new ImmutableCacheBusTransportConfiguration(
+                    this.converter,
+                    this.messageChannel,
+                    this.messageChannelConfiguration,
+                    this.processingPool,
+                    this.maxConcurrentProcessingThreads
+            );
         }
     }
 }

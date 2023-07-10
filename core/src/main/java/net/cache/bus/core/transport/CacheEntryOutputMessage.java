@@ -1,7 +1,5 @@
 package net.cache.bus.core.transport;
 
-import net.cache.bus.core.CacheEntryEventType;
-
 import javax.annotation.Nonnull;
 
 /**
@@ -22,18 +20,18 @@ public interface CacheEntryOutputMessage {
     String cacheName();
 
     /**
-     * Возвращает тип изменения элемента кэша.
-     *
-     * @return не может быть {@code null}.
-     */
-    @Nonnull
-    CacheEntryEventType eventType();
-
-    /**
      * Возвращает бинарное представление события об изменении элемента кэша
      *
      * @return не может быть {@code null}.
      */
     @Nonnull
     byte[] cacheEntryMessageBody();
+
+    /**
+     * Возвращает хэш-ключ сообщения.<br>
+     * Хэш должен высчитываться на основе двух полей: имени кэша и ключа, для которого произошло изменение.
+     *
+     * @return хэш-ключ соытия
+     */
+    int messageHashKey();
 }
