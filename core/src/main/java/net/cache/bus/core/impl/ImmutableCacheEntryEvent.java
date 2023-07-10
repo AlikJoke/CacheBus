@@ -10,6 +10,19 @@ import javax.annotation.concurrent.ThreadSafe;
 import java.io.Serializable;
 import java.util.Objects;
 
+/**
+ * Неизменяемая реализация события об изменении элемента кэша.
+ *
+ * @param key       ключ измененного элемента, не может быть {@code null}.
+ * @param oldValue  старое значение измененного элемента, может быть {@code null}.
+ * @param newValue  новое значение измененного элемента, может быть {@code null}.
+ * @param eventType тип события (изменения), не может быть {@code null}.
+ * @param cacheName имя кэша, в котором произошло изменение, не может быть {@code null}.
+ * @param <K>       тип ключа элемента кэша
+ * @param <V>       тип значения элемента кэша
+ * @author Alik
+ * @see CacheEntryEvent
+ */
 @Immutable
 @ThreadSafe
 public record ImmutableCacheEntryEvent<K extends Serializable, V extends Serializable>(

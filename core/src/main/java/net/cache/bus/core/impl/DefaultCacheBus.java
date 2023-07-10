@@ -19,6 +19,15 @@ import java.util.concurrent.ExecutorService;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+/**
+ * Реализация шины кэшей, используемая по-умолчанию. Содержит основную логику обработки событий об
+ * изменении элементов кэша и служит посредником между локальными и удаленными кэшами.
+ *
+ * @author Alik
+ * @see CacheBus
+ * @see ExtendedCacheBus
+ * @see CacheBusConfiguration
+ */
 @ThreadSafe
 public final class DefaultCacheBus implements ExtendedCacheBus {
 

@@ -6,6 +6,12 @@ import net.cache.bus.core.configuration.CacheProviderConfiguration;
 
 import javax.annotation.Nonnull;
 
+/**
+ * Скелетная реализация конфигурации провайдера кэширования.
+ *
+ * @author Alik
+ * @see CacheProviderConfiguration
+ */
 public abstract class CacheProviderConfigurationTemplate implements CacheProviderConfiguration {
 
     private final CacheManager cacheManager;

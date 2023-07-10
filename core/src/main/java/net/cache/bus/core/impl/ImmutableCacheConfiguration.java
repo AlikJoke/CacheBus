@@ -8,6 +8,14 @@ import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.ThreadSafe;
 import java.util.Objects;
 
+/**
+ * Неизменяемая реализация конфигурации одного кэша для шины.
+ *
+ * @param cacheName имя кэша, к которому относится конфигурация, не может быть {@code null}.
+ * @param cacheType тип кэша, не может быть {@code null}.
+ * @author Alik
+ * @see CacheConfiguration
+ */
 @Immutable
 @ThreadSafe
 public record ImmutableCacheConfiguration(

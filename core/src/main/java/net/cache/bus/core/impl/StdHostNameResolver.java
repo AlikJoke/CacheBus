@@ -6,6 +6,12 @@ import javax.annotation.Nonnull;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
+/**
+ * Реализация определителя хоста сервера по-умолчанию на основе {@link InetAddress#getLocalHost()}.
+ *
+ * @author Alik
+ * @see HostNameResolver
+ */
 public final class StdHostNameResolver implements HostNameResolver {
 
     @Nonnull

@@ -13,6 +13,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Реализация асинхронного потребителя сообщений из канала на основе кольцевых буферов.
@@ -26,6 +28,8 @@ import java.util.concurrent.Future;
 @ThreadSafe
 @Immutable
 public final class AsynchronousCacheEventMessageConsumer implements CacheEventMessageConsumer {
+
+    private static final Logger logger = Logger.getLogger(AsynchronousCacheEventMessageConsumer.class.getCanonicalName());
 
     private final StripedRingBuffersContainer<byte[]> messageBuffers;
     private final List<Future<?>> processingTasks;
@@ -42,7 +46,13 @@ public final class AsynchronousCacheEventMessageConsumer implements CacheEventMe
     public void accept(int messageHash, @Nonnull byte[] messageBody) {
         final int bufferIndex = computeBufferIndexByHash(messageHash);
         final RingBuffer<byte[]> ringBuffer = this.messageBuffers.get(bufferIndex);
-        ringBuffer.offer(messageBody);
+
+        try {
+            ringBuffer.offer(messageBody);
+        } catch (InterruptedException ex) {
+            logger.log(Level.ALL, "Thread was interrupted", ex);
+            Thread.currentThread().interrupt();
+        }
     }
 
     private int computeBufferIndexByHash(final int hash) {
