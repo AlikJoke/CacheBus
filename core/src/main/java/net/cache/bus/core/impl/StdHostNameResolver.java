@@ -15,9 +15,10 @@ import java.net.UnknownHostException;
 public final class StdHostNameResolver implements HostNameResolver {
 
     @Nonnull
+    @Override
     public String resolve() {
         try {
-            return InetAddress.getLocalHost().getHostName().toLowerCase();
+            return InetAddress.getLocalHost().getHostName();
         } catch (UnknownHostException e) {
             throw new RuntimeException(e);
         }

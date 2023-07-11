@@ -30,6 +30,7 @@ import static org.mockito.Mockito.*;
 public class JmsCacheBusMessageChannelTest {
 
     private static final String CHANNEL_NAME = "test";
+    private static final String HOST_NAME = "test-host";
 
     @Mock
     private ConnectionFactory connectionFactory;
@@ -62,7 +63,7 @@ public class JmsCacheBusMessageChannelTest {
     public void testSendToChannelAfterActivation() {
         // preparation
         final JmsCacheBusMessageChannel channel = new JmsCacheBusMessageChannel();
-        final CacheBusJmsMessageChannelConfiguration configuration = activateChannel(channel);
+        activateChannel(channel);
 
         final CacheEntryEvent<String, String> event = new ImmutableCacheEntryEvent<>("1", null, "v1", CacheEntryEventType.ADDED, "test1");
         final byte[] binaryEvent = event.key().getBytes();
@@ -77,7 +78,7 @@ public class JmsCacheBusMessageChannelTest {
         assertEquals(JmsCacheBusMessageChannel.MESSAGE_TYPE, this.producer.getJMSType(), "JMSType must be equal");
         assertEquals(DeliveryMode.NON_PERSISTENT, this.producer.getDeliveryMode(), "Delivery mode must be NON_PERSISTENT");
         assertEquals(outputMessage.messageHashKey(), this.producer.getIntProperty(JmsCacheBusMessageChannel.HASH_KEY_PROPERTY), "Hash property must be equal");
-        assertEquals(configuration.hostNameResolver().resolve(), this.producer.getStringProperty(JmsCacheBusMessageChannel.HOST_PROPERTY), "Host property must be equal");
+        assertEquals(HOST_NAME, this.producer.getStringProperty(JmsCacheBusMessageChannel.HOST_PROPERTY), "Host property must be equal");
 
         assertFalse(this.producer.binaryMessages.isEmpty(), "Sent messages must be not empty");
         final List<byte[]> binaryMessages = this.producer.binaryMessages.get(this.destination);
@@ -90,14 +91,14 @@ public class JmsCacheBusMessageChannelTest {
 
         // preparation
         final JmsCacheBusMessageChannel channel = new JmsCacheBusMessageChannel();
-        final CacheBusJmsMessageChannelConfiguration configuration = activateChannel(channel);
+        activateChannel(channel);
         this.consumer.errorOnReceive = true;
 
         try (final TestMessageConsumer consumer = new TestMessageConsumer()) {
             // action
             channel.subscribe(consumer);
 
-            Thread.sleep(Duration.ofMillis(10));
+            Thread.sleep(Duration.ofMillis(50));
 
             // checks
             verify(this.connectionFactory, times(2)).createContext();
@@ -122,7 +123,7 @@ public class JmsCacheBusMessageChannelTest {
             // action
             channel.subscribe(consumer);
             this.consumer.messages.offer(message);
-            Thread.sleep(Duration.ofMillis(1));
+            Thread.sleep(Duration.ofMillis(10));
 
             // checks
             verify(message, never()).acknowledge();
@@ -155,15 +156,15 @@ public class JmsCacheBusMessageChannelTest {
         return message;
     }
 
-    private CacheBusJmsMessageChannelConfiguration activateChannel(final JmsCacheBusMessageChannel channel) {
+    private void activateChannel(final JmsCacheBusMessageChannel channel) {
         final CacheBusJmsMessageChannelConfiguration configuration =
                 CacheBusJmsMessageChannelConfiguration.builder()
                                                         .setChannel(CHANNEL_NAME)
                                                         .setConnectionFactory(this.connectionFactory)
                                                         .setSubscribingPool(Executors.newSingleThreadExecutor())
+                                                        .setHostNameResolver(() -> HOST_NAME)
                                                       .build();
         channel.activate(configuration);
-        return configuration;
     }
 
     private static class TestMessageConsumer implements CacheEventMessageConsumer {

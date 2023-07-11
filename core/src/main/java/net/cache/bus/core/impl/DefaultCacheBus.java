@@ -95,6 +95,10 @@ public final class DefaultCacheBus implements ExtendedCacheBus {
 
     @Override
     public synchronized void stop() {
+        if (!this.started) {
+            throw new IllegalStateException("Bus isn't started");
+        }
+
         final CacheBusTransportConfiguration transportConfiguration = this.configuration.transportConfiguration();
         final CacheBusMessageChannel<CacheBusMessageChannelConfiguration> messageChannel = transportConfiguration.messageChannel();
 

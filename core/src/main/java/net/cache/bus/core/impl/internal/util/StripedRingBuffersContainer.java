@@ -30,15 +30,16 @@ public final class StripedRingBuffersContainer<E> {
     /**
      * Конструктор контейнера, создающий набор буферов заданного размера.
      *
-     * @param stripes количество "полос" (количество буферов)
+     * @param stripes количество "полос" (количество буферов); доводится до ближайшего четного (в меньшую сторону), если число нечетное.
      * @param bufferCapacity вместимость (размер) каждого буфера
      */
     public StripedRingBuffersContainer(final int stripes, final int bufferCapacity) {
+        final int evenStripes = stripes % 2 == 1 ? stripes - 1 : stripes;
         @SuppressWarnings("unchecked")
-        final RingBuffer<E>[] buffers = new RingBuffer[stripes];
+        final RingBuffer<E>[] buffers = new RingBuffer[evenStripes];
         this.buffers = buffers;
 
-        for (int i = 0; i < stripes; i++) {
+        for (int i = 0; i < evenStripes; i++) {
             this.buffers[i] = new RingBuffer<>(bufferCapacity);
         }
     }
