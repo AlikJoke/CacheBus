@@ -24,7 +24,6 @@ public final class JmsCacheBusMessageChannel implements CacheBusMessageChannel<C
 
     static final String MESSAGE_TYPE = "CacheEvent";
     static final String HOST_PROPERTY = "host";
-    static final String CACHE_PROPERTY = "cache";
     static final String HASH_KEY_PROPERTY = "hash";
 
     static final Logger logger = Logger.getLogger(JmsCacheBusMessageChannel.class.getCanonicalName());
@@ -51,6 +50,8 @@ public final class JmsCacheBusMessageChannel implements CacheBusMessageChannel<C
         try (final JMSContext context = this.jmsSessionConfiguration.connectionFactory.createContext()) {
             final JMSProducer producer = context.createProducer()
                                                     .setJMSType(MESSAGE_TYPE)
+                                                    .setDisableMessageID(true)
+                                                    .setDisableMessageTimestamp(true)
                                                     .setDeliveryMode(DeliveryMode.NON_PERSISTENT);
             injectProperties(producer, eventOutputMessage);
 
@@ -62,6 +63,10 @@ public final class JmsCacheBusMessageChannel implements CacheBusMessageChannel<C
 
     @Override
     public synchronized void subscribe(@Nonnull CacheEventMessageConsumer consumer) {
+        if (this.configuration == null) {
+            throw new IllegalStateException("Channel not activated");
+        }
+
         this.subscribingTask = this.jmsSessionConfiguration.subscribingPool.submit(() -> listenUntilNotClosed(consumer));
     }
 
@@ -69,17 +74,15 @@ public final class JmsCacheBusMessageChannel implements CacheBusMessageChannel<C
     public synchronized void unsubscribe() {
         logger.info(() -> "Unsubscribe was called");
 
-        if (this.jmsSessionConfiguration == null) {
-            throw new IllegalStateException("Already unsubscribed");
+        if (this.jmsSessionConfiguration == null || this.subscribingTask == null) {
+            throw new IllegalStateException("Already in unsubscribed state");
         }
 
         this.jmsSessionConfiguration.close();
         this.jmsSessionConfiguration = null;
 
-        if (this.subscribingTask != null) {
-            this.subscribingTask.cancel(true);
-            this.subscribingTask = null;
-        }
+        this.subscribingTask.cancel(true);
+        this.subscribingTask = null;
     }
 
     private void listenUntilNotClosed(final CacheEventMessageConsumer consumer) {
@@ -124,7 +127,6 @@ public final class JmsCacheBusMessageChannel implements CacheBusMessageChannel<C
 
     private void injectProperties(final JMSProducer producer, final CacheEntryOutputMessage outputMessage) {
         producer.setProperty(HOST_PROPERTY, this.jmsSessionConfiguration.hostName);
-        producer.setProperty(CACHE_PROPERTY, outputMessage.cacheName());
         producer.setProperty(HASH_KEY_PROPERTY, outputMessage.messageHashKey());
     }
 

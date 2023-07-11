@@ -35,6 +35,16 @@ public record CacheBusJmsMessageChannelConfiguration(
         }
     }
 
+    /**
+     * Фабричный метод создания построителя для формирования конфигурации для JMS-канала шины.
+     *
+     * @return не может быть {@code null}.
+     */
+    @Nonnull
+    public static Builder builder() {
+        return new Builder();
+    }
+
     public static class Builder {
 
         private ConnectionFactory connectionFactory;
@@ -91,13 +101,13 @@ public record CacheBusJmsMessageChannelConfiguration(
         }
 
         /**
-         * Формирует на основе данных, переданных при построении, объект конфигурации канала {@link CacheBusJmsMessageChannelConfiguration}.
+         * Формирует на основе данных, переданных при построении объект конфигурации канала {@link CacheBusJmsMessageChannelConfiguration}.
          *
          * @return не может быть {@code null}.
          * @see CacheBusJmsMessageChannelConfiguration
          */
         @Nonnull
-        public CacheBusMessageChannelConfiguration build() {
+        public CacheBusJmsMessageChannelConfiguration build() {
             return new CacheBusJmsMessageChannelConfiguration(
                     this.connectionFactory,
                     this.channel,

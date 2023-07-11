@@ -2,7 +2,6 @@ package net.cache.bus.core.impl.internal.util;
 
 import javax.annotation.Nonnull;
 import java.util.concurrent.Semaphore;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Реализация структуры данных кольцевого буфера для обработки взаимодействия single producer vs single consumer.<br>
@@ -21,8 +20,8 @@ public final class RingBuffer<E> {
     private final E[] elements;
     private final int capacity;
 
-    private final AtomicInteger writeCounter;
-    private final AtomicInteger readCounter;
+    private volatile int writeCounter;
+    private volatile int readCounter;
 
     public RingBuffer(int capacity) {
 
@@ -34,8 +33,8 @@ public final class RingBuffer<E> {
         @SuppressWarnings("unchecked")
         final E[] elements = (E[]) new Object[capacity];
         this.elements = elements;
-        this.writeCounter = new AtomicInteger(-1);
-        this.readCounter = new AtomicInteger(0);
+        this.writeCounter = -1;
+        this.readCounter = 0;
         this.readSemaphore = new Semaphore(1);
         this.writeSemaphore = new Semaphore(1);
     }
@@ -48,13 +47,13 @@ public final class RingBuffer<E> {
     public void offer(@Nonnull final E elem) throws InterruptedException {
 
         int currentWriteValue;
-        while ((currentWriteValue = this.writeCounter.get()) - this.readCounter.get() == this.capacity - 1) {
+        while ((currentWriteValue = this.writeCounter) - this.readCounter == this.capacity - 1) {
             this.writeSemaphore.acquire();
         }
 
         final int nextCounter = currentWriteValue + 1;
         this.elements[nextCounter % this.capacity] = elem;
-        this.writeCounter.incrementAndGet();
+        this.writeCounter = nextCounter;
         this.readSemaphore.release();
     }
 
@@ -65,12 +64,13 @@ public final class RingBuffer<E> {
      */
     @Nonnull
     public E poll() throws InterruptedException {
-        while (this.writeCounter.get() < this.readCounter.get()) {
+        int currentReadPosition;
+        while (this.writeCounter < (currentReadPosition = this.readCounter)) {
             this.readSemaphore.acquire();
         }
 
-        final E elem = this.elements[this.readCounter.get() % this.capacity];
-        this.readCounter.incrementAndGet();
+        final E elem = this.elements[currentReadPosition % this.capacity];
+        this.readCounter = currentReadPosition + 1;
         this.writeSemaphore.release();
         return elem;
     }
