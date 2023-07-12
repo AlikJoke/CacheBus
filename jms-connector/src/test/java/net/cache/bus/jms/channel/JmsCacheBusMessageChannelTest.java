@@ -99,7 +99,7 @@ public class JmsCacheBusMessageChannelTest {
             // action
             channel.subscribe(consumer);
 
-            Thread.sleep(Duration.ofMillis(50));
+            Thread.sleep(Duration.ofMillis(100));
 
             // checks
             verify(this.connectionFactory, times(2)).createContext();

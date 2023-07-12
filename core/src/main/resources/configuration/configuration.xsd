@@ -3,6 +3,12 @@
 
     <xs:element name="configuration" type="configurationType"/>
 
+    <xs:complexType name="aliasesType">
+        <xs:sequence>
+            <xs:element type="xs:string" name="alias" maxOccurs="unbounded" minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+
     <xs:complexType name="configurationType">
         <xs:sequence>
             <xs:element type="cacheType" name="cache" maxOccurs="unbounded" minOccurs="0"/>
@@ -10,12 +16,11 @@
     </xs:complexType>
 
     <xs:complexType name="cacheType">
-        <xs:simpleContent>
-            <xs:extension base="xs:string">
-                <xs:attribute type="xs:string" name="name" use="required"/>
-                <xs:attribute type="cacheTypeEnum" name="type" use="required"/>
-            </xs:extension>
-        </xs:simpleContent>
+        <xs:sequence>
+            <xs:element type="aliasesType" name="aliases" minOccurs="0"/>
+        </xs:sequence>
+        <xs:attribute type="xs:string" name="name" use="required"/>
+        <xs:attribute type="cacheTypeEnum" name="type" use="required"/>
     </xs:complexType>
 
     <xs:simpleType name="cacheTypeEnum" final="restriction">

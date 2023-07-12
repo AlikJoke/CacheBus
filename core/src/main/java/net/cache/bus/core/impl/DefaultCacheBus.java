@@ -13,10 +13,7 @@ import net.cache.bus.core.transport.CacheEntryOutputMessage;
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.ThreadSafe;
 import java.io.Serializable;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Function;
 import java.util.logging.Level;
@@ -39,7 +36,8 @@ public final class DefaultCacheBus implements ExtendedCacheBus {
     private static final ThreadLocal<Boolean> locked = new ThreadLocal<>();
 
     private final CacheBusConfiguration configuration;
-    private final Map<String, CacheConfiguration> cacheConfigurations;
+    private final Map<String, CacheConfiguration> cacheConfigurationsByName;
+    private final Map<String, Set<String>> cachesByAliases;
 
     private volatile boolean started;
     private volatile CacheEventMessageConsumer messageConsumer;
@@ -47,10 +45,25 @@ public final class DefaultCacheBus implements ExtendedCacheBus {
     public DefaultCacheBus(@Nonnull CacheBusConfiguration configuration) {
         this.configuration = Objects.requireNonNull(configuration, "configuration");
         final Set<CacheConfiguration> cacheConfigurations = configuration.cacheConfigurationSource().pull();
-        this.cacheConfigurations = cacheConfigurations
+        this.cacheConfigurationsByName = cacheConfigurations
+                                            .stream()
+                                            .collect(Collectors.toUnmodifiableMap(CacheConfiguration::cacheName, Function.identity()));
+        this.cachesByAliases =
+                cacheConfigurations
+                        .stream()
+                        .filter(config -> !config.cacheAliases().isEmpty())
+                        .flatMap(config ->
+                                config.cacheAliases()
                                         .stream()
-                                        .collect(Collectors.toUnmodifiableMap(CacheConfiguration::cacheName, Function.identity()));
-
+                                        .map(alias -> new String[] { alias, config.cacheName() })
+                        )
+                        .collect(Collectors.groupingBy(
+                                info -> info[0],
+                                Collectors.mapping(
+                                        info -> info[1],
+                                        Collectors.toSet())
+                                )
+                        );
     }
 
     @Override
@@ -60,7 +73,7 @@ public final class DefaultCacheBus implements ExtendedCacheBus {
             return;
         }
 
-        final CacheConfiguration cacheConfiguration = this.cacheConfigurations.get(event.cacheName());
+        final CacheConfiguration cacheConfiguration = this.cacheConfigurationsByName.get(event.cacheName());
         if (cacheConfiguration == null || !needToSendEvent(cacheConfiguration, event.eventType())) {
             return;
         }
@@ -80,12 +93,23 @@ public final class DefaultCacheBus implements ExtendedCacheBus {
             return;
         }
 
-        final CacheConfiguration cacheConfiguration = this.cacheConfigurations.get(event.cacheName());
-        if (cacheConfiguration == null) {
+        final CacheConfiguration cacheConfiguration = this.cacheConfigurationsByName.get(event.cacheName());
+        if (cacheConfiguration != null) {
+            applyEvent(event, cacheConfiguration);
+        }
+
+        // Обработка изменений по кэшам из доп. алиасов инвалидационных кэшей
+        final Set<String> cachesByAlias = this.cachesByAliases.getOrDefault(event.cacheName(), Collections.emptySet());
+        if (cachesByAlias.isEmpty()) {
             return;
         }
 
-        applyEvent(event, cacheConfiguration);
+        cachesByAlias
+                .stream()
+                .map(this.cacheConfigurationsByName::get)
+                .filter(Objects::nonNull)
+                .filter(config -> config.cacheType() == CacheType.INVALIDATED)
+                .forEach(config -> applyEvent(event, config));
     }
 
     @Override
@@ -147,7 +171,7 @@ public final class DefaultCacheBus implements ExtendedCacheBus {
     private void applyEvent(final CacheEntryEvent<Serializable, Serializable> event, final CacheConfiguration cacheConfiguration) {
 
         final CacheProviderConfiguration providerConfiguration = this.configuration.providerConfiguration();
-        final Optional<Cache<Serializable, Serializable>> cache = providerConfiguration.cacheManager().getCache(event.cacheName());
+        final Optional<Cache<Serializable, Serializable>> cache = providerConfiguration.cacheManager().getCache(cacheConfiguration.cacheName());
         cache.ifPresent(c -> processEvent(cacheConfiguration.cacheType(), c, event));
     }
 
@@ -193,7 +217,7 @@ public final class DefaultCacheBus implements ExtendedCacheBus {
         final CacheProviderConfiguration providerConfiguration = this.configuration.providerConfiguration();
         final CacheManager cacheManager = providerConfiguration.cacheManager();
         final CacheEventListenerRegistrar cacheEventListenerRegistrar = providerConfiguration.cacheEventListenerRegistrar();
-        this.cacheConfigurations
+        this.cacheConfigurationsByName
                 .values()
                 .stream()
                 .map(CacheConfiguration::cacheName)

@@ -8,9 +8,11 @@ import net.cache.bus.core.impl.configuration.XmlCacheConfigurationSource;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
+import java.util.HashSet;
 import java.util.Set;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class XmlCacheConfigurationSourceTest {
 
@@ -53,8 +55,21 @@ public class XmlCacheConfigurationSourceTest {
         final Set<CacheConfiguration> configurations = source.pull();
 
         assertEquals(3, configurations.size(), "Configurations count must be equal");
-        assertTrue(configurations.contains(new ImmutableCacheConfiguration("test1", CacheType.INVALIDATED)), "Configurations from xml file must contain predefined cache config");
-        assertTrue(configurations.contains(new ImmutableCacheConfiguration("test2", CacheType.INVALIDATED)), "Configurations from xml file must contain predefined cache config");
-        assertTrue(configurations.contains(new ImmutableCacheConfiguration("test3", CacheType.REPLICATED)), "Configurations from xml file must contain predefined cache config");
+
+        final Set<CacheConfiguration> configsToCompare = new HashSet<>();
+        configsToCompare.add(new ImmutableCacheConfiguration("test1", CacheType.INVALIDATED, Set.of("test1_1", "test1_2")));
+        configsToCompare.add(new ImmutableCacheConfiguration("test2", CacheType.INVALIDATED));
+        configsToCompare.add(new ImmutableCacheConfiguration("test3", CacheType.REPLICATED));
+
+        configsToCompare.forEach(cc -> {
+            final CacheConfiguration config = configurations
+                                                    .stream()
+                                                    .filter(cc::equals)
+                                                    .findAny()
+                                                    .orElseThrow();
+            assertEquals(cc.cacheName(), config.cacheName(), "Cache name must be equal");
+            assertEquals(cc.cacheType(), config.cacheType(), "Cache type must be equal");
+            assertEquals(cc.cacheAliases(), config.cacheAliases(), "Cache aliases must be equal");
+        });
     }
 }

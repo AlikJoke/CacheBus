@@ -97,7 +97,15 @@ public class RingBufferTest {
 
             Thread.sleep(Duration.ofMillis(2));
             future.cancel(true);
-            Thread.sleep(Duration.ofMillis(2));
+
+            final long stampTime = System.currentTimeMillis();
+            while (!offerWasInterrupted.get()) {
+                Thread.sleep(Duration.ofMillis(1));
+                if (System.currentTimeMillis() - stampTime > 1000) {
+                    assertTrue(offerWasInterrupted.get(), "Thread should be interrupted");
+                }
+            }
+
             assertTrue(offerWasInterrupted.get(), "Thread should be interrupted");
         }
     }

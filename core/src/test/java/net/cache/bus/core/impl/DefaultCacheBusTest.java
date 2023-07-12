@@ -22,6 +22,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import javax.annotation.Nonnull;
 import java.io.Serializable;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Executors;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -34,6 +35,7 @@ import static org.mockito.Mockito.when;
 public class DefaultCacheBusTest {
 
     private static final String INV_CACHE = "testInv";
+    private static final String INV_CACHE_ALIAS = "testInv_1";
     private static final String REPL_CACHE = "testRepl";
 
     @Mock
@@ -198,6 +200,10 @@ public class DefaultCacheBusTest {
         final CacheEntryEvent<Serializable, Serializable> event5 = new ImmutableCacheEntryEvent<>("3", "v3", "v4", CacheEntryEventType.UPDATED, REPL_CACHE);
         when(eventConverter.fromBinary(binaryEventValue5)).thenReturn(event5);
 
+        final byte[] binaryEventValue6 = new byte[] {9, 32};
+        final CacheEntryEvent<Serializable, Serializable> event6 = new ImmutableCacheEntryEvent<>("6", "v6", "v7", CacheEntryEventType.UPDATED, INV_CACHE_ALIAS);
+        when(eventConverter.fromBinary(binaryEventValue6)).thenReturn(event6);
+
         // action
         cacheBus.start();
 
@@ -206,6 +212,7 @@ public class DefaultCacheBusTest {
         cacheBus.receive(binaryEventValue3);
         cacheBus.receive(binaryEventValue4);
         cacheBus.receive(binaryEventValue5);
+        cacheBus.receive(binaryEventValue6);
 
         // checks
         final CacheManager cacheManager = configuration.providerConfiguration().cacheManager();
@@ -215,6 +222,7 @@ public class DefaultCacheBusTest {
                                                                             .orElseThrow();
         assertTrue(invCache.get(event1.key()).isEmpty(), "Value must be evicted after applying any event to invalidation cache");
         assertTrue(invCache.get(event2.key()).isEmpty(), "Value must be evicted after applying any event to invalidation cache");
+        assertTrue(invCache.get(event6.key()).isEmpty(), "Value must be evicted after applying any event to invalidation cache by alias");
 
         @SuppressWarnings("unchecked")
         final FakeCache<Serializable, Serializable> replCache = cacheManager.getCache(REPL_CACHE)
@@ -238,6 +246,7 @@ public class DefaultCacheBusTest {
         cache1.put("1", "v1");
         cache1.put("2", "v2");
         cache1.put("3", "v3");
+        cache1.put("6", "v3");
 
         final FakeCache<String, String> cache2 = new FakeCache<>(DefaultCacheBusTest.REPL_CACHE);
         cache2.put("1", "v1");
@@ -267,7 +276,7 @@ public class DefaultCacheBusTest {
                     .builder()
                         .setCacheConfigurationBuilder(
                                 CacheConfigurationSource.createDefault()
-                                        .add(new ImmutableCacheConfiguration(INV_CACHE, CacheType.INVALIDATED))
+                                        .add(new ImmutableCacheConfiguration(INV_CACHE, CacheType.INVALIDATED, Set.of(INV_CACHE_ALIAS)))
                                         .add(new ImmutableCacheConfiguration(REPL_CACHE, CacheType.REPLICATED))
                         )
                         .setProviderConfiguration(providerConfiguration)

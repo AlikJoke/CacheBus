@@ -43,6 +43,8 @@ public final class XmlCacheConfigurationSource implements CacheConfigurationSour
     private static final String CACHE_ELEMENT = "cache";
     private static final String CACHE_NAME_ATTR = "name";
     private static final String CACHE_TYPE_ATTR = "type";
+    private static final String CACHE_ALIASES_ELEMENT = "aliases";
+    private static final String CACHE_ALIAS_ELEMENT = "alias";
 
     private final File configurationFile;
     private final String resourceConfigurationFilePath;
@@ -89,12 +91,38 @@ public final class XmlCacheConfigurationSource implements CacheConfigurationSour
             final String cacheName = cacheElement.getAttribute(CACHE_NAME_ATTR);
             final String cacheTypeString = cacheElement.getAttribute(CACHE_TYPE_ATTR);
             final CacheType cacheType = CacheType.valueOf(cacheTypeString.toUpperCase());
+            final Set<String> aliases = parseAliases(cacheElement);
 
-            final CacheConfiguration cacheConfiguration = new ImmutableCacheConfiguration(cacheName, cacheType);
+            final CacheConfiguration cacheConfiguration = ImmutableCacheConfiguration
+                                                                .builder()
+                                                                    .setCacheName(cacheName)
+                                                                    .setCacheType(cacheType)
+                                                                    .setCacheAliases(aliases)
+                                                                .build();
             result.add(cacheConfiguration);
         }
 
         return Collections.unmodifiableSet(result);
+    }
+
+    private Set<String> parseAliases(final Element cacheElement) {
+
+        final Set<String> result = new HashSet<>();
+
+        final NodeList aliasesNode = cacheElement.getElementsByTagName(CACHE_ALIASES_ELEMENT);
+        if (aliasesNode.getLength() == 0) {
+            return result;
+        }
+
+        final Element aliasesElement = (Element) aliasesNode.item(0);
+        final NodeList aliases = aliasesElement.getElementsByTagName(CACHE_ALIAS_ELEMENT);
+
+        for (int aliasIndex = 0; aliasIndex < aliases.getLength(); aliasIndex++) {
+            final Node cacheAlias = aliases.item(aliasIndex);
+            result.add(cacheAlias.getTextContent());
+        }
+
+        return result;
     }
 
     private Document parseConfiguration(final InputStream configurationStream) throws ParserConfigurationException, IOException, SAXException {
