@@ -1,5 +1,7 @@
 package net.cache.bus.core.impl.internal.util;
 
+import net.cache.bus.core.configuration.ConfigurationException;
+
 import javax.annotation.Nonnull;
 import java.util.concurrent.Semaphore;
 
@@ -26,7 +28,7 @@ public final class RingBuffer<E> {
     public RingBuffer(int capacity) {
 
         if (capacity <= 0) {
-            throw new IllegalArgumentException("Buffer capacity must be positive: " + capacity);
+            throw new ConfigurationException("Buffer capacity must be positive: " + capacity);
         }
 
         this.capacity = capacity;

@@ -1,7 +1,8 @@
 package net.cache.bus.jms.configuration;
 
 import net.cache.bus.core.configuration.CacheBusMessageChannelConfiguration;
-import net.cache.bus.core.impl.StdHostNameResolver;
+import net.cache.bus.core.configuration.ConfigurationException;
+import net.cache.bus.core.impl.resolvers.StdHostNameResolver;
 import net.cache.bus.core.transport.HostNameResolver;
 
 import javax.annotation.Nonnull;
@@ -31,7 +32,7 @@ public record CacheBusJmsMessageChannelConfiguration(
         Objects.requireNonNull(hostNameResolver, "hostNameResolver");
 
         if (channel == null || channel.isEmpty()) {
-            throw new IllegalArgumentException("Channel must be not empty");
+            throw new ConfigurationException("Channel must be not empty");
         }
     }
 

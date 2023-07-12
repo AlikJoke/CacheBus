@@ -1,6 +1,6 @@
 package net.cache.bus.core.impl.internal.util;
 
-import net.cache.bus.core.impl.StdHostNameResolver;
+import net.cache.bus.core.impl.resolvers.StdHostNameResolver;
 import net.cache.bus.core.transport.HostNameResolver;
 import org.junit.jupiter.api.Test;
 

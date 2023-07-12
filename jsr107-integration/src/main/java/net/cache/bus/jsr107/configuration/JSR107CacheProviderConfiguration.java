@@ -1,7 +1,7 @@
 package net.cache.bus.jsr107.configuration;
 
 import net.cache.bus.core.configuration.CacheProviderConfiguration;
-import net.cache.bus.core.impl.CacheProviderConfigurationTemplate;
+import net.cache.bus.core.impl.configuration.CacheProviderConfigurationTemplate;
 import net.cache.bus.jsr107.adapters.JSR107CacheManagerAdapter;
 import net.cache.bus.jsr107.listeners.JSR107CacheEventListenerRegistrar;
 

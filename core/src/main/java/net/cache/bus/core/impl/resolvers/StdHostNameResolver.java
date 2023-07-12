@@ -1,5 +1,6 @@
-package net.cache.bus.core.impl;
+package net.cache.bus.core.impl.resolvers;
 
+import net.cache.bus.core.configuration.ConfigurationException;
 import net.cache.bus.core.transport.HostNameResolver;
 
 import javax.annotation.Nonnull;
@@ -20,7 +21,7 @@ public final class StdHostNameResolver implements HostNameResolver {
         try {
             return InetAddress.getLocalHost().getHostName();
         } catch (UnknownHostException e) {
-            throw new RuntimeException(e);
+            throw new ConfigurationException(e);
         }
     }
 }

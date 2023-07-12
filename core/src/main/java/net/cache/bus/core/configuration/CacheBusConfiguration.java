@@ -1,8 +1,6 @@
 package net.cache.bus.core.configuration;
 
 import javax.annotation.Nonnull;
-import java.util.Optional;
-import java.util.Set;
 
 /**
  * Конфигурация шины кэшей.
@@ -15,21 +13,13 @@ import java.util.Set;
 public interface CacheBusConfiguration {
 
     /**
-     * Возвращает список конфигураций кэшей.
+     * Возвращает источник конфигурации кэшей, подключенных к шине.
      *
      * @return не может быть {@code null}.
+     * @see CacheConfiguration
      */
     @Nonnull
-    Set<CacheConfiguration> cacheConfigurations();
-
-    /**
-     * Возвращает конфигурацию кэша по имени кэша.
-     *
-     * @param cacheName имя кэша, не может быть {@code null}.
-     * @return конфигурация кэша с заданным именем, обернутая в {@link Optional}.
-     */
-    @Nonnull
-    Optional<CacheConfiguration> getCacheConfigurationByName(@Nonnull String cacheName);
+    CacheConfigurationSource cacheConfigurationSource();
 
     /**
      * Возвращает конфигурацию транспорта для данной шины кэшей.

@@ -2,6 +2,10 @@ package net.cache.bus.core.impl;
 
 import net.cache.bus.core.*;
 import net.cache.bus.core.configuration.*;
+import net.cache.bus.core.impl.configuration.CacheProviderConfigurationTemplate;
+import net.cache.bus.core.impl.configuration.ImmutableCacheBusConfiguration;
+import net.cache.bus.core.impl.configuration.ImmutableCacheBusTransportConfiguration;
+import net.cache.bus.core.impl.configuration.ImmutableCacheConfiguration;
 import net.cache.bus.core.impl.internal.ImmutableCacheEntryOutputMessage;
 import net.cache.bus.core.impl.test.FakeCache;
 import net.cache.bus.core.impl.test.FakeCacheBusMessageChannel;
@@ -53,11 +57,11 @@ public class DefaultCacheBusTest {
         final ExtendedCacheBus cacheBus = new DefaultCacheBus(configuration);
 
         //checks
-        assertThrows(IllegalStateException.class, cacheBus::getConfiguration, "Configuration available only after start");
+        assertThrows(LifecycleException.class, cacheBus::getConfiguration, "Configuration available only after start");
         assertDoesNotThrow(() -> cacheBus.send(mock(CacheEntryEvent.class)), "Send should not be happen");
         assertDoesNotThrow(() -> cacheBus.receive(new byte[0]), "Receive should not be happen");
-        assertThrows(UnsupportedOperationException.class, () -> cacheBus.setConfiguration(configuration), "Default implementation configurable only via constructor");
-        assertThrows(IllegalStateException.class, cacheBus::stop, "Stop available only for started bus");
+        assertThrows(ConfigurationException.class, () -> cacheBus.setConfiguration(configuration), "Default implementation configurable only via constructor");
+        assertThrows(LifecycleException.class, cacheBus::stop, "Stop available only for started bus");
     }
 
     @Test
@@ -243,6 +247,7 @@ public class DefaultCacheBusTest {
                 ImmutableCacheBusTransportConfiguration
                         .builder()
                             .setMaxConcurrentReceivingThreads(1)
+                            .setMaxProcessingThreadBufferCapacity(10)
                             .setProcessingPool(Executors.newSingleThreadExecutor())
                             .setMessageChannel(new FakeCacheBusMessageChannel())
                             .setMessageChannelConfiguration(this.messageChannelConfiguration)
@@ -260,8 +265,11 @@ public class DefaultCacheBusTest {
         final CacheProviderConfiguration providerConfiguration = new CacheProviderConfigurationTemplate(cacheManager, eventListenerRegistrar) {};
         return ImmutableCacheBusConfiguration
                     .builder()
-                        .addCacheConfiguration(new ImmutableCacheConfiguration(INV_CACHE, CacheType.INVALIDATED))
-                        .addCacheConfiguration(new ImmutableCacheConfiguration(REPL_CACHE, CacheType.REPLICATED))
+                        .setCacheConfigurationBuilder(
+                                CacheConfigurationSource.createDefault()
+                                        .add(new ImmutableCacheConfiguration(INV_CACHE, CacheType.INVALIDATED))
+                                        .add(new ImmutableCacheConfiguration(REPL_CACHE, CacheType.REPLICATED))
+                        )
                         .setProviderConfiguration(providerConfiguration)
                         .setTransportConfiguration(transportConfiguration)
                     .build();

@@ -1,4 +1,4 @@
-package net.cache.bus.core;
+package net.cache.bus.core.configuration;
 
 /**
  * Исключение, сообщающее о том, что кэш, подключенный к шине кэшей, объявлен
@@ -6,7 +6,7 @@ package net.cache.bus.core;
  *
  * @author Alik
  */
-public final class CacheAlreadyDefinedAsClusteredException extends IllegalStateException {
+public final class CacheAlreadyDefinedAsClusteredException extends ConfigurationException {
 
     public CacheAlreadyDefinedAsClusteredException(final String cacheName) {
         super("Cache must be local in provider configuration: " + cacheName);

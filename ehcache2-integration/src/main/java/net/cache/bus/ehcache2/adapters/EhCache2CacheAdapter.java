@@ -1,7 +1,7 @@
 package net.cache.bus.ehcache2.adapters;
 
 import net.cache.bus.core.Cache;
-import net.cache.bus.core.CacheAlreadyDefinedAsClusteredException;
+import net.cache.bus.core.configuration.CacheAlreadyDefinedAsClusteredException;
 import net.sf.ehcache.Ehcache;
 import net.sf.ehcache.Element;
 import net.sf.ehcache.event.CacheEventListener;

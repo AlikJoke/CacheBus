@@ -1,6 +1,7 @@
 package net.cache.bus.jms.channel;
 
 import net.cache.bus.core.CacheEventMessageConsumer;
+import net.cache.bus.core.LifecycleException;
 import net.cache.bus.core.transport.CacheBusMessageChannel;
 import net.cache.bus.core.transport.CacheEntryOutputMessage;
 import net.cache.bus.jms.configuration.CacheBusJmsMessageChannelConfiguration;
@@ -8,7 +9,6 @@ import net.cache.bus.transport.addons.ChannelRecoveryProcessor;
 
 import javax.annotation.Nonnull;
 import javax.jms.*;
-import java.lang.IllegalStateException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.logging.Logger;
@@ -64,7 +64,7 @@ public final class JmsCacheBusMessageChannel implements CacheBusMessageChannel<C
     @Override
     public synchronized void subscribe(@Nonnull CacheEventMessageConsumer consumer) {
         if (this.configuration == null) {
-            throw new IllegalStateException("Channel not activated");
+            throw new LifecycleException("Channel not activated");
         }
 
         this.subscribingTask = this.jmsSessionConfiguration.subscribingPool.submit(() -> listenUntilNotClosed(consumer));
@@ -75,7 +75,7 @@ public final class JmsCacheBusMessageChannel implements CacheBusMessageChannel<C
         logger.info(() -> "Unsubscribe was called");
 
         if (this.jmsSessionConfiguration == null || this.subscribingTask == null) {
-            throw new IllegalStateException("Already in unsubscribed state");
+            throw new LifecycleException("Already in unsubscribed state");
         }
 
         this.jmsSessionConfiguration.close();

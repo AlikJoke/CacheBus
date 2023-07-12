@@ -1,5 +1,6 @@
 package net.cache.bus.core.impl;
 
+import net.cache.bus.core.impl.resolvers.StaticHostNameResolver;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;

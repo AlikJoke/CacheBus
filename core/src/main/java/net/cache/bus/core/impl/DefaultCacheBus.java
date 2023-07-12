@@ -5,19 +5,23 @@ import net.cache.bus.core.configuration.*;
 import net.cache.bus.core.impl.internal.AsynchronousCacheEventMessageConsumer;
 import net.cache.bus.core.impl.internal.ImmutableCacheEntryOutputMessage;
 import net.cache.bus.core.impl.internal.SynchronousCacheEventMessageConsumer;
+import net.cache.bus.core.impl.internal.util.StripedRingBuffersContainer;
 import net.cache.bus.core.transport.CacheBusMessageChannel;
 import net.cache.bus.core.transport.CacheEntryEventConverter;
 import net.cache.bus.core.transport.CacheEntryOutputMessage;
-import net.cache.bus.core.impl.internal.util.StripedRingBuffersContainer;
 
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.ThreadSafe;
 import java.io.Serializable;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
+import java.util.function.Function;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 /**
  * Реализация шины кэшей, используемая по-умолчанию. Содержит основную логику обработки событий об
@@ -35,11 +39,18 @@ public final class DefaultCacheBus implements ExtendedCacheBus {
     private static final ThreadLocal<Boolean> locked = new ThreadLocal<>();
 
     private final CacheBusConfiguration configuration;
+    private final Map<String, CacheConfiguration> cacheConfigurations;
+
     private volatile boolean started;
     private volatile CacheEventMessageConsumer messageConsumer;
 
     public DefaultCacheBus(@Nonnull CacheBusConfiguration configuration) {
         this.configuration = Objects.requireNonNull(configuration, "configuration");
+        final Set<CacheConfiguration> cacheConfigurations = configuration.cacheConfigurationSource().pull();
+        this.cacheConfigurations = cacheConfigurations
+                                        .stream()
+                                        .collect(Collectors.toUnmodifiableMap(CacheConfiguration::cacheName, Function.identity()));
+
     }
 
     @Override
@@ -49,10 +60,12 @@ public final class DefaultCacheBus implements ExtendedCacheBus {
             return;
         }
 
-        final Optional<CacheConfiguration> cacheConfiguration = this.configuration.getCacheConfigurationByName(event.cacheName());
-        cacheConfiguration
-                .filter(cacheConfig -> needToSendEvent(cacheConfig, event.eventType()))
-                .ifPresent(cacheConfig -> sendToEndpoint(cacheConfig, event));
+        final CacheConfiguration cacheConfiguration = this.cacheConfigurations.get(event.cacheName());
+        if (cacheConfiguration == null || !needToSendEvent(cacheConfiguration, event.eventType())) {
+            return;
+        }
+
+        sendToEndpoint(cacheConfiguration, event);
     }
 
     @Override
@@ -67,20 +80,24 @@ public final class DefaultCacheBus implements ExtendedCacheBus {
             return;
         }
 
-        this.configuration.getCacheConfigurationByName(event.cacheName())
-                            .ifPresent(cacheConfiguration -> applyEvent(event, cacheConfiguration));
+        final CacheConfiguration cacheConfiguration = this.cacheConfigurations.get(event.cacheName());
+        if (cacheConfiguration == null) {
+            return;
+        }
+
+        applyEvent(event, cacheConfiguration);
     }
 
     @Override
     public void setConfiguration(@Nonnull CacheBusConfiguration configuration) {
-        throw new UnsupportedOperationException("Configuration can be set only via constructor in this implementation of CacheBus");
+        throw new ConfigurationException("Configuration can be set only via constructor in this implementation of CacheBus");
     }
 
     @Override
     @Nonnull
     public CacheBusConfiguration getConfiguration() {
         if (!this.started) {
-            throw new IllegalStateException("CacheBus must be in started state");
+            throw new LifecycleException("CacheBus must be in started state");
         }
 
         return this.configuration;
@@ -96,7 +113,7 @@ public final class DefaultCacheBus implements ExtendedCacheBus {
     @Override
     public synchronized void stop() {
         if (!this.started) {
-            throw new IllegalStateException("Bus isn't started");
+            throw new LifecycleException("Bus isn't started");
         }
 
         final CacheBusTransportConfiguration transportConfiguration = this.configuration.transportConfiguration();
@@ -176,7 +193,8 @@ public final class DefaultCacheBus implements ExtendedCacheBus {
         final CacheProviderConfiguration providerConfiguration = this.configuration.providerConfiguration();
         final CacheManager cacheManager = providerConfiguration.cacheManager();
         final CacheEventListenerRegistrar cacheEventListenerRegistrar = providerConfiguration.cacheEventListenerRegistrar();
-        this.configuration.cacheConfigurations()
+        this.cacheConfigurations
+                .values()
                 .stream()
                 .map(CacheConfiguration::cacheName)
                 .map(cacheManager::getCache)
@@ -198,11 +216,12 @@ public final class DefaultCacheBus implements ExtendedCacheBus {
          *  Формируем обработчик сообщений и подписываемся на входящий поток сообщений об изменениях элементов кэшей
          */
         final int buffersCount = transportConfiguration.maxConcurrentProcessingThreads();
+        final int bufferCapacity = transportConfiguration.maxProcessingThreadBufferCapacity();
         final ExecutorService processingPool = transportConfiguration.processingPool();
 
         this.messageConsumer = transportConfiguration.useSynchronousProcessing()
                 ? new SynchronousCacheEventMessageConsumer(this)
-                : new AsynchronousCacheEventMessageConsumer(this, new StripedRingBuffersContainer<>(buffersCount), processingPool);
+                : new AsynchronousCacheEventMessageConsumer(this, new StripedRingBuffersContainer<>(buffersCount, bufferCapacity), processingPool);
 
         channel.subscribe(this.messageConsumer);
     }

@@ -1,17 +1,12 @@
-package net.cache.bus.core.impl;
+package net.cache.bus.core.impl.configuration;
 
-import net.cache.bus.core.configuration.CacheBusConfiguration;
-import net.cache.bus.core.configuration.CacheBusTransportConfiguration;
-import net.cache.bus.core.configuration.CacheConfiguration;
-import net.cache.bus.core.configuration.CacheProviderConfiguration;
+import net.cache.bus.core.configuration.*;
 
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 import javax.annotation.concurrent.ThreadSafe;
-import java.util.*;
-import java.util.function.Function;
-import java.util.stream.Collectors;
+import java.util.Objects;
 
 /**
  * Реализация неизменяемой конфигурации шины кэшей. Для формирования рекомендуется использовать построитель,
@@ -25,38 +20,27 @@ import java.util.stream.Collectors;
 @Immutable
 public final class ImmutableCacheBusConfiguration implements CacheBusConfiguration {
 
-    private final Set<CacheConfiguration> cacheConfigurations;
-    private final Map<String, CacheConfiguration> cacheConfigurationsMap;
+    private final CacheConfigurationSource cacheConfigurationSource;
     private final CacheBusTransportConfiguration transportConfiguration;
     private final CacheProviderConfiguration providerConfiguration;
 
     public ImmutableCacheBusConfiguration(@Nonnull CacheBusConfiguration configuration) {
-        this(configuration.cacheConfigurations(), configuration.transportConfiguration(), configuration.providerConfiguration());
+        this(configuration.cacheConfigurationSource(), configuration.transportConfiguration(), configuration.providerConfiguration());
     }
 
     public ImmutableCacheBusConfiguration(
-            @Nonnull Set<CacheConfiguration> cacheConfigurations,
+            @Nonnull CacheConfigurationSource cacheConfigurationSource,
             @Nonnull CacheBusTransportConfiguration transportConfiguration,
             @Nonnull CacheProviderConfiguration providerConfiguration) {
-        this.cacheConfigurations = Collections.unmodifiableSet(Objects.requireNonNull(cacheConfigurations, "cacheConfigurations"));
-        this.cacheConfigurationsMap = cacheConfigurations
-                                            .stream()
-                                            .collect(Collectors.toUnmodifiableMap(CacheConfiguration::cacheName, Function.identity()));
-
+        this.cacheConfigurationSource = Objects.requireNonNull(cacheConfigurationSource, "cacheConfigurationBuilder");
         this.providerConfiguration = Objects.requireNonNull(providerConfiguration, "providerConfiguration");
         this.transportConfiguration = Objects.requireNonNull(transportConfiguration, "transportConfiguration");
     }
 
     @Nonnull
     @Override
-    public Set<CacheConfiguration> cacheConfigurations() {
-        return this.cacheConfigurations;
-    }
-
-    @Nonnull
-    @Override
-    public Optional<CacheConfiguration> getCacheConfigurationByName(@Nonnull String cacheName) {
-        return Optional.ofNullable(this.cacheConfigurationsMap.get(cacheName));
+    public CacheConfigurationSource cacheConfigurationSource() {
+        return this.cacheConfigurationSource;
     }
 
     @Nonnull
@@ -74,9 +58,9 @@ public final class ImmutableCacheBusConfiguration implements CacheBusConfigurati
     @Override
     public String toString() {
         return "ImmutableCacheBusConfiguration{" +
-                "cacheConfigurations=" + cacheConfigurations +
                 ", transportConfiguration=" + transportConfiguration +
                 ", providerConfiguration=" + providerConfiguration +
+                ", cacheConfigurationSource=" + cacheConfigurationSource +
                 '}';
     }
 
@@ -93,34 +77,21 @@ public final class ImmutableCacheBusConfiguration implements CacheBusConfigurati
     @NotThreadSafe
     public static class Builder {
 
-        private final Set<CacheConfiguration> cacheConfigurations = new HashSet<>();
+        private CacheConfigurationSource cacheConfigurationSource;
         private CacheBusTransportConfiguration transportConfiguration;
         private CacheProviderConfiguration providerConfiguration;
 
         /**
-         * Добавляет конфигурацию одного кэша в набор конфигураций кэшей.
+         * Устанавливает построитель для формирования конфигурация кэшей, подключенных к шине.
          *
-         * @param cacheConfiguration конфигурация кэша, не может быть {@code null}.
+         * @param cacheConfigurationSource построитель конфигураций кэшей шины, не может быть {@code null}.
          * @return не может быть {@code null}.
          * @see CacheConfiguration
+         * @see CacheConfigurationSource
          */
         @Nonnull
-        public Builder addCacheConfiguration(@Nonnull CacheConfiguration cacheConfiguration) {
-            this.cacheConfigurations.add(Objects.requireNonNull(cacheConfiguration, "cacheConfiguration"));
-            return this;
-        }
-
-        /**
-         * Устанавливает доступные конфигурации кэшей.
-         *
-         * @param cacheConfigurations конфигурации кэшей, не может быть {@code null}.
-         * @return не может быть {@code null}.
-         * @see CacheConfiguration
-         */
-        @Nonnull
-        public Builder setCacheConfigurations(@Nonnull Set<CacheConfiguration> cacheConfigurations) {
-            this.cacheConfigurations.clear();
-            this.cacheConfigurations.addAll(cacheConfigurations);
+        public Builder setCacheConfigurationBuilder(@Nonnull CacheConfigurationSource cacheConfigurationSource) {
+            this.cacheConfigurationSource = cacheConfigurationSource;
             return this;
         }
 
@@ -159,7 +130,7 @@ public final class ImmutableCacheBusConfiguration implements CacheBusConfigurati
         @Nonnull
         public CacheBusConfiguration build() {
             return new ImmutableCacheBusConfiguration(
-                    Collections.unmodifiableSet(this.cacheConfigurations),
+                    this.cacheConfigurationSource,
                     this.transportConfiguration,
                     this.providerConfiguration
             );

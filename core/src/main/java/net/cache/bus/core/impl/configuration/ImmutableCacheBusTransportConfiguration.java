@@ -1,7 +1,8 @@
-package net.cache.bus.core.impl;
+package net.cache.bus.core.impl.configuration;
 
 import net.cache.bus.core.configuration.CacheBusMessageChannelConfiguration;
 import net.cache.bus.core.configuration.CacheBusTransportConfiguration;
+import net.cache.bus.core.configuration.ConfigurationException;
 import net.cache.bus.core.transport.CacheBusMessageChannel;
 import net.cache.bus.core.transport.CacheEntryEventConverter;
 
@@ -36,7 +37,8 @@ public record ImmutableCacheBusTransportConfiguration(
         @Nonnull CacheBusMessageChannel<CacheBusMessageChannelConfiguration> messageChannel,
         @Nonnull CacheBusMessageChannelConfiguration messageChannelConfiguration,
         @Nonnull ExecutorService processingPool,
-        @Nonnegative int maxConcurrentProcessingThreads) implements CacheBusTransportConfiguration {
+        @Nonnegative int maxConcurrentProcessingThreads,
+        @Nonnegative int maxProcessingThreadBufferCapacity) implements CacheBusTransportConfiguration {
 
     public ImmutableCacheBusTransportConfiguration {
         Objects.requireNonNull(converter, "converter");
@@ -45,7 +47,11 @@ public record ImmutableCacheBusTransportConfiguration(
         Objects.requireNonNull(processingPool, "processingPool");
 
         if (maxConcurrentProcessingThreads < 0) {
-            throw new IllegalArgumentException("maxConcurrentProcessingThreads can not be negative");
+            throw new ConfigurationException("maxConcurrentProcessingThreads can not be negative");
+        }
+
+        if (maxProcessingThreadBufferCapacity < 0) {
+            throw new ConfigurationException("maxProcessingThreadBufferCapacity can not be negative");
         }
     }
 
@@ -67,6 +73,7 @@ public record ImmutableCacheBusTransportConfiguration(
         private CacheBusMessageChannelConfiguration messageChannelConfiguration;
         private ExecutorService processingPool;
         private int maxConcurrentProcessingThreads = 1;
+        private int maxProcessingThreadBufferCapacity = 0;
 
         /**
          * Устанавливает используемую реализацию конвертера для сообщений, передаваемых через шину.
@@ -134,6 +141,20 @@ public record ImmutableCacheBusTransportConfiguration(
         }
 
         /**
+         * Устанавливает максимальный размер буфера одного потока обработки поступающих сообщений, полученных из канала.
+         * По-умолчанию используется значение {@code 0}, которое интерпретируется как использование значения по-умолчанию ({@code 256}.
+         *
+         * @param maxProcessingThreadBufferCapacity максимальный размер буфера одного потока, не может быть {@code maxProcessingThreadBufferCapacity < 0}
+         * @return не может быть {@code null}
+         * @see CacheBusTransportConfiguration#maxProcessingThreadBufferCapacity()
+         */
+        @Nonnull
+        public Builder setMaxProcessingThreadBufferCapacity(@Nonnegative final int maxProcessingThreadBufferCapacity) {
+            this.maxProcessingThreadBufferCapacity = maxProcessingThreadBufferCapacity;
+            return this;
+        }
+
+        /**
          * Формирует объект конфигурации транспорта шины на основе переданных данных.
          *
          * @return не может быть {@code null}.
@@ -146,7 +167,8 @@ public record ImmutableCacheBusTransportConfiguration(
                     this.messageChannel,
                     this.messageChannelConfiguration,
                     this.processingPool,
-                    this.maxConcurrentProcessingThreads
+                    this.maxConcurrentProcessingThreads,
+                    this.maxProcessingThreadBufferCapacity
             );
         }
     }

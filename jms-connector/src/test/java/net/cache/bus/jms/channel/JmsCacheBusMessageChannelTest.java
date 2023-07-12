@@ -20,6 +20,7 @@ import java.lang.IllegalStateException;
 import java.time.Duration;
 import java.util.Queue;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -123,7 +124,9 @@ public class JmsCacheBusMessageChannelTest {
             // action
             channel.subscribe(consumer);
             this.consumer.messages.offer(message);
-            Thread.sleep(Duration.ofMillis(10));
+            while (consumer.bodyMap.isEmpty()) {
+                Thread.sleep(Duration.ofMillis(1));
+            }
 
             // checks
             verify(message, never()).acknowledge();
@@ -169,7 +172,7 @@ public class JmsCacheBusMessageChannelTest {
 
     private static class TestMessageConsumer implements CacheEventMessageConsumer {
 
-        private final Map<Integer, byte[]> bodyMap = new HashMap<>();
+        private final Map<Integer, byte[]> bodyMap = new ConcurrentHashMap<>();
 
         @Override
         public void accept(int messageHash, @Nonnull byte[] messageBody) {

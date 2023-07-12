@@ -14,7 +14,7 @@ import javax.annotation.Nonnull;
  */
 public final class StripedRingBuffersContainer<E> {
 
-    private static final int RING_BUFFER_DEFAULT_CAPACITY = 100;
+    private static final int RING_BUFFER_DEFAULT_CAPACITY = 256;
 
     private final RingBuffer<E>[] buffers;
 
@@ -39,8 +39,9 @@ public final class StripedRingBuffersContainer<E> {
         final RingBuffer<E>[] buffers = new RingBuffer[evenStripes];
         this.buffers = buffers;
 
+        final int capacity = bufferCapacity <= 0 ? RING_BUFFER_DEFAULT_CAPACITY : bufferCapacity;
         for (int i = 0; i < evenStripes; i++) {
-            this.buffers[i] = new RingBuffer<>(bufferCapacity);
+            this.buffers[i] = new RingBuffer<>(capacity);
         }
     }
 

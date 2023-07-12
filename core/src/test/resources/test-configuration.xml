@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<configuration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+               xsi:noNamespaceSchemaLocation="../../main/resources/configuration/configuration.xsd">
+    <cache name="test1" type="invalidated"/>
+    <cache name="test2" type="invalidated"/>
+    <cache name="test3" type="replicated"/>
+</configuration>

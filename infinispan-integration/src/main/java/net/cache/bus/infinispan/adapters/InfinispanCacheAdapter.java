@@ -1,7 +1,7 @@
 package net.cache.bus.infinispan.adapters;
 
 import net.cache.bus.core.Cache;
-import net.cache.bus.core.CacheAlreadyDefinedAsClusteredException;
+import net.cache.bus.core.configuration.CacheAlreadyDefinedAsClusteredException;
 import net.cache.bus.core.CacheEventListener;
 import org.infinispan.configuration.cache.CacheMode;
 import org.infinispan.configuration.cache.Configuration;

@@ -1,7 +1,8 @@
-package net.cache.bus.core.impl;
+package net.cache.bus.core.impl.configuration;
 
 import net.cache.bus.core.configuration.CacheConfiguration;
 import net.cache.bus.core.configuration.CacheType;
+import net.cache.bus.core.configuration.InvalidCacheConfigurationException;
 
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.Immutable;
@@ -26,7 +27,7 @@ public record ImmutableCacheConfiguration(
         Objects.requireNonNull(cacheType, "cacheType");
 
         if (cacheName == null || cacheName.isEmpty()) {
-            throw new IllegalArgumentException("cacheName must be not empty");
+            throw new InvalidCacheConfigurationException("cacheName must be not empty");
         }
     }
 

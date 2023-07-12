@@ -1,4 +1,4 @@
-package net.cache.bus.core.impl;
+package net.cache.bus.core.impl.configuration;
 
 import net.cache.bus.core.CacheEventListenerRegistrar;
 import net.cache.bus.core.CacheManager;

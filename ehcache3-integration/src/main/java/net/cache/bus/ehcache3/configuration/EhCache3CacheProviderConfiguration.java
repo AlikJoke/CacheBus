@@ -1,7 +1,7 @@
 package net.cache.bus.ehcache3.configuration;
 
 import net.cache.bus.core.configuration.CacheProviderConfiguration;
-import net.cache.bus.core.impl.CacheProviderConfigurationTemplate;
+import net.cache.bus.core.impl.configuration.CacheProviderConfigurationTemplate;
 import net.cache.bus.ehcache3.adapters.EhCache3CacheManagerAdapter;
 import net.cache.bus.ehcache3.listeners.EhCache3CacheEventListenerRegistrar;
 import org.ehcache.core.EhcacheManager;

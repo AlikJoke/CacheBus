@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<configuration>
+    <cache name="test1" type="invalidated"/>
+    <cache name="test2" type="invalidated"/>
+    <cache name="test3"/>
+</configuration>
