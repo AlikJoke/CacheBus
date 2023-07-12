@@ -1,4 +1,4 @@
-package net.cache.bus.jsr107.adapters;
+package net.cache.bus.jcache.adapters;
 
 import net.cache.bus.core.Cache;
 import net.cache.bus.core.CacheManager;
@@ -10,12 +10,12 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
-public final class JSR107CacheManagerAdapter implements CacheManager {
+public final class JCacheCacheManagerAdapter implements CacheManager {
 
     private final javax.cache.CacheManager cacheManager;
     private final Map<String, Optional<Cache<Serializable, Serializable>>> cachesMap;
 
-    public JSR107CacheManagerAdapter(@Nonnull javax.cache.CacheManager cacheManager) {
+    public JCacheCacheManagerAdapter(@Nonnull javax.cache.CacheManager cacheManager) {
         this.cacheManager = Objects.requireNonNull(cacheManager, "cacheManager");
         this.cachesMap = new ConcurrentHashMap<>();
     }
@@ -36,7 +36,7 @@ public final class JSR107CacheManagerAdapter implements CacheManager {
     private <K extends Serializable, V extends Serializable> Optional<Cache<K, V>> composeCacheAdapter(@Nonnull String cacheName) {
         final javax.cache.Cache<K, V> cache = this.cacheManager.getCache(cacheName);
         return Optional.ofNullable(cache)
-                        .map(JSR107CacheAdapter::new);
+                        .map(JCacheCacheAdapter::new);
     }
 
     private <K extends Serializable, V extends Serializable> Cache<K, V> cast(Cache<Serializable, Serializable> cache) {

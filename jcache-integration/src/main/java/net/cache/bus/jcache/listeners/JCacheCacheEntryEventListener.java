@@ -1,4 +1,4 @@
-package net.cache.bus.jsr107.listeners;
+package net.cache.bus.jcache.listeners;
 
 import net.cache.bus.core.CacheBus;
 import net.cache.bus.core.CacheEntryEventType;
@@ -14,13 +14,13 @@ import java.util.Objects;
 
 @ThreadSafe
 @Immutable
-final class JSR107CacheEntryEventListener<K extends Serializable, V extends Serializable>
+final class JCacheCacheEntryEventListener<K extends Serializable, V extends Serializable>
         implements CacheEntryCreatedListener<K, V>, CacheEntryUpdatedListener<K, V>,
         CacheEntryExpiredListener<K, V>, CacheEntryRemovedListener<K, V>, CacheEventListener<K, V> {
 
     private final CacheBus cacheBus;
 
-    public JSR107CacheEntryEventListener(@Nonnull CacheBus cacheBus) {
+    public JCacheCacheEntryEventListener(@Nonnull CacheBus cacheBus) {
         this.cacheBus = Objects.requireNonNull(cacheBus, "cacheBus");
     }
 
@@ -52,14 +52,14 @@ final class JSR107CacheEntryEventListener<K extends Serializable, V extends Seri
                     cacheEvent.getKey(),
                     cacheEvent.getOldValue(),
                     cacheEvent.getValue(),
-                    convertJSR107CacheEventType2BusType(cacheEvent.getEventType()),
+                    convertJCacheEventType2BusType(cacheEvent.getEventType()),
                     cacheEvent.getSource().getName()
             );
             this.cacheBus.send(busEvent);
         });
     }
 
-    private CacheEntryEventType convertJSR107CacheEventType2BusType(final EventType eventType) {
+    private CacheEntryEventType convertJCacheEventType2BusType(final EventType eventType) {
         return switch (eventType) {
             case REMOVED -> CacheEntryEventType.EVICTED;
             case EXPIRED -> CacheEntryEventType.EXPIRED;

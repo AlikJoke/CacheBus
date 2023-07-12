@@ -1,4 +1,4 @@
-package net.cache.bus.jsr107.listeners;
+package net.cache.bus.jcache.listeners;
 
 import net.cache.bus.core.Cache;
 import net.cache.bus.core.CacheBus;
@@ -12,14 +12,14 @@ import java.io.Serializable;
 
 @ThreadSafe
 @Immutable
-public final class JSR107CacheEventListenerRegistrar implements CacheEventListenerRegistrar {
+public final class JCacheCacheEventListenerRegistrar implements CacheEventListenerRegistrar {
 
     @Override
     public <K extends Serializable, V extends Serializable> void registerFor(
             @Nonnull CacheBus cacheBus,
             @Nonnull Cache<K, V> cache) {
 
-        final CacheEventListener<K, V> listener = new JSR107CacheEntryEventListener<>(cacheBus);
+        final CacheEventListener<K, V> listener = new JCacheCacheEntryEventListener<>(cacheBus);
         cache.registerEventListener(listener);
     }
 }

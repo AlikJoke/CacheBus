@@ -1,4 +1,4 @@
-package net.cache.bus.jsr107.adapters;
+package net.cache.bus.jcache.adapters;
 
 import net.cache.bus.core.CacheManager;
 import net.cache.bus.core.testing.BaseCacheManagerTest;
@@ -8,7 +8,7 @@ import javax.cache.Cache;
 
 import static org.mockito.Mockito.lenient;
 
-public class JSR107CacheManagerAdapterTest extends BaseCacheManagerTest {
+public class JCacheCacheManagerAdapterTest extends BaseCacheManagerTest {
 
     @Mock
     private javax.cache.CacheManager cacheManager;
@@ -19,7 +19,7 @@ public class JSR107CacheManagerAdapterTest extends BaseCacheManagerTest {
     protected CacheManager configureCacheManager(String cacheName) {
         lenient().when(this.cacheManager.getCache(cacheName)).thenReturn(this.cache);
 
-        return new JSR107CacheManagerAdapter(this.cacheManager);
+        return new JCacheCacheManagerAdapter(this.cacheManager);
     }
 
     @Override

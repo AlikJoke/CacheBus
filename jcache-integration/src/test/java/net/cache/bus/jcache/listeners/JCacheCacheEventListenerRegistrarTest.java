@@ -1,7 +1,7 @@
-package net.cache.bus.jsr107.listeners;
+package net.cache.bus.jcache.listeners;
 
 import net.cache.bus.core.CacheBus;
-import net.cache.bus.jsr107.adapters.JSR107CacheAdapter;
+import net.cache.bus.jcache.adapters.JCacheCacheAdapter;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -16,7 +16,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.doNothing;
 
 @ExtendWith(MockitoExtension.class)
-public class JSR107CacheEventListenerRegistrarTest {
+public class JCacheCacheEventListenerRegistrarTest {
 
     @Mock
     private CacheBus cacheBus;
@@ -27,8 +27,8 @@ public class JSR107CacheEventListenerRegistrarTest {
 
     @Test
     public void testRegistration() {
-        final JSR107CacheEventListenerRegistrar registrar = new JSR107CacheEventListenerRegistrar();
-        final JSR107CacheAdapter<String, String> cacheAdapter = new JSR107CacheAdapter<>(this.cache);
+        final JCacheCacheEventListenerRegistrar registrar = new JCacheCacheEventListenerRegistrar();
+        final JCacheCacheAdapter<String, String> cacheAdapter = new JCacheCacheAdapter<>(this.cache);
         doNothing().when(this.cache).registerCacheEntryListener(captor.capture());
 
         registrar.registerFor(this.cacheBus, cacheAdapter);
@@ -42,6 +42,6 @@ public class JSR107CacheEventListenerRegistrarTest {
         assertNotNull(listenerFactory, "Event listener factory must be not null");
         final var listener = listenerFactory.create();
         assertNotNull(listener, "Event listener must be not null");
-        assertEquals(JSR107CacheEntryEventListener.class, listener.getClass(), "Event listener must be not null");
+        assertEquals(JCacheCacheEntryEventListener.class, listener.getClass(), "Event listener must be not null");
     }
 }

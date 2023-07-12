@@ -1,4 +1,4 @@
-package net.cache.bus.jsr107.adapters;
+package net.cache.bus.jcache.adapters;
 
 import net.cache.bus.core.Cache;
 import net.cache.bus.core.CacheEventListener;
@@ -17,11 +17,11 @@ import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
-public final class JSR107CacheAdapter<K extends Serializable, V extends Serializable> implements Cache<K, V> {
+public final class JCacheCacheAdapter<K extends Serializable, V extends Serializable> implements Cache<K, V> {
 
     private final javax.cache.Cache<K, V> cache;
 
-    public JSR107CacheAdapter(@Nonnull javax.cache.Cache<K, V> cache) {
+    public JCacheCacheAdapter(@Nonnull javax.cache.Cache<K, V> cache) {
         this.cache = Objects.requireNonNull(cache, "cache");
     }
 

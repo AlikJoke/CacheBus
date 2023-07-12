@@ -10,9 +10,9 @@
         <version>1.0-SNAPSHOT</version>
         <relativePath/>
     </parent>
-    <artifactId>jsr107-integration</artifactId>
-    <name>CacheBus JSR-107 Integration</name>
-    <description>Integration with JSR-107 Cache API</description>
+    <artifactId>jcache-integration</artifactId>
+    <name>CacheBus JCache Integration</name>
+    <description>Integration with JCache API</description>
 
     <dependencies>
         <dependency>

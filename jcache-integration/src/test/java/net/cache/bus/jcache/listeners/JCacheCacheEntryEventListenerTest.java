@@ -1,4 +1,4 @@
-package net.cache.bus.jsr107.listeners;
+package net.cache.bus.jcache.listeners;
 
 import net.cache.bus.core.testing.BaseCacheEventListenerTest;
 import org.mockito.Mock;
@@ -10,12 +10,12 @@ import java.util.List;
 
 import static org.mockito.Mockito.when;
 
-public class JSR107CacheEntryEventListenerTest extends BaseCacheEventListenerTest<CacheEntryEvent<? extends String, ? extends String>, EventType> {
+public class JCacheCacheEntryEventListenerTest extends BaseCacheEventListenerTest<CacheEntryEvent<? extends String, ? extends String>, EventType> {
 
     @Mock
     private Cache<String, String> cache;
 
-    private JSR107CacheEntryEventListener<String, String> listener;
+    private JCacheCacheEntryEventListener<String, String> listener;
 
     @Override
     protected CacheEntryEvent<? extends String, ? extends String> composeCacheEvent(
@@ -92,6 +92,6 @@ public class JSR107CacheEntryEventListenerTest extends BaseCacheEventListenerTes
     protected void makePreparationActions() {
         when(this.cache.getName()).thenReturn(CACHE_NAME);
 
-        this.listener = new JSR107CacheEntryEventListener<>(this.cacheBus);
+        this.listener = new JCacheCacheEntryEventListener<>(this.cacheBus);
     }
 }

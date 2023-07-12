@@ -1,4 +1,4 @@
-package net.cache.bus.jsr107.adapters;
+package net.cache.bus.jcache.adapters;
 
 import net.cache.bus.core.Cache;
 import net.cache.bus.core.testing.BaseCacheTest;
@@ -15,11 +15,11 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
-public class JSR107CacheAdapterTest extends BaseCacheTest {
+public class JCacheCacheAdapterTest extends BaseCacheTest {
 
     @Override
     protected Cache<String, String> createCacheAdapter(String cacheName, Map<String, String> valuesMap) {
-        return new JSR107CacheAdapter<>(new javax.cache.Cache<>() {
+        return new JCacheCacheAdapter<>(new javax.cache.Cache<>() {
 
             private final Map<String, String> map = new HashMap<>(valuesMap);
 
