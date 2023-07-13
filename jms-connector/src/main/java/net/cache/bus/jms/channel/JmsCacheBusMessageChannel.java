@@ -4,10 +4,11 @@ import net.cache.bus.core.CacheEventMessageConsumer;
 import net.cache.bus.core.LifecycleException;
 import net.cache.bus.core.transport.CacheBusMessageChannel;
 import net.cache.bus.core.transport.CacheEntryOutputMessage;
-import net.cache.bus.jms.configuration.CacheBusJmsMessageChannelConfiguration;
+import net.cache.bus.jms.configuration.JmsCacheBusMessageChannelConfiguration;
 import net.cache.bus.transport.addons.ChannelRecoveryProcessor;
 
 import javax.annotation.Nonnull;
+import javax.annotation.concurrent.ThreadSafe;
 import javax.jms.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -17,10 +18,11 @@ import java.util.logging.Logger;
  * Реализация канала сообщений на основе JMS.
  *
  * @author Alik
- * @see CacheBusJmsMessageChannelConfiguration
+ * @see JmsCacheBusMessageChannelConfiguration
  * @see CacheBusMessageChannel
  */
-public final class JmsCacheBusMessageChannel implements CacheBusMessageChannel<CacheBusJmsMessageChannelConfiguration> {
+@ThreadSafe
+public final class JmsCacheBusMessageChannel implements CacheBusMessageChannel<JmsCacheBusMessageChannelConfiguration> {
 
     static final String MESSAGE_TYPE = "CacheEvent";
     static final String HOST_PROPERTY = "host";
@@ -28,12 +30,12 @@ public final class JmsCacheBusMessageChannel implements CacheBusMessageChannel<C
 
     static final Logger logger = Logger.getLogger(JmsCacheBusMessageChannel.class.getCanonicalName());
 
-    private volatile CacheBusJmsMessageChannelConfiguration configuration;
+    private volatile JmsCacheBusMessageChannelConfiguration configuration;
     private volatile JmsSessionConfiguration jmsSessionConfiguration;
     private Future<?> subscribingTask;
 
     @Override
-    public synchronized void activate(@Nonnull CacheBusJmsMessageChannelConfiguration jmsConfiguration) {
+    public synchronized void activate(@Nonnull JmsCacheBusMessageChannelConfiguration jmsConfiguration) {
         logger.info(() -> "Activation of channel was called");
 
         this.configuration = jmsConfiguration;
@@ -44,7 +46,7 @@ public final class JmsCacheBusMessageChannel implements CacheBusMessageChannel<C
     public void send(@Nonnull CacheEntryOutputMessage eventOutputMessage) {
 
         if (this.jmsSessionConfiguration == null) {
-            return;
+            throw new LifecycleException("Channel not activated");
         }
 
         try (final JMSContext context = this.jmsSessionConfiguration.connectionFactory.createContext()) {
@@ -65,6 +67,8 @@ public final class JmsCacheBusMessageChannel implements CacheBusMessageChannel<C
     public synchronized void subscribe(@Nonnull CacheEventMessageConsumer consumer) {
         if (this.configuration == null) {
             throw new LifecycleException("Channel not activated");
+        } else if (this.subscribingTask != null) {
+            throw new LifecycleException("Already subscribed to channel");
         }
 
         this.subscribingTask = this.jmsSessionConfiguration.subscribingPool.submit(() -> listenUntilNotClosed(consumer));
@@ -74,25 +78,28 @@ public final class JmsCacheBusMessageChannel implements CacheBusMessageChannel<C
     public synchronized void unsubscribe() {
         logger.info(() -> "Unsubscribe was called");
 
-        if (this.jmsSessionConfiguration == null || this.subscribingTask == null) {
+        if (this.jmsSessionConfiguration == null) {
             throw new LifecycleException("Already in unsubscribed state");
         }
 
         this.jmsSessionConfiguration.close();
         this.jmsSessionConfiguration = null;
 
-        this.subscribingTask.cancel(true);
-        this.subscribingTask = null;
+        if (this.subscribingTask != null) {
+            this.subscribingTask.cancel(true);
+            this.subscribingTask = null;
+        }
     }
 
     private void listenUntilNotClosed(final CacheEventMessageConsumer consumer) {
 
         logger.info(() -> "Subscribe was called");
 
-        while (this.jmsSessionConfiguration != null) {
+        JmsSessionConfiguration jmsSessionConfiguration;
+        while ((jmsSessionConfiguration = this.jmsSessionConfiguration) != null) {
 
             try {
-                final Message message = this.jmsSessionConfiguration.jmsConsumer.receive(0);
+                final Message message = jmsSessionConfiguration.jmsConsumer.receive(0);
                 if (!(message instanceof final BytesMessage bytesMessage)) {
                     continue;
                 }
@@ -109,15 +116,16 @@ public final class JmsCacheBusMessageChannel implements CacheBusMessageChannel<C
         }
     }
 
-    private void onException(final Exception ex) {
+    private synchronized void onException(final Exception ex) {
 
         // Поток прервали
-        if (this.jmsSessionConfiguration == null) {
+        JmsSessionConfiguration jmsSessionConfiguration = this.jmsSessionConfiguration;
+        if (jmsSessionConfiguration == null) {
             return;
         }
 
         final ChannelRecoveryProcessor recoveryProcessor = new ChannelRecoveryProcessor(
-                this.jmsSessionConfiguration::close,
+                jmsSessionConfiguration::close,
                 () -> this.activate(this.configuration),
                 Integer.MAX_VALUE
         );
@@ -139,7 +147,7 @@ public final class JmsCacheBusMessageChannel implements CacheBusMessageChannel<C
         private final Topic endpoint;
         private final ExecutorService subscribingPool;
 
-        private JmsSessionConfiguration(final CacheBusJmsMessageChannelConfiguration configuration) {
+        private JmsSessionConfiguration(final JmsCacheBusMessageChannelConfiguration configuration) {
             this.connectionFactory = configuration.connectionFactory();
             this.hostName = configuration.hostNameResolver().resolve();
             this.receivingSession = this.connectionFactory.createContext();

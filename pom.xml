@@ -18,6 +18,7 @@
         <module>jdk-serialization</module>
         <module>test-addons</module>
         <module>jackson-serialization</module>
+        <module>kafka-connector</module>
     </modules>
 
     <properties>

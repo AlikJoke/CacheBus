@@ -20,13 +20,13 @@ import java.util.concurrent.ExecutorService;
  * @author Alik
  * @see Builder
  */
-public record CacheBusJmsMessageChannelConfiguration(
+public record JmsCacheBusMessageChannelConfiguration(
         @Nonnull ConnectionFactory connectionFactory,
         @Nonnull String channel,
         @Nonnull ExecutorService subscribingPool,
         @Nonnull HostNameResolver hostNameResolver) implements CacheBusMessageChannelConfiguration {
 
-    public CacheBusJmsMessageChannelConfiguration {
+    public JmsCacheBusMessageChannelConfiguration {
         Objects.requireNonNull(connectionFactory, "connectionFactory");
         Objects.requireNonNull(subscribingPool, "subscribingPool");
         Objects.requireNonNull(hostNameResolver, "hostNameResolver");
@@ -102,14 +102,14 @@ public record CacheBusJmsMessageChannelConfiguration(
         }
 
         /**
-         * Формирует на основе данных, переданных при построении объект конфигурации канала {@link CacheBusJmsMessageChannelConfiguration}.
+         * Формирует на основе данных, переданных при построении объект конфигурации канала {@link JmsCacheBusMessageChannelConfiguration}.
          *
          * @return не может быть {@code null}.
-         * @see CacheBusJmsMessageChannelConfiguration
+         * @see JmsCacheBusMessageChannelConfiguration
          */
         @Nonnull
-        public CacheBusJmsMessageChannelConfiguration build() {
-            return new CacheBusJmsMessageChannelConfiguration(
+        public JmsCacheBusMessageChannelConfiguration build() {
+            return new JmsCacheBusMessageChannelConfiguration(
                     this.connectionFactory,
                     this.channel,
                     this.subscribingPool,

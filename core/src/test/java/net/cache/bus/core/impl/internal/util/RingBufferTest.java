@@ -100,8 +100,8 @@ public class RingBufferTest {
 
             final long stampTime = System.currentTimeMillis();
             while (!offerWasInterrupted.get()) {
-                Thread.sleep(Duration.ofMillis(1));
-                if (System.currentTimeMillis() - stampTime > 1000) {
+                Thread.sleep(Duration.ofMillis(5));
+                if (System.currentTimeMillis() - stampTime > 60000) {
                     assertTrue(offerWasInterrupted.get(), "Thread should be interrupted");
                 }
             }

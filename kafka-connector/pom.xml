@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>net.cache-bus</groupId>
+        <artifactId>parent</artifactId>
+        <version>1.0-SNAPSHOT</version>
+        <relativePath/>
+    </parent>
+    <artifactId>kafka-connector</artifactId>
+    <name>CacheBus Kafka Transport Connector</name>
+    <description>Connector to Kafka implementation of transport</description>
+
+    <properties>
+        <kafka.version>3.5.0</kafka.version>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.apache.kafka</groupId>
+            <artifactId>kafka-clients</artifactId>
+            <version>${kafka.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>net.cache-bus</groupId>
+            <artifactId>transport-addons</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>net.cache-bus</groupId>
+            <artifactId>core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- https://mvnrepository.com/artifact/io.github.embeddedkafka/embedded-kafka-streams -->
+        <dependency>
+            <groupId>io.github.embeddedkafka</groupId>
+            <artifactId>embedded-kafka-streams_3</artifactId>
+            <version>${kafka.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+
+    </dependencies>
+
+</project>

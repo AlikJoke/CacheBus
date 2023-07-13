@@ -3,10 +3,11 @@ package net.cache.bus.jms.channel;
 import net.cache.bus.core.CacheEntryEvent;
 import net.cache.bus.core.CacheEntryEventType;
 import net.cache.bus.core.CacheEventMessageConsumer;
+import net.cache.bus.core.LifecycleException;
 import net.cache.bus.core.impl.ImmutableCacheEntryEvent;
 import net.cache.bus.core.impl.internal.ImmutableCacheEntryOutputMessage;
 import net.cache.bus.core.transport.CacheEntryOutputMessage;
-import net.cache.bus.jms.configuration.CacheBusJmsMessageChannelConfiguration;
+import net.cache.bus.jms.configuration.JmsCacheBusMessageChannelConfiguration;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -16,7 +17,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import javax.annotation.Nonnull;
 import javax.jms.*;
 import java.io.Serializable;
-import java.lang.IllegalStateException;
 import java.time.Duration;
 import java.util.Queue;
 import java.util.*;
@@ -55,9 +55,9 @@ public class JmsCacheBusMessageChannelTest {
     public void testChannelMethodsWhenChannelIsNotActivated() {
         final JmsCacheBusMessageChannel channel = new JmsCacheBusMessageChannel();
 
-        assertDoesNotThrow(() -> channel.send(mock(CacheEntryOutputMessage.class)));
-        assertThrows(IllegalStateException.class, channel::unsubscribe, "Unsubscribing available only after subscribing");
-        assertThrows(IllegalStateException.class, () -> channel.subscribe(new TestMessageConsumer()), "Subscribing available only after activation of channel");
+        assertThrows(LifecycleException.class, () -> channel.send(mock(CacheEntryOutputMessage.class)));
+        assertThrows(LifecycleException.class, channel::unsubscribe, "Unsubscribing available only after subscribing");
+        assertThrows(LifecycleException.class, () -> channel.subscribe(new TestMessageConsumer()), "Subscribing available only after activation of channel");
     }
 
     @Test
@@ -160,8 +160,8 @@ public class JmsCacheBusMessageChannelTest {
     }
 
     private void activateChannel(final JmsCacheBusMessageChannel channel) {
-        final CacheBusJmsMessageChannelConfiguration configuration =
-                CacheBusJmsMessageChannelConfiguration.builder()
+        final JmsCacheBusMessageChannelConfiguration configuration =
+                JmsCacheBusMessageChannelConfiguration.builder()
                                                         .setChannel(CHANNEL_NAME)
                                                         .setConnectionFactory(this.connectionFactory)
                                                         .setSubscribingPool(Executors.newSingleThreadExecutor())
