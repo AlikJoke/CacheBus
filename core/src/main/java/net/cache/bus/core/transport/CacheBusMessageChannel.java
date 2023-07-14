@@ -14,7 +14,7 @@ import javax.annotation.Nonnull;
  * @see CacheEntryOutputMessage
  * @see CacheBusMessageChannelConfiguration
  */
-public interface CacheBusMessageChannel<T extends CacheBusMessageChannelConfiguration> {
+public interface CacheBusMessageChannel<T extends CacheBusMessageChannelConfiguration> extends AutoCloseable{
 
     /**
      * Производит активацию канала сообщений шины кэшей.
@@ -39,7 +39,8 @@ public interface CacheBusMessageChannel<T extends CacheBusMessageChannelConfigur
     void subscribe(@Nonnull CacheEventMessageConsumer consumer);
 
     /**
-     * Производит отписку от входящего потока сообщений канала.
+     * Производит закрытие канала сообщений, после которого канал становится недоступен для отправок / получения сообщений.
      */
-    void unsubscribe();
+    @Override
+    void close();
 }

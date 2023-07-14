@@ -11,6 +11,7 @@ import net.cache.bus.core.impl.ImmutableCacheEntryEvent;
 import net.cache.bus.core.impl.internal.ImmutableCacheEntryOutputMessage;
 import net.cache.bus.core.impl.resolvers.StaticHostNameResolver;
 import net.cache.bus.core.transport.CacheEntryOutputMessage;
+import net.cache.bus.core.transport.MessageChannelException;
 import net.cache.bus.kafka.configuration.KafkaCacheBusMessageChannelConfiguration;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
@@ -29,8 +30,8 @@ import java.util.concurrent.TimeUnit;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
 
-@Disabled(value = "Slow and unstable due to embedded kafka")
-public class KafkaCacheBusMessageChannelTest {
+@Disabled(value = "Slow due to embedded kafka, run it separately if need")
+public class EmbeddedKafkaCacheBusMessageChannelTest {
 
     private static EmbeddedKafkaConfig config;
     private static EmbeddedK kafka;
@@ -50,9 +51,9 @@ public class KafkaCacheBusMessageChannelTest {
     public void testChannelMethodsWhenChannelIsNotActivated() {
         final KafkaCacheBusMessageChannel channel = new KafkaCacheBusMessageChannel();
 
-        assertThrows(LifecycleException.class, () -> channel.send(mock(CacheEntryOutputMessage.class)));
-        assertThrows(LifecycleException.class, channel::unsubscribe, "Unsubscribing available only after subscribing");
-        assertThrows(LifecycleException.class, () -> channel.subscribe(new TestMessageConsumer()), "Subscribing available only after activation of channel");
+        assertThrows(MessageChannelException.class, () -> channel.send(mock(CacheEntryOutputMessage.class)));
+        assertThrows(MessageChannelException.class, channel::close, "Unsubscribing available only after subscribing");
+        assertThrows(MessageChannelException.class, () -> channel.subscribe(new TestMessageConsumer()), "Subscribing available only after activation of channel");
     }
 
     @Test
@@ -86,8 +87,8 @@ public class KafkaCacheBusMessageChannelTest {
         assertArrayEquals(binaryEvent1, consumerHost2.bodyMap.get(outputMessage1.messageHashKey()), "Event body must be equal");
         assertArrayEquals(binaryEvent2, consumerHost2.bodyMap.get(outputMessage2.messageHashKey()), "Event body must be equal");
 
-        sendChannel.unsubscribe();
-        receiveChannel.unsubscribe();
+        sendChannel.close();
+        receiveChannel.close();
     }
 
     private void activateChannel(final KafkaCacheBusMessageChannel channel, final String host) {
@@ -96,6 +97,7 @@ public class KafkaCacheBusMessageChannelTest {
                         .setChannel("test1")
                         .setConsumerProperties(Collections.singletonMap(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:" + config.kafkaPort()))
                         .setProducerProperties(Collections.singletonMap(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:" + config.kafkaPort()))
+                        .setReconnectTimeoutMs(1_000)
                         .setSubscribingPool(new ForkJoinPool())
                         .setHostNameResolver(new StaticHostNameResolver(host))
                         .build();

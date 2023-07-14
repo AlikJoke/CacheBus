@@ -18,12 +18,12 @@ public final class ChannelRecoveryProcessor {
 
     private final Runnable cleaningCallback;
     private final Runnable recoveryCallback;
-    private final int maxRecoveryAttemptTimeMillis;
+    private final long maxRecoveryAttemptTimeMillis;
 
     public ChannelRecoveryProcessor(
-            @Nonnull final Runnable recoveryCallback,
             @Nonnull final Runnable cleaningCallback,
-            @Nonnegative final int maxRecoveryAttemptTimeMillis) {
+            @Nonnull final Runnable recoveryCallback,
+            @Nonnegative final long maxRecoveryAttemptTimeMillis) {
 
         this.recoveryCallback = Objects.requireNonNull(recoveryCallback, "recoveryCallback");
         this.cleaningCallback = Objects.requireNonNull(cleaningCallback, "cleaningCallback");
@@ -61,19 +61,19 @@ public final class ChannelRecoveryProcessor {
 
         final Random rand = new Random();
 
-        int nextAttemptTimeout = 30;
+        long nextAttemptTimeout = 30;
         boolean isRecovered;
 
         do {
             isRecovered = this.recoverTry();
             nextAttemptTimeout = Math.min(nextAttemptTimeout * 3, this.maxRecoveryAttemptTimeMillis);
 
-        } while (!isRecovered && this.waitNextAttempt(nextAttemptTimeout + rand.nextInt(nextAttemptTimeout / 5)));
+        } while (!isRecovered && this.waitNextAttempt(nextAttemptTimeout + rand.nextLong(nextAttemptTimeout / 5)));
 
         return isRecovered;
     }
 
-    private boolean waitNextAttempt(final int waitTimeInMillis) {
+    private boolean waitNextAttempt(final long waitTimeInMillis) {
 
         try {
             Thread.sleep(waitTimeInMillis);

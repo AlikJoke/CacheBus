@@ -19,6 +19,7 @@
         <module>test-addons</module>
         <module>jackson-serialization</module>
         <module>kafka-connector</module>
+        <module>rabbit-connector</module>
     </modules>
 
     <properties>

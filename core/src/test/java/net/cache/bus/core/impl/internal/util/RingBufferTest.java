@@ -3,9 +3,7 @@ package net.cache.bus.core.impl.internal.util;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -29,15 +27,17 @@ public class RingBufferTest {
     }
 
     @Test
-    public void testWhenPollFromEmptyBufferThenBlockUntilDataNotAvailable() throws InterruptedException {
+    public void testWhenPollFromEmptyBufferThenBlockUntilDataNotAvailable() throws InterruptedException, ExecutionException, TimeoutException {
         final RingBuffer<Integer> buffer = new RingBuffer<>(2);
         buffer.offer(1);
 
         try (final ExecutorService executorService = Executors.newSingleThreadExecutor()) {
-            final Future<?> future = executorService.submit(() -> {
+            final Future<Boolean> future = executorService.submit(() -> {
                 try {
                     assertEquals(1, buffer.poll());
                     assertEquals(2, buffer.poll());
+
+                    return true;
                 } catch (InterruptedException e) {
                     throw new RuntimeException(e);
                 }
@@ -47,8 +47,8 @@ public class RingBufferTest {
             assertFalse(future.isDone(), "Read thread must be blocked because buffer is empty");
             buffer.offer(2);
 
-            Thread.sleep(Duration.ofMillis(1));
-            assertTrue(future.isDone(), "Read thread must be finished because buffer is not empty after poll");
+            final Boolean result = future.get(1, TimeUnit.SECONDS);
+            assertTrue(result != null && result, "Read thread must be finished because buffer is not empty after poll");
         }
     }
 

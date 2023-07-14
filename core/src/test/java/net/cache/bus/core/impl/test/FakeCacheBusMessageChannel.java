@@ -32,7 +32,7 @@ public class FakeCacheBusMessageChannel implements CacheBusMessageChannel<CacheB
     }
 
     @Override
-    public void unsubscribe() {
+    public void close() {
         this.unsubscribeCalled = true;
     }
 

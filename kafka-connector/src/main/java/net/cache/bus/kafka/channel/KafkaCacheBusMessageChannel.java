@@ -2,17 +2,24 @@ package net.cache.bus.kafka.channel;
 
 import net.cache.bus.core.CacheBus;
 import net.cache.bus.core.CacheEventMessageConsumer;
-import net.cache.bus.core.LifecycleException;
 import net.cache.bus.core.transport.CacheBusMessageChannel;
 import net.cache.bus.core.transport.CacheEntryOutputMessage;
+import net.cache.bus.core.transport.MessageChannelException;
 import net.cache.bus.kafka.configuration.KafkaCacheBusMessageChannelConfiguration;
 import net.cache.bus.transport.addons.ChannelRecoveryProcessor;
-import org.apache.kafka.clients.consumer.*;
+import org.apache.kafka.clients.consumer.Consumer;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.consumer.ConsumerRecords;
+import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.KafkaException;
+import org.apache.kafka.common.errors.BrokerNotAvailableException;
+import org.apache.kafka.common.errors.FencedInstanceIdException;
+import org.apache.kafka.common.errors.OffsetOutOfRangeException;
+import org.apache.kafka.common.errors.RetriableException;
 import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.internals.RecordHeader;
 import org.apache.kafka.common.serialization.*;
@@ -22,6 +29,7 @@ import javax.annotation.concurrent.ThreadSafe;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.*;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -43,59 +51,83 @@ public final class KafkaCacheBusMessageChannel implements CacheBusMessageChannel
     private static final String MESSAGE_TYPE_HEADER = "type";
     private static final String HOST_HEADER = "host";
 
-    private volatile KafkaConfiguration kafkaConfiguration;
+    private volatile KafkaProducerSessionConfiguration producerSessionConfiguration;
+    private volatile KafkaConsumerSessionConfiguration consumerSessionConfiguration;
     private Future<?> subscribingTask;
 
     @Override
     public synchronized void activate(@Nonnull KafkaCacheBusMessageChannelConfiguration configuration) {
-        this.kafkaConfiguration = new KafkaConfiguration(configuration, this.subscribingTask == null);
+        logger.info(() -> "Activation of channel was called");
+
+        if (this.producerSessionConfiguration != null || this.consumerSessionConfiguration != null) {
+            throw new MessageChannelException("Channel already activated");
+        }
+
+        this.producerSessionConfiguration = new KafkaProducerSessionConfiguration(configuration);
+        this.consumerSessionConfiguration = new KafkaConsumerSessionConfiguration(configuration, true);
     }
 
     @Override
     public void send(@Nonnull CacheEntryOutputMessage eventOutputMessage) {
 
-        final KafkaConfiguration configuration = this.kafkaConfiguration;
+        KafkaProducerSessionConfiguration configuration = this.producerSessionConfiguration;
         if (configuration == null) {
-            throw new LifecycleException("Channel not activated");
+            throw new MessageChannelException("Channel not activated");
         }
 
-        final ProducerRecord<Integer, byte[]> record = new ProducerRecord<>(
-                configuration.channelConfiguration.channel(),
-                null,
-                eventOutputMessage.messageHashKey(),
-                eventOutputMessage.cacheEntryMessageBody(),
-                configuration.headers
-        );
+        while ((configuration = this.producerSessionConfiguration) != null) {
 
-        configuration.kafkaProducer.send(record, (recordMetadata, e) -> {
-            if (e != null) {
-                logger.log(Level.ALL, "Unable to send message", e);
+            final ProducerRecord<Integer, byte[]> record = new ProducerRecord<>(
+                    configuration.sharedConfiguration.channel(),
+                    null,
+                    eventOutputMessage.messageHashKey(),
+                    eventOutputMessage.cacheEntryMessageBody(),
+                    configuration.headers
+            );
+
+            try {
+                configuration.kafkaProducer.send(record, (recordMetadata, e) -> {
+                    if (e != null) {
+                        logger.log(Level.ALL, "Unable to send message", e);
+                    }
+                });
+
+                break;
+            } catch (RetriableException | BrokerNotAvailableException ex) {
+                recoverProducerSession(ex, configuration);
             }
-        });
+        }
     }
 
     @Override
     public synchronized void subscribe(@Nonnull CacheEventMessageConsumer consumer) {
 
-        if (this.kafkaConfiguration == null) {
-            throw new LifecycleException("Channel not activated");
+        if (this.consumerSessionConfiguration == null) {
+            throw new MessageChannelException("Channel not activated");
         } else if (this.subscribingTask != null) {
-            throw new LifecycleException("Already subscribed to channel");
+            throw new MessageChannelException("Already subscribed to channel");
         }
 
-        this.subscribingTask = this.kafkaConfiguration.channelConfiguration.subscribingPool().submit(() -> listenUntilNotClosed(consumer));
+        final ExecutorService subscribingPool = this.consumerSessionConfiguration.sharedConfiguration.subscribingPool();
+        this.subscribingTask = subscribingPool.submit(() -> listenUntilNotClosed(consumer));
     }
 
     @Override
-    public synchronized void unsubscribe() {
+    public synchronized void close() {
 
         logger.info(() -> "Unsubscribe was called");
 
-        if (this.kafkaConfiguration == null) {
-            throw new LifecycleException("Already in unsubscribed state");
+        if (this.consumerSessionConfiguration == null || this.producerSessionConfiguration == null) {
+            throw new MessageChannelException("Already in unsubscribed state");
         }
 
-        this.kafkaConfiguration = null;
+        final KafkaSessionConfiguration oldConsumerConfiguration = this.consumerSessionConfiguration;
+        this.consumerSessionConfiguration = null;
+        oldConsumerConfiguration.close();
+
+        final KafkaSessionConfiguration oldProducerConfiguration = this.producerSessionConfiguration;
+        this.producerSessionConfiguration = null;
+        oldProducerConfiguration.close();
 
         if (this.subscribingTask != null) {
             this.subscribingTask.cancel(true);
@@ -106,12 +138,12 @@ public final class KafkaCacheBusMessageChannel implements CacheBusMessageChannel
     private void listenUntilNotClosed(final CacheEventMessageConsumer messageConsumer) {
         logger.info(() -> "Subscribe was called");
 
-        KafkaConfiguration configuration;
         Consumer<Integer, byte[]> kafkaConsumer = null;
-        while ((configuration = this.kafkaConfiguration) != null) {
+        KafkaConsumerSessionConfiguration sessionConfiguration;
+        while ((sessionConfiguration = this.consumerSessionConfiguration) != null) {
 
             try {
-                kafkaConsumer = configuration.kafkaConsumer;
+                kafkaConsumer = sessionConfiguration.kafkaConsumer;
                 final ConsumerRecords<Integer, byte[]> records = kafkaConsumer.poll(Duration.ofMillis(Long.MAX_VALUE));
                 if (records.isEmpty()) {
                     continue;
@@ -124,7 +156,7 @@ public final class KafkaCacheBusMessageChannel implements CacheBusMessageChannel
                     if (messageTypeHeader == null
                             || hostHeader == null
                             || !Arrays.equals(MESSAGE_TYPE_BYTES, messageTypeHeader.value())
-                            || Arrays.equals(configuration.hostNameBytes, hostHeader.value())) {
+                            || Arrays.equals(sessionConfiguration.hostNameBytes, hostHeader.value())) {
                         return;
                     }
 
@@ -135,74 +167,114 @@ public final class KafkaCacheBusMessageChannel implements CacheBusMessageChannel
                 }
 
                 kafkaConsumer.commitSync();
+            } catch (RetriableException | OffsetOutOfRangeException | BrokerNotAvailableException | FencedInstanceIdException ex) {
+                recoverConsumerSession(ex, sessionConfiguration);
             } catch (KafkaException ex) {
-                onException(ex);
+                logger.log(Level.ALL, "Unrecoverable exception in consumer thread", ex);
+                closeConsumer(kafkaConsumer);
+
+                throw new MessageChannelException(ex);
             }
         }
 
         if (kafkaConsumer != null) {
-            kafkaConsumer.unsubscribe();
-            kafkaConsumer.close();
+            closeConsumer(kafkaConsumer);
         }
     }
 
-    private void onException(final Exception ex) {
+    private void closeConsumer(final Consumer<Integer, byte[]> kafkaConsumer) {
+
+        try {
+            kafkaConsumer.unsubscribe();
+            kafkaConsumer.close();
+        } catch (Exception ex) {
+            logger.log(Level.ALL, "Unable to close consumer", ex);
+        }
+    }
+
+    private void recoverProducerSession(final Exception ex, final KafkaSessionConfiguration sessionConfiguration) {
+
+        // Синхронизация на объекте конфигурации на случай параллельных потоков отправки сообщений
+        synchronized (sessionConfiguration) {
+
+            // Если не совпало, значит другой поток уже восстановил соединение => можно пытаться отправить сообщение
+            if (this.producerSessionConfiguration != sessionConfiguration) {
+                return;
+            }
+
+            final ChannelRecoveryProcessor recoveryProcessor = new ChannelRecoveryProcessor(
+                    sessionConfiguration::close,
+                    () -> this.producerSessionConfiguration = new KafkaProducerSessionConfiguration(sessionConfiguration.sharedConfiguration),
+                    sessionConfiguration.sharedConfiguration.reconnectTimeoutMs()
+            );
+
+            try {
+                recoveryProcessor.recover(ex);
+            } catch (RuntimeException e) {
+                throw new MessageChannelException(e);
+            }
+        }
+    }
+
+    private void recoverConsumerSession(final Exception ex, final KafkaSessionConfiguration sessionConfiguration) {
 
         // Поток прервали
-        if (this.kafkaConfiguration == null) {
+        if (sessionConfiguration == null) {
             return;
         }
 
-        final KafkaConfiguration oldConfiguration = this.kafkaConfiguration;
         final ChannelRecoveryProcessor recoveryProcessor = new ChannelRecoveryProcessor(
-                () -> oldConfiguration.close(false),
-                () -> this.activate(oldConfiguration.channelConfiguration),
+                sessionConfiguration::close,
+                () -> this.consumerSessionConfiguration = new KafkaConsumerSessionConfiguration(sessionConfiguration.sharedConfiguration, false),
                 Integer.MAX_VALUE
         );
 
-        recoveryProcessor.recover(ex);
-        oldConfiguration.close(true);
+        try {
+            recoveryProcessor.recover(ex);
+        } catch (RuntimeException e) {
+            throw new MessageChannelException(e);
+        }
     }
 
-    static class KafkaConfiguration {
+    private static abstract class KafkaSessionConfiguration implements AutoCloseable {
 
-        private final KafkaCacheBusMessageChannelConfiguration channelConfiguration;
-        private final Consumer<Integer, byte[]> kafkaConsumer;
-        private final Producer<Integer, byte[]> kafkaProducer;
-        private final byte[] hostNameBytes;
-        private final List<Header> headers;
+        protected final KafkaCacheBusMessageChannelConfiguration sharedConfiguration;
+        protected final byte[] hostNameBytes;
+        protected final List<Header> headers;
 
-        private KafkaConfiguration(final KafkaCacheBusMessageChannelConfiguration configuration, final boolean firstSubscription) {
-            this.channelConfiguration = configuration;
-
-            final Serializer<byte[]> valueSerializer = new ByteArraySerializer();
-            final Serializer<Integer> keySerializer = new IntegerSerializer();
-            this.kafkaProducer = new KafkaProducer<>(
-                    enrichProducerProperties(configuration.producerProperties()),
-                    keySerializer,
-                    valueSerializer
-            );
-
-            final String hostName = configuration.hostNameResolver().resolve();
-            final Deserializer<byte[]> valueDeserializer = new ByteArrayDeserializer();
-            final Deserializer<Integer> keyDeserializer = new IntegerDeserializer();
-            this.kafkaConsumer = new KafkaConsumer<>(
-                    enrichConsumerProperties(configuration.consumerProperties(), firstSubscription, hostName),
-                    keyDeserializer,
-                    valueDeserializer
-            );
-            this.kafkaConsumer.subscribe(Collections.singleton(configuration.channel()));
-
+        private KafkaSessionConfiguration(final KafkaCacheBusMessageChannelConfiguration sharedConfiguration) {
+            this.sharedConfiguration = sharedConfiguration;
+            final String hostName = sharedConfiguration.hostNameResolver().resolve();
             this.hostNameBytes = hostName.getBytes(StandardCharsets.UTF_8);
             this.headers = createMessageHeaders();
         }
 
-        private void close(final boolean closeProducer) {
-            if (closeProducer) {
-                this.kafkaProducer.close();
-            }
+        @Override
+        public abstract void close();
 
-            this.kafkaConsumer.close();
+        private List<Header> createMessageHeaders() {
+            final List<Header> headers = new ArrayList<>(2);
+            headers.add(new RecordHeader(MESSAGE_TYPE_HEADER, MESSAGE_TYPE_BYTES));
+            headers.add(new RecordHeader(HOST_HEADER, this.hostNameBytes));
+
+            return headers;
+        }
+    }
+
+    private static class KafkaProducerSessionConfiguration extends KafkaSessionConfiguration {
+
+        private final Producer<Integer, byte[]> kafkaProducer;
+
+        private KafkaProducerSessionConfiguration(final KafkaCacheBusMessageChannelConfiguration sharedConfiguration) {
+            super(sharedConfiguration);
+
+            final Serializer<byte[]> valueSerializer = new ByteArraySerializer();
+            final Serializer<Integer> keySerializer = new IntegerSerializer();
+            this.kafkaProducer = new KafkaProducer<>(
+                    enrichProducerProperties(sharedConfiguration.producerProperties()),
+                    keySerializer,
+                    valueSerializer
+            );
         }
 
         private Map<String, Object> enrichProducerProperties(final Map<String, Object> producerProperties) {
@@ -220,6 +292,31 @@ public final class KafkaCacheBusMessageChannel implements CacheBusMessageChannel
             return props;
         }
 
+        @Override
+        public void close() {
+            this.kafkaProducer.close();
+        }
+    }
+
+    private static class KafkaConsumerSessionConfiguration extends KafkaSessionConfiguration {
+
+        private final Consumer<Integer, byte[]> kafkaConsumer;
+
+        private KafkaConsumerSessionConfiguration(KafkaCacheBusMessageChannelConfiguration sharedConfiguration, boolean firstSubscription) {
+            super(sharedConfiguration);
+
+            final String hostName = sharedConfiguration.hostNameResolver().resolve();
+            final Deserializer<byte[]> valueDeserializer = new ByteArrayDeserializer();
+            final Deserializer<Integer> keyDeserializer = new IntegerDeserializer();
+            this.kafkaConsumer = new KafkaConsumer<>(
+                    enrichConsumerProperties(sharedConfiguration.consumerProperties(), firstSubscription, hostName),
+                    keyDeserializer,
+                    valueDeserializer
+            );
+
+            this.kafkaConsumer.subscribe(Collections.singleton(sharedConfiguration.channel()));
+        }
+
         private Map<String, Object> enrichConsumerProperties(
                 final Map<String, Object> consumerProperties,
                 final boolean firstSubscription,
@@ -227,7 +324,7 @@ public final class KafkaCacheBusMessageChannel implements CacheBusMessageChannel
 
             final Map<String, Object> props = new HashMap<>(consumerProperties);
             props.putIfAbsent(ConsumerConfig.CLIENT_ID_CONFIG, CacheBus.class.getSimpleName());
-            props.put(ConsumerConfig.GROUP_ID_CONFIG, CacheBus.class.getSimpleName() + "_" + hostName + "_" + UUID.randomUUID().toString());
+            props.put(ConsumerConfig.GROUP_ID_CONFIG, CacheBus.class.getSimpleName() + "_" + hostName + "_" + UUID.randomUUID());
             props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, firstSubscription ? "latest" : "earliest");
             props.putIfAbsent(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, 1_000);
             props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
@@ -237,12 +334,8 @@ public final class KafkaCacheBusMessageChannel implements CacheBusMessageChannel
             return props;
         }
 
-        private List<Header> createMessageHeaders() {
-            final List<Header> headers = new ArrayList<>(2);
-            headers.add(new RecordHeader(MESSAGE_TYPE_HEADER, MESSAGE_TYPE_BYTES));
-            headers.add(new RecordHeader(HOST_HEADER, this.hostNameBytes));
-
-            return headers;
+        @Override
+        public void close() {
         }
     }
 }

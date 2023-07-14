@@ -3,10 +3,11 @@ package net.cache.bus.jms.channel;
 import net.cache.bus.core.CacheEntryEvent;
 import net.cache.bus.core.CacheEntryEventType;
 import net.cache.bus.core.CacheEventMessageConsumer;
-import net.cache.bus.core.LifecycleException;
 import net.cache.bus.core.impl.ImmutableCacheEntryEvent;
 import net.cache.bus.core.impl.internal.ImmutableCacheEntryOutputMessage;
+import net.cache.bus.core.impl.resolvers.StaticHostNameResolver;
 import net.cache.bus.core.transport.CacheEntryOutputMessage;
+import net.cache.bus.core.transport.MessageChannelException;
 import net.cache.bus.jms.configuration.JmsCacheBusMessageChannelConfiguration;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -21,8 +22,10 @@ import java.time.Duration;
 import java.util.Queue;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Executors;
 
+import static net.cache.bus.transport.ChannelConstants.MESSAGE_TYPE;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
@@ -30,6 +33,7 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 public class JmsCacheBusMessageChannelTest {
 
+    private static final int CONNECTIONS_COUNT = 5;
     private static final String CHANNEL_NAME = "test";
     private static final String HOST_NAME = "test-host";
 
@@ -55,9 +59,9 @@ public class JmsCacheBusMessageChannelTest {
     public void testChannelMethodsWhenChannelIsNotActivated() {
         final JmsCacheBusMessageChannel channel = new JmsCacheBusMessageChannel();
 
-        assertThrows(LifecycleException.class, () -> channel.send(mock(CacheEntryOutputMessage.class)));
-        assertThrows(LifecycleException.class, channel::unsubscribe, "Unsubscribing available only after subscribing");
-        assertThrows(LifecycleException.class, () -> channel.subscribe(new TestMessageConsumer()), "Subscribing available only after activation of channel");
+        assertThrows(MessageChannelException.class, () -> channel.send(mock(CacheEntryOutputMessage.class)));
+        assertThrows(MessageChannelException.class, channel::close, "Closure available only after activation");
+        assertThrows(MessageChannelException.class, () -> channel.subscribe(new TestMessageConsumer()), "Subscribing available only after activation of channel");
     }
 
     @Test
@@ -74,17 +78,31 @@ public class JmsCacheBusMessageChannelTest {
         channel.send(outputMessage);
 
         // checks
-        assertTrue(this.producer.getDisableMessageID(), "MessageID generation must be disabled for producer");
-        assertTrue(this.producer.getDisableMessageTimestamp(), "Timestamp generation must be disabled for producer");
-        assertEquals(JmsCacheBusMessageChannel.MESSAGE_TYPE, this.producer.getJMSType(), "JMSType must be equal");
-        assertEquals(DeliveryMode.NON_PERSISTENT, this.producer.getDeliveryMode(), "Delivery mode must be NON_PERSISTENT");
-        assertEquals(outputMessage.messageHashKey(), this.producer.getIntProperty(JmsCacheBusMessageChannel.HASH_KEY_PROPERTY), "Hash property must be equal");
-        assertEquals(HOST_NAME, this.producer.getStringProperty(JmsCacheBusMessageChannel.HOST_PROPERTY), "Host property must be equal");
+        makeSuccessSendChecks(outputMessage);
+    }
 
-        assertFalse(this.producer.binaryMessages.isEmpty(), "Sent messages must be not empty");
-        final List<byte[]> binaryMessages = this.producer.binaryMessages.get(this.destination);
-        assertFalse(binaryMessages.isEmpty(), "Sent binary messages must be not empty");
-        assertEquals(binaryEvent, binaryMessages.get(0), "Sent message body must be not null");
+    @Test
+    public void testRecoveryOfSendingConnectionAfterFailure() {
+        // preparation
+        final JmsCacheBusMessageChannel channel = new JmsCacheBusMessageChannel();
+        activateChannel(channel);
+
+        final CacheEntryEvent<String, String> event = new ImmutableCacheEntryEvent<>("1", null, "v1", CacheEntryEventType.ADDED, "test1");
+        final byte[] binaryEvent = event.key().getBytes();
+        final CacheEntryOutputMessage outputMessage = new ImmutableCacheEntryOutputMessage(event, binaryEvent);
+
+        // action
+        // Флаг сбросится в методе send
+        this.producer.errorOnSend = true;
+        channel.send(outputMessage);
+
+        // checks
+        makeSuccessSendChecks(outputMessage);
+        // CONNECTIONS_COUNT - количество изначально созданных соединений,
+        // и +1 - пересозданное при ошибке при получении данных из канала
+        verify(this.connectionFactory, times(CONNECTIONS_COUNT + 1)).createContext();
+        verify(this.jmsContext, times(2)).createProducer();
+        verify(this.jmsContext, times(1)).close();
     }
 
     @Test
@@ -102,7 +120,9 @@ public class JmsCacheBusMessageChannelTest {
             Thread.sleep(Duration.ofMillis(100));
 
             // checks
-            verify(this.connectionFactory, times(2)).createContext();
+            // CONNECTIONS_COUNT - количество изначально созданных соединений,
+            // и +1 - пересозданное при ошибке при получении данных из канала
+            verify(this.connectionFactory, times(CONNECTIONS_COUNT + 1)).createContext();
             verify(this.jmsContext, times(2)).createConsumer(eq(this.destination), anyString());
             verify(this.jmsContext, times(1)).close();
         }
@@ -133,22 +153,22 @@ public class JmsCacheBusMessageChannelTest {
             final byte[] receivedBody = consumer.bodyMap.get(hash);
             assertEquals(body, receivedBody, "Message body must be equal");
 
-            channel.unsubscribe();
+            channel.close();
         }
     }
 
     @Test
-    public void testUnsubscribingFromChannelAfterActivationAndSubscribing() {
+    public void testClosureFromChannelAfterActivationAndSubscribing() {
         // preparation
         final JmsCacheBusMessageChannel channel = new JmsCacheBusMessageChannel();
         activateChannel(channel);
         channel.subscribe(new TestMessageConsumer());
 
         // action
-        channel.unsubscribe();
+        channel.close();
 
         // checks
-        verify(this.jmsContext, times(1)).close();
+        verify(this.jmsContext, times(CONNECTIONS_COUNT)).close();
     }
 
     private BytesMessage createMockMessage(final byte[] body, final int hash) throws JMSException {
@@ -159,13 +179,30 @@ public class JmsCacheBusMessageChannelTest {
         return message;
     }
 
+    private void makeSuccessSendChecks(final CacheEntryOutputMessage outputMessage) {
+
+        assertTrue(this.producer.getDisableMessageID(), "MessageID generation must be disabled for producer");
+        assertTrue(this.producer.getDisableMessageTimestamp(), "Timestamp generation must be disabled for producer");
+        assertEquals(MESSAGE_TYPE, this.producer.getJMSType(), "JMSType must be equal");
+        assertEquals(DeliveryMode.PERSISTENT, this.producer.getDeliveryMode(), "Delivery mode must be NON_PERSISTENT");
+        assertEquals(outputMessage.messageHashKey(), this.producer.getIntProperty(JmsCacheBusMessageChannel.HASH_KEY_PROPERTY), "Hash property must be equal");
+        assertEquals(HOST_NAME, this.producer.getStringProperty(JmsCacheBusMessageChannel.HOST_PROPERTY), "Host property must be equal");
+
+        assertFalse(this.producer.binaryMessages.isEmpty(), "Sent messages must be not empty");
+        final List<byte[]> binaryMessages = this.producer.binaryMessages.get(this.destination);
+        assertFalse(binaryMessages.isEmpty(), "Sent binary messages must be not empty");
+        assertEquals(outputMessage.cacheEntryMessageBody(), binaryMessages.get(0), "Sent message body must be not null");
+    }
+
     private void activateChannel(final JmsCacheBusMessageChannel channel) {
         final JmsCacheBusMessageChannelConfiguration configuration =
                 JmsCacheBusMessageChannelConfiguration.builder()
                                                         .setChannel(CHANNEL_NAME)
+                                                        .setAvailableConnectionsCount(CONNECTIONS_COUNT)
+                                                        .setReconnectTimeoutMs(1_000)
                                                         .setConnectionFactory(this.connectionFactory)
                                                         .setSubscribingPool(Executors.newSingleThreadExecutor())
-                                                        .setHostNameResolver(() -> HOST_NAME)
+                                                        .setHostNameResolver(new StaticHostNameResolver(HOST_NAME))
                                                       .build();
         channel.activate(configuration);
     }
@@ -182,7 +219,7 @@ public class JmsCacheBusMessageChannelTest {
 
     private static class TestJMSConsumer implements JMSConsumer {
 
-        private final Queue<Message> messages = new LinkedList<>();
+        private final Queue<Message> messages = new ConcurrentLinkedQueue<>();
         private volatile boolean errorOnReceive;
 
         @Override
@@ -252,6 +289,7 @@ public class JmsCacheBusMessageChannelTest {
 
     private static class TestJMSProducer implements JMSProducer {
 
+        private boolean errorOnSend;
         private boolean disableMessageId;
         private boolean disableMessageTimestamp;
         private int deliveryMode;
@@ -278,6 +316,10 @@ public class JmsCacheBusMessageChannelTest {
 
         @Override
         public JMSProducer send(Destination destination, byte[] body) {
+            if (this.errorOnSend) {
+                this.errorOnSend = false;
+                throw new JMSRuntimeException("Unexpected error");
+            }
             this.binaryMessages.computeIfAbsent(destination, k -> new ArrayList<>()).add(body);
             return this;
         }

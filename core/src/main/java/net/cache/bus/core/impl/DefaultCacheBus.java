@@ -143,7 +143,7 @@ public final class DefaultCacheBus implements ExtendedCacheBus {
         final CacheBusTransportConfiguration transportConfiguration = this.configuration.transportConfiguration();
         final CacheBusMessageChannel<CacheBusMessageChannelConfiguration> messageChannel = transportConfiguration.messageChannel();
 
-        messageChannel.unsubscribe();
+        messageChannel.close();
         this.messageConsumer.close();
 
         this.started = false;
