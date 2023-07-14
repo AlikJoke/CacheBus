@@ -1,4 +1,4 @@
-package net.cache.bus.core.impl.internal.util;
+package net.cache.bus.transport.addons;
 
 import org.junit.jupiter.api.Test;
 

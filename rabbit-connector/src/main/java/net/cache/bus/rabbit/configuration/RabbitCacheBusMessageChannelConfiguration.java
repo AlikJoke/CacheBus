@@ -1,5 +1,6 @@
-package net.cache.bus.jms.configuration;
+package net.cache.bus.rabbit.configuration;
 
+import com.rabbitmq.client.ConnectionFactory;
 import net.cache.bus.core.configuration.CacheBusMessageChannelConfiguration;
 import net.cache.bus.core.configuration.ConfigurationException;
 import net.cache.bus.core.impl.resolvers.StdHostNameResolver;
@@ -8,7 +9,6 @@ import net.cache.bus.transport.ChannelConstants;
 
 import javax.annotation.Nonnegative;
 import javax.annotation.Nonnull;
-import javax.jms.ConnectionFactory;
 import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 
@@ -18,47 +18,47 @@ import static net.cache.bus.transport.ChannelConstants.RECONNECT_RETRY_TIMEOUT_U
 /**
  * Конфигурация для JMS-совместимого канала сообщений.
  *
- * @param connectionFactory         фабрика соединений с брокером, не может быть {@code null}.
- * @param availableConnectionsCount максимальное количество соединений с брокером JMS,
- *                                  которое может использоваться каналом; значение не должно
- *                                  быть низким, т.к. низкое значение повлечет высокую
- *                                  конкуренцию за соединение при отправке данных; не может быть
- *                                  меньше {@code 2}; значение по-умолчанию составляет 9
- *                                  (8 соединений для отправки сообщений, т.е. 8 потоков могут
- *                                  одновременно отправлять данные без конкуренции за соединение
- *                                  + 1 соединение на получение сообщений с других серверов).
- * @param reconnectTimeoutMs        тайм-аут переподключения в миллисекундах при разрыве соединений,
- *                                  используемых для отправки сообщений в канал; по тайм-ауту
- *                                  произойдет прекращение попытки восстановить соединение и будет
- *                                  сгенерировано исключение; по-умолчанию используется значение
- *                                  {@link ChannelConstants#RECONNECT_RETRY_TIMEOUT} в минутах;
- *                                  не может быть отрицательным.
- * @param channel                   имя канала (в терминах JMS - топика), не может быть {@code null}.
- * @param subscribingPool           пул потоков, на котором производится получение сообщений из канала, не может быть {@code null}.
- * @param hostNameResolver          определитель хоста текущего сервера, не может быть {@code null}.
+ * @param connectionFactory      фабрика соединений с брокером, не может быть {@code null}.
+ * @param availableChannelsCount максимальное количество каналов с RabbitMQ,
+ *                               которое может использоваться поверх соединения с брокером;
+ *                               значение не должно быть низким, т.к. низкое значение повлечет высокую
+ *                               конкуренцию за соединение при отправке данных; не может быть
+ *                               меньше {@code 2}; значение по-умолчанию составляет 9
+ *                               (8 соединений для отправки сообщений, т.е. 8 потоков могут
+ *                               одновременно отправлять данные без конкуренции за соединение
+ *                               + 1 соединение на получение сообщений с других серверов).
+ * @param reconnectTimeoutMs     тайм-аут переподключения в миллисекундах при разрыве соединений,
+ *                               используемых для отправки сообщений в канал; по тайм-ауту
+ *                               произойдет прекращение попытки восстановить соединение и будет
+ *                               сгенерировано исключение; по-умолчанию используется значение
+ *                               {@link ChannelConstants#RECONNECT_RETRY_TIMEOUT} в минутах;
+ *                               не может быть отрицательным.
+ * @param channel                имя канала, не может быть {@code null}.
+ * @param subscribingPool        пул потоков, на котором производится получение сообщений из канала, не может быть {@code null}.
+ * @param hostNameResolver       определитель хоста текущего сервера, не может быть {@code null}.
  * @author Alik
  * @see Builder
- * @see net.cache.bus.jms.channel.JmsCacheBusMessageChannel
+ * @see net.cache.bus.rabbit.channel.RabbitCacheBusMessageChannel
  */
-public record JmsCacheBusMessageChannelConfiguration(
+public record RabbitCacheBusMessageChannelConfiguration(
         @Nonnull ConnectionFactory connectionFactory,
-        @Nonnegative int availableConnectionsCount,
+        @Nonnegative int availableChannelsCount,
         @Nonnegative long reconnectTimeoutMs,
         @Nonnull String channel,
         @Nonnull ExecutorService subscribingPool,
         @Nonnull HostNameResolver hostNameResolver) implements CacheBusMessageChannelConfiguration {
 
     /**
-     * Минимально необходимое количество соединений с каналом (1 для отправки + 1 для чтения из канала).
+     * Минимально необходимое количество каналов RabbitMQ (1 для отправки + 1 для чтения из RabbitMQ).
      */
-    private static final int MIN_CONNECTIONS_COUNT = 2;
+    private static final int MIN_CHANNELS_COUNT = 2;
 
     /**
-     * Количество соединений с каналом по-умолчанию (8 для отправки в канал + 1 для чтения из канала).
+     * Количество каналов в рамках соединения с RabbitMQ по-умолчанию (8 для отправки в RabbitMQ + 1 для чтения из RabbitMQ).
      */
-    private static final int DEFAULT_CONNECTIONS_COUNT = 9;
+    private static final int DEFAULT_CHANNELS_COUNT = 9;
 
-    public JmsCacheBusMessageChannelConfiguration {
+    public RabbitCacheBusMessageChannelConfiguration {
         Objects.requireNonNull(connectionFactory, "connectionFactory");
         Objects.requireNonNull(subscribingPool, "subscribingPool");
         Objects.requireNonNull(hostNameResolver, "hostNameResolver");
@@ -67,8 +67,8 @@ public record JmsCacheBusMessageChannelConfiguration(
             throw new ConfigurationException("Channel must be not empty");
         }
 
-        if (availableConnectionsCount < MIN_CONNECTIONS_COUNT) {
-            throw new ConfigurationException("Available connections count must be >= " + MIN_CONNECTIONS_COUNT);
+        if (availableChannelsCount < MIN_CHANNELS_COUNT) {
+            throw new ConfigurationException("Available channels count must be >= " + MIN_CHANNELS_COUNT);
         }
 
         if (reconnectTimeoutMs < 0) {
@@ -76,12 +76,12 @@ public record JmsCacheBusMessageChannelConfiguration(
         }
     }
 
-    public JmsCacheBusMessageChannelConfiguration(
+    public RabbitCacheBusMessageChannelConfiguration(
             @Nonnull ConnectionFactory connectionFactory,
             @Nonnull String channel,
             @Nonnull ExecutorService subscribingPool,
             @Nonnull HostNameResolver hostNameResolver) {
-        this(connectionFactory, DEFAULT_CONNECTIONS_COUNT, RECONNECT_RETRY_TIMEOUT_UNITS.toMillis(RECONNECT_RETRY_TIMEOUT), channel, subscribingPool, hostNameResolver);
+        this(connectionFactory, DEFAULT_CHANNELS_COUNT, RECONNECT_RETRY_TIMEOUT_UNITS.toMillis(RECONNECT_RETRY_TIMEOUT), channel, subscribingPool, hostNameResolver);
     }
 
     /**
@@ -97,7 +97,7 @@ public record JmsCacheBusMessageChannelConfiguration(
     public static class Builder {
 
         private ConnectionFactory connectionFactory;
-        private int availableConnectionsCount = DEFAULT_CONNECTIONS_COUNT;
+        private int availableChannelsCount = DEFAULT_CHANNELS_COUNT;
         private long reconnectTimeoutMs = RECONNECT_RETRY_TIMEOUT_UNITS.toMillis(RECONNECT_RETRY_TIMEOUT);
         private String channel;
         private ExecutorService subscribingPool;
@@ -118,23 +118,23 @@ public record JmsCacheBusMessageChannelConfiguration(
         /**
          * Устанавливает максимально допустимое для использования количество
          * соединений с каналом для шины кэшей.<br>
-         * См. описание параметра в Java-doc к {@link JmsCacheBusMessageChannelConfiguration}.<br>
+         * См. описание параметра в Java-doc к {@link RabbitCacheBusMessageChannelConfiguration}.<br>
          * Если не установить значение явно, то будет использоваться значение по-умолчанию
-         * {@link JmsCacheBusMessageChannelConfiguration#DEFAULT_CONNECTIONS_COUNT}.
+         * {@link RabbitCacheBusMessageChannelConfiguration#DEFAULT_CHANNELS_COUNT}.
          *
-         * @param availableConnectionsCount максимально допустимое для использования количество
+         * @param availableChannelsCount максимально допустимое для использования количество
          *                                  соединений с каналом, не может быть {@code < 2}.
          * @return не может быть {@code null}.
          */
         @Nonnull
-        public Builder setAvailableConnectionsCount(@Nonnegative int availableConnectionsCount) {
-            this.availableConnectionsCount = availableConnectionsCount;
+        public Builder setAvailableChannelsCount(@Nonnegative int availableChannelsCount) {
+            this.availableChannelsCount = availableChannelsCount;
             return this;
         }
 
         /**
          * Устанавливает тайм-аут в миллисекундах для переподключения при разрыве соединения.<br>
-         * См. описание параметра в Java-doc к {@link JmsCacheBusMessageChannelConfiguration}.<br>
+         * См. описание параметра в Java-doc к {@link CacheBusMessageChannelConfiguration#reconnectTimeoutMs()}.<br>
          * Если не установить значение явно, то будет использоваться значение по-умолчанию
          * {@link ChannelConstants#RECONNECT_RETRY_TIMEOUT} в единицах
          * {@link ChannelConstants#RECONNECT_RETRY_TIMEOUT_UNITS}.
@@ -150,9 +150,9 @@ public record JmsCacheBusMessageChannelConfiguration(
         }
 
         /**
-         * Устанавливает имя JMS-топика, из которого извлекаются и в который отправляются сообщения.
+         * Устанавливает имя канала, из которого извлекаются и в который отправляются сообщения.
          *
-         * @param channel имя JMS-топика, не может быть {@code null}.
+         * @param channel имя канала Rabbit, не может быть {@code null}.
          * @return не может быть {@code null}.
          */
         @Nonnull
@@ -186,16 +186,16 @@ public record JmsCacheBusMessageChannelConfiguration(
         }
 
         /**
-         * Формирует на основе данных, переданных при построении объект конфигурации канала {@link JmsCacheBusMessageChannelConfiguration}.
+         * Формирует на основе данных, переданных при построении объект конфигурации канала {@link RabbitCacheBusMessageChannelConfiguration}.
          *
          * @return не может быть {@code null}.
-         * @see JmsCacheBusMessageChannelConfiguration
+         * @see RabbitCacheBusMessageChannelConfiguration
          */
         @Nonnull
-        public JmsCacheBusMessageChannelConfiguration build() {
-            return new JmsCacheBusMessageChannelConfiguration(
+        public RabbitCacheBusMessageChannelConfiguration build() {
+            return new RabbitCacheBusMessageChannelConfiguration(
                     this.connectionFactory,
-                    this.availableConnectionsCount,
+                    this.availableChannelsCount,
                     this.reconnectTimeoutMs,
                     this.channel,
                     this.subscribingPool,

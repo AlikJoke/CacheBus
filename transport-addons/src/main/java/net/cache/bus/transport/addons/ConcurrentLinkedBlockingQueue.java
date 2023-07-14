@@ -1,8 +1,9 @@
-package net.cache.bus.core.impl.internal.util;
+package net.cache.bus.transport.addons;
 
 import javax.annotation.Nonnegative;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import javax.annotation.concurrent.ThreadSafe;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Semaphore;
@@ -18,6 +19,7 @@ import java.util.function.Consumer;
  * @author Alik
  * @see ConcurrentLinkedQueue
  */
+@ThreadSafe
 public final class ConcurrentLinkedBlockingQueue<E> {
 
     private final Semaphore emptySemaphore = new Semaphore(1);

@@ -1,4 +1,4 @@
-package net.cache.bus.core.impl.internal.util;
+package net.cache.bus.core.impl;
 
 import net.cache.bus.core.impl.resolvers.StdHostNameResolver;
 import net.cache.bus.core.transport.HostNameResolver;

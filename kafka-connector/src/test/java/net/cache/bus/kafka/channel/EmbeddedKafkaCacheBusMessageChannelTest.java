@@ -6,7 +6,6 @@ import io.github.embeddedkafka.EmbeddedKafkaConfig;
 import net.cache.bus.core.CacheEntryEvent;
 import net.cache.bus.core.CacheEntryEventType;
 import net.cache.bus.core.CacheEventMessageConsumer;
-import net.cache.bus.core.LifecycleException;
 import net.cache.bus.core.impl.ImmutableCacheEntryEvent;
 import net.cache.bus.core.impl.internal.ImmutableCacheEntryOutputMessage;
 import net.cache.bus.core.impl.resolvers.StaticHostNameResolver;
@@ -21,9 +20,9 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import javax.annotation.Nonnull;
-import java.util.Collections;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.TimeUnit;
 
@@ -73,6 +72,10 @@ public class EmbeddedKafkaCacheBusMessageChannelTest {
         final byte[] binaryEvent2 = event2.key().getBytes();
         final CacheEntryOutputMessage outputMessage2 = new ImmutableCacheEntryOutputMessage(event2, binaryEvent2);
 
+        final CacheEntryEvent<String, String> event3 = new ImmutableCacheEntryEvent<>("2", "v1", "v2", CacheEntryEventType.UPDATED, "test1");
+        final byte[] binaryEvent3 = event3.key().getBytes();
+        final CacheEntryOutputMessage outputMessage3 = new ImmutableCacheEntryOutputMessage(event3, binaryEvent3);
+
         final TestMessageConsumer consumerHost2 = new TestMessageConsumer();
 
         // action
@@ -81,11 +84,16 @@ public class EmbeddedKafkaCacheBusMessageChannelTest {
 
         sendChannel.send(outputMessage1);
         sendChannel.send(outputMessage2);
+        sendChannel.send(outputMessage3);
+
         TimeUnit.SECONDS.sleep(1);
 
-        assertEquals(2, consumerHost2.bodyMap.size(), "Count of received messages on host h2 must be 2");
-        assertArrayEquals(binaryEvent1, consumerHost2.bodyMap.get(outputMessage1.messageHashKey()), "Event body must be equal");
-        assertArrayEquals(binaryEvent2, consumerHost2.bodyMap.get(outputMessage2.messageHashKey()), "Event body must be equal");
+        assertEquals(2, consumerHost2.bodyMap.size(), "Count of unique keys received on host h2 must be 2");
+        assertEquals(1, consumerHost2.bodyMap.get(outputMessage1.messageHashKey()).size(), "Count of messages with same key must be 1");
+        assertEquals(2, consumerHost2.bodyMap.get(outputMessage2.messageHashKey()).size(), "Count of messages with same key must be 2");
+        assertArrayEquals(binaryEvent1, consumerHost2.bodyMap.get(outputMessage1.messageHashKey()).poll(), "Event body must be equal");
+        assertArrayEquals(binaryEvent2, consumerHost2.bodyMap.get(outputMessage2.messageHashKey()).poll(), "Event body must be equal");
+        assertArrayEquals(binaryEvent3, consumerHost2.bodyMap.get(outputMessage3.messageHashKey()).poll(), "Event body must be equal");
 
         sendChannel.close();
         receiveChannel.close();
@@ -106,11 +114,11 @@ public class EmbeddedKafkaCacheBusMessageChannelTest {
 
     private static class TestMessageConsumer implements CacheEventMessageConsumer {
 
-        private final Map<Integer, byte[]> bodyMap = new ConcurrentHashMap<>();
+        private final Map<Integer, Queue<byte[]>> bodyMap = new ConcurrentHashMap<>();
 
         @Override
         public void accept(int messageHash, @Nonnull byte[] messageBody) {
-            this.bodyMap.put(messageHash, messageBody);
+            this.bodyMap.computeIfAbsent(messageHash, k -> new ConcurrentLinkedQueue<>()).add(messageBody);
         }
     }
 }

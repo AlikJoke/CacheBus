@@ -34,6 +34,8 @@ import java.util.concurrent.Future;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import static net.cache.bus.transport.ChannelConstants.MESSAGE_TYPE;
+
 /**
  * Реализация канала сообщений на основе Apache Kafka.
  *
@@ -46,7 +48,7 @@ public final class KafkaCacheBusMessageChannel implements CacheBusMessageChannel
 
     private static final Logger logger = Logger.getLogger(KafkaCacheBusMessageChannel.class.getCanonicalName());
 
-    private static final byte[] MESSAGE_TYPE_BYTES = "CacheEvent".getBytes(StandardCharsets.UTF_8);
+    private static final byte[] MESSAGE_TYPE_BYTES = MESSAGE_TYPE.getBytes(StandardCharsets.UTF_8);
 
     private static final String MESSAGE_TYPE_HEADER = "type";
     private static final String HOST_HEADER = "host";
@@ -63,8 +65,13 @@ public final class KafkaCacheBusMessageChannel implements CacheBusMessageChannel
             throw new MessageChannelException("Channel already activated");
         }
 
-        this.producerSessionConfiguration = new KafkaProducerSessionConfiguration(configuration);
-        this.consumerSessionConfiguration = new KafkaConsumerSessionConfiguration(configuration, true);
+        try {
+            this.producerSessionConfiguration = new KafkaProducerSessionConfiguration(configuration);
+            this.consumerSessionConfiguration = new KafkaConsumerSessionConfiguration(configuration, true);
+        } catch (KafkaException ex) {
+            logger.log(Level.ALL, "Unable to activate channel", ex);
+            throw new MessageChannelException(ex);
+        }
     }
 
     @Override
@@ -115,7 +122,7 @@ public final class KafkaCacheBusMessageChannel implements CacheBusMessageChannel
     @Override
     public synchronized void close() {
 
-        logger.info(() -> "Unsubscribe was called");
+        logger.info(() -> "Channel closure was called");
 
         if (this.consumerSessionConfiguration == null || this.producerSessionConfiguration == null) {
             throw new MessageChannelException("Already in unsubscribed state");
@@ -288,6 +295,7 @@ public final class KafkaCacheBusMessageChannel implements CacheBusMessageChannel
             props.putIfAbsent(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, true);
             props.putIfAbsent(ProducerConfig.REQUEST_TIMEOUT_MS_CONFIG, 30_000);
             props.putIfAbsent(ProducerConfig.LINGER_MS_CONFIG, 5);
+            props.put(ProducerConfig.PARTITIONER_CLASS_CONFIG, MessageIntHashKeyPartitioner.class.getCanonicalName());
 
             return props;
         }

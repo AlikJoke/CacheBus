@@ -1,4 +1,4 @@
-package net.cache.bus.core.impl;
+package net.cache.bus.core.impl.internal.util;
 
 import net.cache.bus.core.impl.internal.util.StripedRingBuffersContainer;
 import org.junit.jupiter.api.Test;

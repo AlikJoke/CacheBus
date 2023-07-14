@@ -1,7 +1,7 @@
 package net.cache.bus.jms.channel;
 
 import net.cache.bus.core.CacheEventMessageConsumer;
-import net.cache.bus.core.impl.internal.util.ConcurrentLinkedBlockingQueue;
+import net.cache.bus.transport.addons.ConcurrentLinkedBlockingQueue;
 import net.cache.bus.core.transport.CacheBusMessageChannel;
 import net.cache.bus.core.transport.CacheEntryOutputMessage;
 import net.cache.bus.core.transport.MessageChannelException;
@@ -12,6 +12,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.concurrent.ThreadSafe;
 import javax.jms.*;
 import java.util.concurrent.Future;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import static net.cache.bus.transport.ChannelConstants.*;
@@ -44,13 +45,20 @@ public final class JmsCacheBusMessageChannel implements CacheBusMessageChannel<J
             throw new MessageChannelException("Channel already activated");
         }
 
-        final ConcurrentLinkedBlockingQueue<JmsProducerSessionConfiguration> senderConfigs = new ConcurrentLinkedBlockingQueue<>();
-        for (int i = 0; i < jmsConfiguration.availableConnectionsCount() - 1; i++) {
-            senderConfigs.offer(new JmsProducerSessionConfiguration(jmsConfiguration));
-        }
+        try {
 
-        this.senderConfigurations = senderConfigs;
-        this.receiverConfiguration = new JmsConsumerSessionConfiguration(jmsConfiguration);
+            final ConcurrentLinkedBlockingQueue<JmsProducerSessionConfiguration> senderConfigs = new ConcurrentLinkedBlockingQueue<>();
+            for (int i = 0; i < jmsConfiguration.availableConnectionsCount() - 1; i++) {
+                senderConfigs.offer(new JmsProducerSessionConfiguration(jmsConfiguration));
+            }
+
+            this.senderConfigurations = senderConfigs;
+            this.receiverConfiguration = new JmsConsumerSessionConfiguration(jmsConfiguration);
+
+        } catch (JMSRuntimeException ex) {
+            logger.log(Level.ALL, "Unable to activate channel", ex);
+            throw new MessageChannelException(ex);
+        }
     }
 
     @Override
@@ -184,7 +192,7 @@ public final class JmsCacheBusMessageChannel implements CacheBusMessageChannel<J
         }
     }
 
-    private synchronized void recoverConsumerSession(final Exception ex) {
+    private void recoverConsumerSession(final Exception ex) {
 
         // Поток прервали
         final JmsConsumerSessionConfiguration sessionConfiguration = this.receiverConfiguration;

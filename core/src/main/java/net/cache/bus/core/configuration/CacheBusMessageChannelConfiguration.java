@@ -2,6 +2,7 @@ package net.cache.bus.core.configuration;
 
 import net.cache.bus.core.transport.HostNameResolver;
 
+import javax.annotation.Nonnegative;
 import javax.annotation.Nonnull;
 import java.util.concurrent.ExecutorService;
 
@@ -37,4 +38,16 @@ public interface CacheBusMessageChannelConfiguration {
      */
     @Nonnull
     ExecutorService subscribingPool();
+
+    /**
+     * Возвращает тайм-аут переподключения в миллисекундах при разрыве соединений,
+     * используемых для отправки сообщений в канал; по тайм-ауту
+     * произойдет прекращение попытки восстановить соединение и будет
+     * сгенерировано исключение; по-умолчанию используется значение
+     * {@code 5} в минутах.
+     *
+     * @return не может быть отрицательным.
+     */
+    @Nonnegative
+    long reconnectTimeoutMs();
 }
