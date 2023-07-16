@@ -14,7 +14,6 @@ import javax.annotation.concurrent.ThreadSafe;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
-import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
@@ -35,12 +34,12 @@ public final class RabbitCacheBusMessageChannel implements CacheBusMessageChanne
 
     private static final Logger logger = Logger.getLogger(RabbitCacheBusMessageChannel.class.getCanonicalName());
 
-    private static final String HOST_PROPERTY = "host";
-    private static final String HASH_KEY_PROPERTY = "hash";
+    static final String HOST_PROPERTY = "host";
+    static final String HASH_KEY_PROPERTY = "hash";
 
     private volatile RabbitConsumerSessionConfiguration consumerSessionConfiguration;
     private volatile RabbitProducerSessionConfiguration producerSessionConfiguration;
-    private Future<?> subscribingTask;
+    private volatile CacheEventMessageConsumer messageConsumer;
 
     @Override
     public synchronized void activate(@Nonnull RabbitCacheBusMessageChannelConfiguration rabbitConfiguration) {
@@ -57,7 +56,7 @@ public final class RabbitCacheBusMessageChannel implements CacheBusMessageChanne
     @Override
     public void send(@Nonnull CacheEntryOutputMessage eventOutputMessage) {
 
-        final RabbitProducerSessionConfiguration sessionConfiguration = this.producerSessionConfiguration;
+        RabbitProducerSessionConfiguration sessionConfiguration = this.producerSessionConfiguration;
         if (sessionConfiguration == null) {
             throw new MessageChannelException("Channel not activated");
         }
@@ -94,19 +93,17 @@ public final class RabbitCacheBusMessageChannel implements CacheBusMessageChanne
                     sessionConfiguration.sendingChannels.offer(channel);
                 }
             }
-        } while (retry);
+        } while (retry && (sessionConfiguration = this.producerSessionConfiguration) != null);
     }
 
     @Override
     public synchronized void subscribe(@Nonnull CacheEventMessageConsumer consumer) {
-        if (this.consumerSessionConfiguration != null) {
+        if (this.consumerSessionConfiguration == null) {
             throw new MessageChannelException("Channel not activated");
-        } else if (this.subscribingTask != null) {
-            throw new MessageChannelException("Already subscribed to channel");
         }
 
-        final var sharedConfig = this.consumerSessionConfiguration.sharedConfiguration;
-        this.subscribingTask = sharedConfig.subscribingPool().submit(() -> listenUntilNotClosed(consumer));
+        this.messageConsumer = consumer;
+        subscribeToChannel();
     }
 
     @Override
@@ -124,54 +121,52 @@ public final class RabbitCacheBusMessageChannel implements CacheBusMessageChanne
         final RabbitProducerSessionConfiguration producerSessionConfiguration = this.producerSessionConfiguration;
         this.producerSessionConfiguration = null;
         producerSessionConfiguration.close();
-
-        if (this.subscribingTask != null) {
-            this.subscribingTask.cancel(true);
-            this.subscribingTask = null;
-        }
     }
 
-    private void listenUntilNotClosed(final CacheEventMessageConsumer consumer) {
+    private void subscribeToChannel() {
 
         logger.info(() -> "Subscribe was called");
 
         RabbitConsumerSessionConfiguration sessionConfiguration;
-        while ((sessionConfiguration = this.consumerSessionConfiguration) != null) {
+        if ((sessionConfiguration = this.consumerSessionConfiguration) == null) {
+            return;
+        }
 
-            try {
-                final String hostName = sessionConfiguration.hostName;
-                final var rabbitConsumer = new DefaultConsumer(sessionConfiguration.inputChannel) {
-                    @Override
-                    public void handleDelivery(
-                            final String consumerTag,
-                            final Envelope envelope,
-                            final AMQP.BasicProperties properties,
-                            final byte[] body) {
+        try {
+            final String hostName = sessionConfiguration.hostName;
+            final var messageConsumer = this.messageConsumer;
+            final var rabbitConsumer = new DefaultConsumer(sessionConfiguration.inputChannel) {
+                @Override
+                public void handleDelivery(
+                        final String consumerTag,
+                        final Envelope envelope,
+                        final AMQP.BasicProperties properties,
+                        final byte[] body) {
 
-                        final Map<String, Object> headers = properties.getHeaders();
-                        if (!MESSAGE_TYPE.equals(properties.getType())
-                                || !hostName.equals(headers.get(HOST_PROPERTY))) {
-                            return;
-                        }
-
-                        final Integer messageHash = (Integer) headers.get(HASH_KEY_PROPERTY);
-                        consumer.accept(messageHash, body);
+                    final Map<String, Object> headers = properties.getHeaders();
+                    if (!MESSAGE_TYPE.equals(properties.getType())
+                            || !hostName.equals(headers.get(HOST_PROPERTY))) {
+                        return;
                     }
-                };
 
-                // the error will never happen, so we can use auto ack
-                sessionConfiguration.inputChannel.basicConsume(
-                        sessionConfiguration.sharedConfiguration.channel(),
-                        true,
-                        null,
-                        true,
-                        false,
-                        Collections.emptyMap(),
-                        rabbitConsumer
-                );
-            } catch (IOException ex) {
-                recoverConsumerSession(ex);
-            }
+                    final Integer messageHash = (Integer) headers.get(HASH_KEY_PROPERTY);
+                    messageConsumer.accept(messageHash, body);
+                }
+            };
+
+            // the error will never happen, so we can use auto ack
+            sessionConfiguration.inputChannel.basicConsume(
+                    sessionConfiguration.sharedConfiguration.channel(),
+                    true,
+                    null,
+                    true,
+                    false,
+                    Collections.emptyMap(),
+                    rabbitConsumer
+            );
+        } catch (IOException ex) {
+            logger.log(Level.ALL, "Unable to subscribe", ex);
+            throw new MessageChannelException(ex);
         }
     }
 
@@ -259,7 +254,7 @@ public final class RabbitCacheBusMessageChannel implements CacheBusMessageChanne
         }
     }
 
-    private static abstract class RabbitSessionConfiguration implements AutoCloseable {
+    private abstract static class RabbitSessionConfiguration implements AutoCloseable {
 
         protected final Connection rabbitConnection;
         protected final String hostName;
@@ -281,12 +276,18 @@ public final class RabbitCacheBusMessageChannel implements CacheBusMessageChanne
         }
     }
 
-    private static class RabbitProducerSessionConfiguration extends RabbitSessionConfiguration {
+    private class RabbitProducerSessionConfiguration extends RabbitSessionConfiguration {
 
         private final ConcurrentLinkedBlockingQueue<Channel> sendingChannels;
 
         private RabbitProducerSessionConfiguration(@Nonnull RabbitCacheBusMessageChannelConfiguration sharedConfiguration) throws IOException, TimeoutException {
             super(sharedConfiguration);
+            this.rabbitConnection.addShutdownListener(e -> {
+                if (!e.isInitiatedByApplication()) {
+                    recoverProducerSession(e, this);
+                }
+            });
+
             this.sendingChannels = new ConcurrentLinkedBlockingQueue<>();
             for (int i = 0; i < sharedConfiguration.availableChannelsCount() - 1; i++) {
                 this.sendingChannels.offer(this.rabbitConnection.createChannel());
@@ -294,12 +295,19 @@ public final class RabbitCacheBusMessageChannel implements CacheBusMessageChanne
         }
     }
 
-    private static class RabbitConsumerSessionConfiguration extends RabbitSessionConfiguration {
+    private class RabbitConsumerSessionConfiguration extends RabbitSessionConfiguration {
 
         private final Channel inputChannel;
 
         private RabbitConsumerSessionConfiguration(@Nonnull RabbitCacheBusMessageChannelConfiguration sharedConfiguration) throws IOException, TimeoutException {
             super(sharedConfiguration);
+            this.rabbitConnection.addShutdownListener(e -> {
+                if (!e.isInitiatedByApplication()) {
+                    recoverConsumerSession(e);
+                    subscribeToChannel();
+                }
+            });
+
             this.inputChannel = this.rabbitConnection.createChannel();
             this.inputChannel.queueDeclare(sharedConfiguration.channel(), false, false, false, Collections.emptyMap());
         }

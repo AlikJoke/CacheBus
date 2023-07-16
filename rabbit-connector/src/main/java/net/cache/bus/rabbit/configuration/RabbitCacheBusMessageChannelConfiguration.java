@@ -10,7 +10,6 @@ import net.cache.bus.transport.ChannelConstants;
 import javax.annotation.Nonnegative;
 import javax.annotation.Nonnull;
 import java.util.Objects;
-import java.util.concurrent.ExecutorService;
 
 import static net.cache.bus.transport.ChannelConstants.RECONNECT_RETRY_TIMEOUT;
 import static net.cache.bus.transport.ChannelConstants.RECONNECT_RETRY_TIMEOUT_UNITS;
@@ -34,7 +33,6 @@ import static net.cache.bus.transport.ChannelConstants.RECONNECT_RETRY_TIMEOUT_U
  *                               {@link ChannelConstants#RECONNECT_RETRY_TIMEOUT} в минутах;
  *                               не может быть отрицательным.
  * @param channel                имя канала, не может быть {@code null}.
- * @param subscribingPool        пул потоков, на котором производится получение сообщений из канала, не может быть {@code null}.
  * @param hostNameResolver       определитель хоста текущего сервера, не может быть {@code null}.
  * @author Alik
  * @see Builder
@@ -45,7 +43,6 @@ public record RabbitCacheBusMessageChannelConfiguration(
         @Nonnegative int availableChannelsCount,
         @Nonnegative long reconnectTimeoutMs,
         @Nonnull String channel,
-        @Nonnull ExecutorService subscribingPool,
         @Nonnull HostNameResolver hostNameResolver) implements CacheBusMessageChannelConfiguration {
 
     /**
@@ -60,7 +57,6 @@ public record RabbitCacheBusMessageChannelConfiguration(
 
     public RabbitCacheBusMessageChannelConfiguration {
         Objects.requireNonNull(connectionFactory, "connectionFactory");
-        Objects.requireNonNull(subscribingPool, "subscribingPool");
         Objects.requireNonNull(hostNameResolver, "hostNameResolver");
 
         if (channel == null || channel.isEmpty()) {
@@ -79,9 +75,8 @@ public record RabbitCacheBusMessageChannelConfiguration(
     public RabbitCacheBusMessageChannelConfiguration(
             @Nonnull ConnectionFactory connectionFactory,
             @Nonnull String channel,
-            @Nonnull ExecutorService subscribingPool,
             @Nonnull HostNameResolver hostNameResolver) {
-        this(connectionFactory, DEFAULT_CHANNELS_COUNT, RECONNECT_RETRY_TIMEOUT_UNITS.toMillis(RECONNECT_RETRY_TIMEOUT), channel, subscribingPool, hostNameResolver);
+        this(connectionFactory, DEFAULT_CHANNELS_COUNT, RECONNECT_RETRY_TIMEOUT_UNITS.toMillis(RECONNECT_RETRY_TIMEOUT), channel, hostNameResolver);
     }
 
     /**
@@ -100,7 +95,6 @@ public record RabbitCacheBusMessageChannelConfiguration(
         private int availableChannelsCount = DEFAULT_CHANNELS_COUNT;
         private long reconnectTimeoutMs = RECONNECT_RETRY_TIMEOUT_UNITS.toMillis(RECONNECT_RETRY_TIMEOUT);
         private String channel;
-        private ExecutorService subscribingPool;
         private HostNameResolver hostNameResolver = new StdHostNameResolver();
 
         /**
@@ -162,18 +156,6 @@ public record RabbitCacheBusMessageChannelConfiguration(
         }
 
         /**
-         * Устанавливает пул, на котором должно производиться получение сообщений из канала.
-         *
-         * @param subscribingPool пул потоков, не может быть {@code null}.
-         * @return не может быть {@code null}.
-         */
-        @Nonnull
-        public Builder setSubscribingPool(@Nonnull ExecutorService subscribingPool) {
-            this.subscribingPool = subscribingPool;
-            return this;
-        }
-
-        /**
          * Устанавливает определитель хоста. Если не задавать, то используется реализация по-умолчанию {@link StdHostNameResolver}.
          *
          * @param hostNameResolver определитель хоста, не может быть {@code null}, если метод вызывается, а не используется реализация по-умолчанию.
@@ -198,7 +180,6 @@ public record RabbitCacheBusMessageChannelConfiguration(
                     this.availableChannelsCount,
                     this.reconnectTimeoutMs,
                     this.channel,
-                    this.subscribingPool,
                     this.hostNameResolver
             );
         }

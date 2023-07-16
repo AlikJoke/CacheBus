@@ -4,7 +4,6 @@ import net.cache.bus.core.transport.HostNameResolver;
 
 import javax.annotation.Nonnegative;
 import javax.annotation.Nonnull;
-import java.util.concurrent.ExecutorService;
 
 /**
  * Конфигурация канала сообщений шины кэшей.
@@ -30,14 +29,6 @@ public interface CacheBusMessageChannelConfiguration {
      */
     @Nonnull
     HostNameResolver hostNameResolver();
-
-    /**
-     * Возвращает пул потоков, на котором производится получение сообщений с других серверов.
-     *
-     * @return не может быть {@code null}.
-     */
-    @Nonnull
-    ExecutorService subscribingPool();
 
     /**
      * Возвращает тайм-аут переподключения в миллисекундах при разрыве соединений,

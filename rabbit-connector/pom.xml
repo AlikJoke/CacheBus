@@ -14,11 +14,15 @@
     <name>CacheBus RabbitMQ Transport Connector</name>
     <description>Connector to RabbitMQ implementation of transport</description>
 
+    <properties>
+        <rabbit.version>5.18.0</rabbit.version>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>com.rabbitmq</groupId>
             <artifactId>amqp-client</artifactId>
-            <version>5.18.0</version>
+            <version>${rabbit.version}</version>
             <scope>provided</scope>
         </dependency>
 

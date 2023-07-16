@@ -18,6 +18,8 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.Execution;
+import org.junit.jupiter.api.parallel.ExecutionMode;
 
 import javax.annotation.Nonnull;
 import java.util.*;
@@ -30,6 +32,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
 
 @Disabled(value = "Slow due to embedded kafka, run it separately if need")
+@Execution(ExecutionMode.CONCURRENT)
 public class EmbeddedKafkaCacheBusMessageChannelTest {
 
     private static EmbeddedKafkaConfig config;
