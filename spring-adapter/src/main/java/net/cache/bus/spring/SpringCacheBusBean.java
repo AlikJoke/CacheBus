@@ -1,4 +1,4 @@
-package net.cache.bus.spring.adapters;
+package net.cache.bus.spring;
 
 import net.cache.bus.core.CacheBus;
 import net.cache.bus.core.CacheEntryEvent;
@@ -102,15 +102,12 @@ public class SpringCacheBusBean implements CacheBus, SmartLifecycle {
     /**
      * {@inheritDoc}
      *
-     * @throws LifecycleException если {@code isAutoStart == true}, т.е. если используется автоматическое управление жизненным циклом бина
      * @throws LifecycleException если {@code isRunning == true}, т.е. если шина уже была запущена
      */
     @Override
     public synchronized void start() {
 
-        if (this.isAutoStart) {
-            throw new LifecycleException("Start isn't allowed when auto start enabled");
-        } else if (this.isRunning) {
+        if (this.isRunning) {
             throw new LifecycleException("CacheBus already started");
         } else if (this.configuration == null) {
             throw new LifecycleException("Configuration must be set before start");
@@ -124,17 +121,8 @@ public class SpringCacheBusBean implements CacheBus, SmartLifecycle {
         }
     }
 
-    /**
-     * {@inheritDoc}
-     *
-     * @throws LifecycleException если {@code isAutoStart == true}
-     */
     @Override
     public synchronized void stop() {
-
-        if (this.isAutoStart) {
-            throw new LifecycleException("Stop isn't allowed when auto start enabled");
-        }
 
         if (this.isRunning) {
             this.delegateCacheBus.stop();
@@ -146,4 +134,10 @@ public class SpringCacheBusBean implements CacheBus, SmartLifecycle {
     public boolean isRunning() {
         return this.isRunning;
     }
+
+    @Override
+    public boolean isAutoStartup() {
+        return this.isAutoStart;
+    }
+
 }
