@@ -1,5 +1,7 @@
 package net.cache.bus.core;
 
+import net.cache.bus.core.configuration.CacheBusConfiguration;
+
 import javax.annotation.Nonnull;
 import java.io.Serializable;
 
@@ -32,4 +34,19 @@ public interface CacheBus {
      * @param binaryEventData сериализованное бинарное представление события изменения элемента удаленного кэша, не может быть {@code null}.
      */
     void receive(@Nonnull byte[] binaryEventData);
+
+    /**
+     * Устанавливает конфигурацию шины кэшей.
+     *
+     * @param configuration конфигурация шины кэшей, не может быть {@code null}.
+     */
+    void setConfiguration(@Nonnull CacheBusConfiguration configuration);
+
+    /**
+     * Возвращает используемую конфигурацию шины кэшей.
+     *
+     * @return конфигурацию шины кэшей, не может быть {@code null}.
+     * @see CacheBusConfiguration
+     */
+    CacheBusConfiguration getConfiguration();
 }

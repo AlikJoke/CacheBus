@@ -20,6 +20,7 @@
         <module>jackson-serialization</module>
         <module>kafka-connector</module>
         <module>rabbit-connector</module>
+        <module>spring-adapter</module>
     </modules>
 
     <properties>

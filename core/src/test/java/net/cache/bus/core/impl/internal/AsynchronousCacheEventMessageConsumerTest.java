@@ -2,6 +2,7 @@ package net.cache.bus.core.impl.internal;
 
 import net.cache.bus.core.CacheBus;
 import net.cache.bus.core.CacheEntryEvent;
+import net.cache.bus.core.configuration.CacheBusConfiguration;
 import net.cache.bus.core.impl.internal.util.StripedRingBuffersContainer;
 import org.junit.jupiter.api.Test;
 
@@ -59,6 +60,16 @@ public class AsynchronousCacheEventMessageConsumerTest {
         @Override
         public void receive(@Nonnull byte[] binaryEventData) {
             this.eventsByThread.computeIfAbsent(Thread.currentThread().getName(), t -> new ArrayList<>()).add(binaryEventData);
+        }
+
+        @Override
+        public void setConfiguration(@Nonnull CacheBusConfiguration configuration) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public CacheBusConfiguration getConfiguration() {
+            throw new UnsupportedOperationException();
         }
     }
 }
