@@ -2,13 +2,10 @@ package net.cache.bus.core.impl;
 
 import net.cache.bus.core.*;
 import net.cache.bus.core.configuration.*;
-import net.cache.bus.core.impl.internal.AsynchronousCacheEventMessageConsumer;
-import net.cache.bus.core.impl.internal.ImmutableCacheEntryOutputMessage;
-import net.cache.bus.core.impl.internal.SynchronousCacheEventMessageConsumer;
+import net.cache.bus.core.impl.internal.*;
 import net.cache.bus.core.impl.internal.util.StripedRingBuffersContainer;
 import net.cache.bus.core.transport.CacheBusMessageChannel;
 import net.cache.bus.core.transport.CacheEntryEventConverter;
-import net.cache.bus.core.transport.CacheEntryOutputMessage;
 
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.ThreadSafe;
@@ -41,6 +38,7 @@ public final class DefaultCacheBus implements ExtendedCacheBus {
 
     private volatile boolean started;
     private volatile CacheEventMessageConsumer messageConsumer;
+    private volatile CacheEventMessageProducer cacheEventMessageProducer;
 
     public DefaultCacheBus(@Nonnull CacheBusConfiguration configuration) {
         this.configuration = Objects.requireNonNull(configuration, "configuration");
@@ -78,7 +76,7 @@ public final class DefaultCacheBus implements ExtendedCacheBus {
             return;
         }
 
-        sendToEndpoint(cacheConfiguration, event);
+        this.cacheEventMessageProducer.produce(cacheConfiguration, event);
     }
 
     @Override
@@ -129,9 +127,14 @@ public final class DefaultCacheBus implements ExtendedCacheBus {
 
     @Override
     public synchronized void start() {
+        if (this.started) {
+            throw new LifecycleException("Bus already started");
+        }
+
+        initializeCacheEventSender();
+        initializeInputMessageChannelSubscriber();
         initializeCacheEventListeners();
         this.started = true;
-        initializeInputMessageChannelSubscriber();
     }
 
     @Override
@@ -143,25 +146,11 @@ public final class DefaultCacheBus implements ExtendedCacheBus {
         final CacheBusTransportConfiguration transportConfiguration = this.configuration.transportConfiguration();
         final CacheBusMessageChannel<CacheBusMessageChannelConfiguration> messageChannel = transportConfiguration.messageChannel();
 
+        this.cacheEventMessageProducer.close();
         messageChannel.close();
         this.messageConsumer.close();
 
         this.started = false;
-    }
-
-    private void sendToEndpoint(final CacheConfiguration cacheConfiguration, final CacheEntryEvent<?, ?> event) {
-
-        final CacheBusTransportConfiguration transportConfiguration = this.configuration.transportConfiguration();
-
-        logger.fine(() -> "Event %s will be sent to endpoint".formatted(event));
-
-        final CacheEntryEventConverter converter = transportConfiguration.converter();
-        final byte[] binaryEventData = converter.toBinary(event, cacheConfiguration.cacheType().serializeValueFields());
-
-        final CacheEntryOutputMessage outputMessage = new ImmutableCacheEntryOutputMessage(event, binaryEventData);
-        final CacheBusMessageChannel<CacheBusMessageChannelConfiguration> messageChannel = transportConfiguration.messageChannel();
-
-        messageChannel.send(outputMessage);
     }
 
     private boolean needToSendEvent(final CacheConfiguration cacheConfiguration, final CacheEntryEventType eventType) {
@@ -206,6 +195,20 @@ public final class DefaultCacheBus implements ExtendedCacheBus {
         } catch (RuntimeException ex) {
             logger.log(Level.WARNING, "Unable to deserialize message", ex);
             return null;
+        }
+    }
+
+    private void initializeCacheEventSender() {
+
+        final CacheBusTransportConfiguration transportConfiguration = this.configuration.transportConfiguration();
+        if (transportConfiguration.useAsyncSending()) {
+            final var eventBuffers = new StripedRingBuffersContainer<CacheEntryEvent<?, ?>>(
+                    transportConfiguration.maxAsyncSendingThreads(),
+                    transportConfiguration.maxAsyncSendingThreadBufferCapacity()
+            );
+            this.cacheEventMessageProducer = new AsynchronousCacheEventMessageProducer(transportConfiguration, this.cacheConfigurationsByName, eventBuffers);
+        } else {
+            this.cacheEventMessageProducer = new SynchronousCacheEventMessageProducer(transportConfiguration);
         }
     }
 

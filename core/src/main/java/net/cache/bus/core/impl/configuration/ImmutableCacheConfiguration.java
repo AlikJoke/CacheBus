@@ -90,7 +90,7 @@ public record ImmutableCacheConfiguration(
     }
 
     @NotThreadSafe
-    static class Builder {
+    public static class Builder {
 
         private String cacheName;
         private CacheType cacheType;

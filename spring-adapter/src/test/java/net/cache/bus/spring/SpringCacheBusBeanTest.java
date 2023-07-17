@@ -82,9 +82,9 @@ public class SpringCacheBusBeanTest {
         final CacheProviderConfiguration providerConfiguration = new CacheProviderConfigurationTemplate(mock(CacheManager.class), mock(CacheEventListenerRegistrar.class)) {};
         return ImmutableCacheBusConfiguration
                 .builder()
-                .setCacheConfigurationBuilder(CacheConfigurationSource.createDefault())
-                .setProviderConfiguration(providerConfiguration)
-                .setTransportConfiguration(transportConfiguration)
+                    .setCacheConfigurationBuilder(CacheConfigurationSource.createDefault())
+                    .setProviderConfiguration(providerConfiguration)
+                    .setTransportConfiguration(transportConfiguration)
                 .build();
     }
 

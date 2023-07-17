@@ -81,7 +81,13 @@ public record JmsCacheBusMessageChannelConfiguration(
             @Nonnull String channel,
             @Nonnull ExecutorService subscribingPool,
             @Nonnull HostNameResolver hostNameResolver) {
-        this(connectionFactory, DEFAULT_CONNECTIONS_COUNT, RECONNECT_RETRY_TIMEOUT_UNITS.toMillis(RECONNECT_RETRY_TIMEOUT), channel, subscribingPool, hostNameResolver);
+        this(
+                connectionFactory,
+                DEFAULT_CONNECTIONS_COUNT, RECONNECT_RETRY_TIMEOUT_UNITS.toMillis(RECONNECT_RETRY_TIMEOUT),
+                channel,
+                subscribingPool,
+                hostNameResolver
+        );
     }
 
     /**

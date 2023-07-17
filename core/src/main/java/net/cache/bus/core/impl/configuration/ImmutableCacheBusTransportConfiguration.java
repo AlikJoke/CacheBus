@@ -8,6 +8,7 @@ import net.cache.bus.core.transport.CacheEntryEventConverter;
 
 import javax.annotation.Nonnegative;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 import javax.annotation.concurrent.ThreadSafe;
@@ -38,7 +39,11 @@ public record ImmutableCacheBusTransportConfiguration(
         @Nonnull CacheBusMessageChannelConfiguration messageChannelConfiguration,
         @Nonnull ExecutorService processingPool,
         @Nonnegative int maxConcurrentProcessingThreads,
-        @Nonnegative int maxProcessingThreadBufferCapacity) implements CacheBusTransportConfiguration {
+        @Nonnegative int maxProcessingThreadBufferCapacity,
+        boolean useAsyncSending,
+        @Nullable ExecutorService asyncSendingPool,
+        int maxAsyncSendingThreads,
+        int maxAsyncSendingThreadBufferCapacity) implements CacheBusTransportConfiguration {
 
     public ImmutableCacheBusTransportConfiguration {
         Objects.requireNonNull(converter, "converter");
@@ -52,6 +57,18 @@ public record ImmutableCacheBusTransportConfiguration(
 
         if (maxProcessingThreadBufferCapacity < 0) {
             throw new ConfigurationException("maxProcessingThreadBufferCapacity can not be negative");
+        }
+
+        if (useAsyncSending) {
+            if (maxAsyncSendingThreads <= 0) {
+                throw new ConfigurationException("Async max threads count must be positive when async sending enabled");
+            }
+
+            if (maxAsyncSendingThreadBufferCapacity < 0) {
+                throw new ConfigurationException("maxAsyncSendingThreadBufferCapacity can not be negative");
+            }
+
+            Objects.requireNonNull(asyncSendingPool, "Async sending thread pool must be not null when async sending enabled");
         }
     }
 
@@ -74,6 +91,10 @@ public record ImmutableCacheBusTransportConfiguration(
         private ExecutorService processingPool;
         private int maxConcurrentProcessingThreads = 1;
         private int maxProcessingThreadBufferCapacity = 0;
+        private boolean useAsyncSending;
+        private int maxAsyncSendingThreads = 1;
+        private ExecutorService asyncSendingPool;
+        private int maxAsyncSendingThreadBufferCapacity = 0;
 
         /**
          * Устанавливает используемую реализацию конвертера для сообщений, передаваемых через шину.
@@ -155,6 +176,63 @@ public record ImmutableCacheBusTransportConfiguration(
         }
 
         /**
+         * Устанавливает признак использования асинхронной отправки сообщений об изменении элементов кэша в канал.<br>
+         * Перед использованием необходимо взвесить все риски, см. {@linkplain CacheBusTransportConfiguration#useAsyncSending()}.
+         *
+         * @param useAsyncSending признак, использовать ли асинхронную отправку
+         * @return не может быть {@code null}.
+         */
+        @Nonnull
+        public Builder useAsyncSending(final boolean useAsyncSending) {
+            this.useAsyncSending = useAsyncSending;
+            return this;
+        }
+
+        /**
+         * Устанавливает пул потоков, на котором должна производиться асинхронная отправка сообщений в канал.<br>
+         * Учитывается только в случае, если используется асинхронная отправка, {@code useAsyncSending(true)}.
+         *
+         * @param asyncSendingPool пул потоков, не может быть {@code null}.
+         * @return не может быть {@code null}
+         */
+        @Nonnull
+        public Builder setAsyncSendingPool(@Nonnull final ExecutorService asyncSendingPool) {
+            this.asyncSendingPool = asyncSendingPool;
+            return this;
+        }
+
+        /**
+         * Устанавливает максимальное количество потоков отправки исходящих сообщений в канал.
+         * По-умолчанию используется значение {@code 1}, т.е. отправка производится независимо от
+         * потока модификации (производитель и потребитель "развязаны", тут производитель - поток
+         * модификации данных в кэше, а потребитель - поток отправки в канал) и выполняется в один поток.
+         *
+         * @param maxAsyncSendingThreads максимальное количество потоков, которое может использоваться
+         *                               для отправки сообщений, не может быть {@code maxAsyncSendingThreads < 0}
+         * @return не может быть {@code null}
+         */
+        @Nonnull
+        public Builder setMaxAsyncSendingThreads(@Nonnegative final int maxAsyncSendingThreads) {
+            this.maxAsyncSendingThreads = maxAsyncSendingThreads;
+            return this;
+        }
+
+        /**
+         * Устанавливает максимальный размер буфера одного потока отправки исходящих сообщений в канал, получаемых
+         * из потоков модификации кэша (потоки основного приложения).<br>
+         * По-умолчанию используется значение {@code 0}, которое интерпретируется как использование значения по-умолчанию ({@code 32}.
+         *
+         * @param maxAsyncSendingThreadBufferCapacity максимальный размер буфера одного потока отправки, не может быть {@code maxProcessingThreadBufferCapacity < 0}
+         * @return не может быть {@code null}
+         * @see CacheBusTransportConfiguration#maxAsyncSendingThreadBufferCapacity()
+         */
+        @Nonnull
+        public Builder setMaxAsyncSendingThreadBufferCapacity(@Nonnegative final int maxAsyncSendingThreadBufferCapacity) {
+            this.maxAsyncSendingThreadBufferCapacity = maxAsyncSendingThreadBufferCapacity;
+            return this;
+        }
+
+        /**
          * Формирует объект конфигурации транспорта шины на основе переданных данных.
          *
          * @return не может быть {@code null}.
@@ -168,7 +246,11 @@ public record ImmutableCacheBusTransportConfiguration(
                     this.messageChannelConfiguration,
                     this.processingPool,
                     this.maxConcurrentProcessingThreads,
-                    this.maxProcessingThreadBufferCapacity
+                    this.maxProcessingThreadBufferCapacity,
+                    this.useAsyncSending,
+                    this.asyncSendingPool,
+                    this.maxAsyncSendingThreads,
+                    this.maxAsyncSendingThreadBufferCapacity
             );
         }
     }

@@ -21,7 +21,7 @@ public final class ImmutableCacheEntryOutputMessage implements CacheEntryOutputM
             @Nonnull final byte[] messageBody) {
         this.cacheName = sourceEvent.cacheName();
         this.messageBody = messageBody;
-        this.hashKey = computeMessageHash(sourceEvent.cacheName(), sourceEvent.key());
+        this.hashKey = sourceEvent.computeEventHashKey();
     }
 
     @Nonnull
@@ -68,10 +68,5 @@ public final class ImmutableCacheEntryOutputMessage implements CacheEntryOutputM
         result = 31 * result + Arrays.hashCode(messageBody);
         result = 31 * result + hashKey;
         return result;
-    }
-
-    private <K> int computeMessageHash(final String cacheName, final K key) {
-        int result = 31 + cacheName.hashCode();
-        return 31 * result + key.hashCode();
     }
 }

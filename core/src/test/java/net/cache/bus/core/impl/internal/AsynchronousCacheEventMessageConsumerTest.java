@@ -42,7 +42,7 @@ public class AsynchronousCacheEventMessageConsumerTest {
 
         // checks
         final int messagesByThreadCount = messageCount / threadsCount;
-        assertEquals(threadsCount, cacheBus.eventsByThread.size(), "Events must be consumer in " + threadsCount + " threads");
+        assertEquals(threadsCount, cacheBus.eventsByThread.size(), "Events must be consumed in " + threadsCount + " threads");
         for (int i = 0; i < threadsCount; i++) {
             cacheBus.eventsByThread.values().forEach(messagesByThread -> assertEquals(messagesByThreadCount, messagesByThread.size(), "Messages must be divided into threads evenly"));
         }

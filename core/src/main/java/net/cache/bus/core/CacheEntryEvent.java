@@ -59,6 +59,15 @@ public interface CacheEntryEvent<K extends Serializable, V extends Serializable>
     String cacheName();
 
     /**
+     * Возвращает хэш ключ события.
+     * @return хэш ключ события
+     */
+    default int computeEventHashKey() {
+        int result = 31 + cacheName().hashCode();
+        return 31 * result + key().hashCode();
+    }
+
+    /**
      * Применяет событие изменения элемента кэша к инвалидационному кэшу.<br>
      * Логика применения события заключается в удалении из локального кэша элемента с ключом из события.
      *
