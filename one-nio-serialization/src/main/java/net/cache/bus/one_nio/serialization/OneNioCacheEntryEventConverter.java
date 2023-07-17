@@ -7,6 +7,8 @@ import net.cache.bus.core.transport.CacheEntryEventConverter;
 import one.nio.serial.CalcSizeStream;
 import one.nio.serial.DeserializeStream;
 import one.nio.serial.SerializeStream;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.Immutable;
@@ -14,8 +16,6 @@ import javax.annotation.concurrent.ThreadSafe;
 import java.io.IOException;
 import java.io.ObjectOutput;
 import java.io.Serializable;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * Реализация конвертера на основе библиотеки OneNio.
@@ -28,7 +28,7 @@ import java.util.logging.Logger;
 @Immutable
 public final class OneNioCacheEntryEventConverter implements CacheEntryEventConverter {
 
-    private static final Logger logger = Logger.getLogger(OneNioCacheEntryEventConverter.class.getCanonicalName());
+    private static final Logger logger = LoggerFactory.getLogger(OneNioCacheEntryEventConverter.class);
 
     @Nonnull
     @Override
@@ -44,7 +44,7 @@ public final class OneNioCacheEntryEventConverter implements CacheEntryEventConv
 
             return buf;
         } catch (IOException ex) {
-            logger.log(Level.ALL, "Unable to serialize event: " + event, ex);
+            logger.error("Unable to serialize event: " + event, ex);
             throw new RuntimeException(ex);
         }
     }
@@ -69,6 +69,7 @@ public final class OneNioCacheEntryEventConverter implements CacheEntryEventConv
 
             return new ImmutableCacheEntryEvent<>(key, oldValue, newValue, eventType, cacheName);
         } catch (IOException | ClassNotFoundException e) {
+            logger.error("Unable to deserialize from binary event", e);
             throw new RuntimeException(e);
         }
     }

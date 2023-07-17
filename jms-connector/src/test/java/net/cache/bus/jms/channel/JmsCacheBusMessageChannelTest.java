@@ -4,7 +4,6 @@ import net.cache.bus.core.CacheEntryEvent;
 import net.cache.bus.core.CacheEntryEventType;
 import net.cache.bus.core.CacheEventMessageConsumer;
 import net.cache.bus.core.impl.ImmutableCacheEntryEvent;
-import net.cache.bus.core.impl.internal.ImmutableCacheEntryOutputMessage;
 import net.cache.bus.core.impl.resolvers.StaticHostNameResolver;
 import net.cache.bus.core.transport.CacheEntryOutputMessage;
 import net.cache.bus.core.transport.MessageChannelException;
@@ -75,7 +74,7 @@ public class JmsCacheBusMessageChannelTest {
 
         final CacheEntryEvent<String, String> event = new ImmutableCacheEntryEvent<>("1", null, "v1", CacheEntryEventType.ADDED, "test1");
         final byte[] binaryEvent = event.key().getBytes();
-        final CacheEntryOutputMessage outputMessage = new ImmutableCacheEntryOutputMessage(event, binaryEvent);
+        final CacheEntryOutputMessage outputMessage = new TestCacheEntryOutputMessage(event, binaryEvent);
 
         // action
         channel.send(outputMessage);
@@ -92,7 +91,7 @@ public class JmsCacheBusMessageChannelTest {
 
         final CacheEntryEvent<String, String> event = new ImmutableCacheEntryEvent<>("1", null, "v1", CacheEntryEventType.ADDED, "test1");
         final byte[] binaryEvent = event.key().getBytes();
-        final CacheEntryOutputMessage outputMessage = new ImmutableCacheEntryOutputMessage(event, binaryEvent);
+        final CacheEntryOutputMessage outputMessage = new TestCacheEntryOutputMessage(event, binaryEvent);
 
         // action
         // Флаг сбросится в методе send
@@ -566,6 +565,34 @@ public class JmsCacheBusMessageChannelTest {
         @Override
         public Destination getJMSReplyTo() {
             throw new UnsupportedOperationException();
+        }
+    }
+
+    static class TestCacheEntryOutputMessage implements CacheEntryOutputMessage {
+
+        private final CacheEntryEvent<?, ?> event;
+        private final byte[] body;
+
+        private TestCacheEntryOutputMessage(CacheEntryEvent<?, ?> event, byte[] body) {
+            this.event = event;
+            this.body = body;
+        }
+
+        @Nonnull
+        @Override
+        public String cacheName() {
+            return this.event.cacheName();
+        }
+
+        @Nonnull
+        @Override
+        public byte[] cacheEntryMessageBody() {
+            return this.body;
+        }
+
+        @Override
+        public int messageHashKey() {
+            return this.event.computeEventHashKey();
         }
     }
 }

@@ -23,6 +23,8 @@ import org.apache.kafka.common.errors.RetriableException;
 import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.internals.RecordHeader;
 import org.apache.kafka.common.serialization.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.ThreadSafe;
@@ -31,8 +33,6 @@ import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import static net.cache.bus.transport.ChannelConstants.MESSAGE_TYPE;
 
@@ -46,7 +46,7 @@ import static net.cache.bus.transport.ChannelConstants.MESSAGE_TYPE;
 @ThreadSafe
 public final class KafkaCacheBusMessageChannel implements CacheBusMessageChannel<KafkaCacheBusMessageChannelConfiguration> {
 
-    private static final Logger logger = Logger.getLogger(KafkaCacheBusMessageChannel.class.getCanonicalName());
+    private static final Logger logger = LoggerFactory.getLogger(KafkaCacheBusMessageChannel.class);
 
     private static final byte[] MESSAGE_TYPE_BYTES = MESSAGE_TYPE.getBytes(StandardCharsets.UTF_8);
 
@@ -59,7 +59,7 @@ public final class KafkaCacheBusMessageChannel implements CacheBusMessageChannel
 
     @Override
     public synchronized void activate(@Nonnull KafkaCacheBusMessageChannelConfiguration configuration) {
-        logger.info(() -> "Activation of channel was called");
+        logger.info("Activation of channel was called");
 
         if (this.producerSessionConfiguration != null || this.consumerSessionConfiguration != null) {
             throw new MessageChannelException("Channel already activated");
@@ -69,7 +69,7 @@ public final class KafkaCacheBusMessageChannel implements CacheBusMessageChannel
             this.producerSessionConfiguration = new KafkaProducerSessionConfiguration(configuration);
             this.consumerSessionConfiguration = new KafkaConsumerSessionConfiguration(configuration, true);
         } catch (KafkaException ex) {
-            logger.log(Level.ALL, "Unable to activate channel", ex);
+            logger.error("Unable to activate channel", ex);
             throw new MessageChannelException(ex);
         }
     }
@@ -95,7 +95,7 @@ public final class KafkaCacheBusMessageChannel implements CacheBusMessageChannel
             try {
                 configuration.kafkaProducer.send(record, (recordMetadata, e) -> {
                     if (e != null) {
-                        logger.log(Level.ALL, "Unable to send message", e);
+                        logger.error("Unable to send message", e);
                     }
                 });
 
@@ -122,7 +122,7 @@ public final class KafkaCacheBusMessageChannel implements CacheBusMessageChannel
     @Override
     public synchronized void close() {
 
-        logger.info(() -> "Channel closure was called");
+        logger.info("Channel closure was called");
 
         if (this.consumerSessionConfiguration == null || this.producerSessionConfiguration == null) {
             throw new MessageChannelException("Already in unsubscribed state");
@@ -143,7 +143,7 @@ public final class KafkaCacheBusMessageChannel implements CacheBusMessageChannel
     }
 
     private void listenUntilNotClosed(final CacheEventMessageConsumer messageConsumer) {
-        logger.info(() -> "Subscribe was called");
+        logger.info("Subscribe was called");
 
         Consumer<Integer, byte[]> kafkaConsumer = null;
         KafkaConsumerSessionConfiguration sessionConfiguration;
@@ -177,7 +177,7 @@ public final class KafkaCacheBusMessageChannel implements CacheBusMessageChannel
             } catch (RetriableException | OffsetOutOfRangeException | BrokerNotAvailableException | FencedInstanceIdException ex) {
                 recoverConsumerSession(ex, sessionConfiguration);
             } catch (KafkaException ex) {
-                logger.log(Level.ALL, "Unrecoverable exception in consumer thread", ex);
+                logger.error("Unrecoverable exception in consumer thread", ex);
                 closeConsumer(kafkaConsumer);
 
                 throw new MessageChannelException(ex);
@@ -195,7 +195,7 @@ public final class KafkaCacheBusMessageChannel implements CacheBusMessageChannel
             kafkaConsumer.unsubscribe();
             kafkaConsumer.close();
         } catch (Exception ex) {
-            logger.log(Level.ALL, "Unable to close consumer", ex);
+            logger.error("Unable to close consumer", ex);
         }
     }
 

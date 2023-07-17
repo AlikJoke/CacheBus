@@ -7,12 +7,13 @@ import net.cache.bus.core.configuration.CacheConfiguration;
 import net.cache.bus.core.transport.CacheBusMessageChannel;
 import net.cache.bus.core.transport.CacheEntryEventConverter;
 import net.cache.bus.core.transport.CacheEntryOutputMessage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.ThreadSafe;
 import java.util.Objects;
-import java.util.logging.Logger;
 
 /**
  * Базовый отправитель событий в канал.
@@ -24,7 +25,7 @@ import java.util.logging.Logger;
 @Immutable
 public abstract class CacheEventMessageProducer implements AutoCloseable {
 
-    protected final Logger logger = Logger.getLogger(getClass().getCanonicalName());
+    protected final Logger logger = LoggerFactory.getLogger(getClass());
 
     protected final CacheBusTransportConfiguration transportConfiguration;
 

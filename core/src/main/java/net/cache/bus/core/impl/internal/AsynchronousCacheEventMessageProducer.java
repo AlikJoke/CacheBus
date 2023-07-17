@@ -15,7 +15,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
-import java.util.logging.Level;
 
 /**
  * Реализация асинхронного отправителя событий в канал на основе кольцевых буферов.
@@ -51,14 +50,14 @@ public final class AsynchronousCacheEventMessageProducer extends CacheEventMessa
         try {
             ringBuffer.offer(event);
         } catch (InterruptedException ex) {
-            logger.log(Level.ALL, "Thread was interrupted", ex);
+            logger.info("Thread was interrupted", ex);
             Thread.currentThread().interrupt();
         }
     }
 
     @Override
     public void close() {
-        logger.fine("Producer closure was called");
+        logger.info("Producer closure was called");
         this.sendingTasks.forEach(future -> future.cancel(true));
     }
 
@@ -81,7 +80,7 @@ public final class AsynchronousCacheEventMessageProducer extends CacheEventMessa
                         final CacheEntryEvent<?, ?> event = eventBuffer.poll();
                         super.produce(cacheConfigurations.get(event.cacheName()), event);
                     } catch (InterruptedException ex) {
-                        logger.log(Level.ALL, "Thread was interrupted", ex);
+                        logger.info("Thread was interrupted", ex);
                         return;
                     }
                 }

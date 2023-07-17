@@ -30,6 +30,7 @@
 
         <junit.version>5.9.3</junit.version>
         <mockito.version>5.4.0</mockito.version>
+        <slf4j.version>2.0.6</slf4j.version>
     </properties>
 
     <scm>
@@ -44,6 +45,13 @@
             <groupId>com.google.code.findbugs</groupId>
             <artifactId>jsr305</artifactId>
             <version>3.0.2</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>${slf4j.version}</version>
+            <scope>provided</scope>
         </dependency>
 
         <dependency>

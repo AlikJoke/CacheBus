@@ -9,6 +9,8 @@ import com.fasterxml.jackson.databind.ser.impl.SimpleBeanPropertyFilter;
 import com.fasterxml.jackson.databind.ser.impl.SimpleFilterProvider;
 import net.cache.bus.core.CacheEntryEvent;
 import net.cache.bus.core.transport.CacheEntryEventConverter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.Immutable;
@@ -17,8 +19,6 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.util.Collections;
 import java.util.Set;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * Реализация конвертера для сериализации / десериализации событий об изменении элементов кэшей
@@ -41,7 +41,7 @@ import java.util.logging.Logger;
 @ThreadSafe
 public final class JacksonCacheEntryEventConverter implements CacheEntryEventConverter {
 
-    private static final Logger logger = Logger.getLogger(JacksonCacheEntryEventConverter.class.getCanonicalName());
+    private static final Logger logger = LoggerFactory.getLogger(JacksonCacheEntryEventConverter.class);
 
     private static final String SKIP_VALUES_FILTER = "skipValuesFields";
 
@@ -63,7 +63,7 @@ public final class JacksonCacheEntryEventConverter implements CacheEntryEventCon
         try {
             return serializeValueFields ? this.objectWriterStd.writeValueAsBytes(event) : this.objectWriterCompact.writeValueAsBytes(event);
         } catch (IOException ex) {
-            logger.log(Level.ALL, "Unable to serialize event: " + event, ex);
+            logger.error("Unable to serialize event: " + event, ex);
             throw new RuntimeException(ex);
         }
     }
@@ -74,7 +74,7 @@ public final class JacksonCacheEntryEventConverter implements CacheEntryEventCon
         try {
             return this.objectReader.readValue(data);
         } catch (IOException ex) {
-            logger.log(Level.ALL, "Unable to deserialize event", ex);
+            logger.error("Unable to deserialize event", ex);
             throw new RuntimeException(ex);
         }
     }

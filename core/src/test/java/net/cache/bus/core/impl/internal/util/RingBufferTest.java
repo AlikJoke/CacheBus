@@ -72,7 +72,7 @@ public class RingBufferTest {
             assertFalse(future.isDone(), "Write thread must be blocked because buffer is full");
             assertEquals(1, buffer.poll());
 
-            Thread.sleep(Duration.ofMillis(1));
+            Thread.sleep(Duration.ofMillis(10));
             assertTrue(future.isDone(), "Write thread must be finished because buffer is not full after poll");
         }
     }

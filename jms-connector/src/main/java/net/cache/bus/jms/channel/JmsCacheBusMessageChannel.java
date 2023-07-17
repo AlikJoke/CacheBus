@@ -1,19 +1,19 @@
 package net.cache.bus.jms.channel;
 
 import net.cache.bus.core.CacheEventMessageConsumer;
-import net.cache.bus.transport.addons.ConcurrentLinkedBlockingQueue;
 import net.cache.bus.core.transport.CacheBusMessageChannel;
 import net.cache.bus.core.transport.CacheEntryOutputMessage;
 import net.cache.bus.core.transport.MessageChannelException;
 import net.cache.bus.jms.configuration.JmsCacheBusMessageChannelConfiguration;
 import net.cache.bus.transport.addons.ChannelRecoveryProcessor;
+import net.cache.bus.transport.addons.ConcurrentLinkedBlockingQueue;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.ThreadSafe;
 import javax.jms.*;
 import java.util.concurrent.Future;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import static net.cache.bus.transport.ChannelConstants.*;
 
@@ -30,7 +30,7 @@ public final class JmsCacheBusMessageChannel implements CacheBusMessageChannel<J
     static final String HOST_PROPERTY = "host";
     static final String HASH_KEY_PROPERTY = "hash";
 
-    private static final Logger logger = Logger.getLogger(JmsCacheBusMessageChannel.class.getCanonicalName());
+    private static final Logger logger = LoggerFactory.getLogger(JmsCacheBusMessageChannel.class);
 
     private volatile JmsConsumerSessionConfiguration receiverConfiguration;
     private volatile ConcurrentLinkedBlockingQueue<JmsProducerSessionConfiguration> senderConfigurations;
@@ -39,7 +39,7 @@ public final class JmsCacheBusMessageChannel implements CacheBusMessageChannel<J
 
     @Override
     public synchronized void activate(@Nonnull JmsCacheBusMessageChannelConfiguration jmsConfiguration) {
-        logger.info(() -> "Activation of channel was called");
+        logger.info("Activation of channel was called");
 
         if (this.senderConfigurations != null || this.receiverConfiguration != null) {
             throw new MessageChannelException("Channel already activated");
@@ -56,7 +56,7 @@ public final class JmsCacheBusMessageChannel implements CacheBusMessageChannel<J
             this.receiverConfiguration = new JmsConsumerSessionConfiguration(jmsConfiguration);
 
         } catch (JMSRuntimeException ex) {
-            logger.log(Level.ALL, "Unable to activate channel", ex);
+            logger.error("Unable to activate channel", ex);
             throw new MessageChannelException(ex);
         }
     }
@@ -85,6 +85,7 @@ public final class JmsCacheBusMessageChannel implements CacheBusMessageChannel<J
                 recoverProducerSession(ex, sessionConfiguration);
                 retry = true;
             } catch (InterruptedException ex) {
+                logger.info("Thread was interrupted", ex);
                 Thread.currentThread().interrupt();
             } finally {
                 if (sessionConfiguration != null && !retry) {
@@ -108,7 +109,7 @@ public final class JmsCacheBusMessageChannel implements CacheBusMessageChannel<J
 
     @Override
     public synchronized void close() {
-        logger.info(() -> "Channel closure was called");
+        logger.info("Channel closure was called");
 
         if (this.senderConfigurations == null || this.receiverConfiguration == null) {
             throw new MessageChannelException("Already in closed state");
@@ -164,12 +165,12 @@ public final class JmsCacheBusMessageChannel implements CacheBusMessageChannel<J
         final Topic endpoint = sessionConfiguration.endpoint;
         producer.send(endpoint, eventOutputMessage.cacheEntryMessageBody());
 
-        logger.fine(() -> "Message %s was sent to topic: %s".formatted(eventOutputMessage, endpoint));
+        logger.debug("Message {} was sent to topic: {}", eventOutputMessage, endpoint);
     }
 
     private void listenUntilNotClosed(final CacheEventMessageConsumer consumer) {
 
-        logger.info(() -> "Subscribe was called");
+        logger.info("Subscribe was called");
 
         JmsConsumerSessionConfiguration sessionConfiguration;
         while ((sessionConfiguration = this.receiverConfiguration) != null) {

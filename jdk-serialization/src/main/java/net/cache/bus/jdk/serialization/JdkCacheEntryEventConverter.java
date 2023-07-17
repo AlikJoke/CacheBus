@@ -4,13 +4,13 @@ import net.cache.bus.core.CacheEntryEvent;
 import net.cache.bus.core.CacheEntryEventType;
 import net.cache.bus.core.impl.ImmutableCacheEntryEvent;
 import net.cache.bus.core.transport.CacheEntryEventConverter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.ThreadSafe;
 import java.io.*;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * Реализация конвертера на основе стандартной JDK-сериализации.
@@ -28,7 +28,7 @@ import java.util.logging.Logger;
 @Immutable
 public final class JdkCacheEntryEventConverter implements CacheEntryEventConverter {
 
-    private static final Logger logger = Logger.getLogger(JdkCacheEntryEventConverter.class.getCanonicalName());
+    private static final Logger logger = LoggerFactory.getLogger(JdkCacheEntryEventConverter.class);
 
     private static final int BUF_SIZE = 512;
 
@@ -42,7 +42,7 @@ public final class JdkCacheEntryEventConverter implements CacheEntryEventConvert
 
             return bos.toByteArray();
         } catch (IOException ex) {
-            logger.log(Level.ALL, "Unable to serialize event: " + event, ex);
+            logger.error("Unable to serialize event: " + event, ex);
             throw new RuntimeException(ex);
         }
     }
@@ -68,6 +68,7 @@ public final class JdkCacheEntryEventConverter implements CacheEntryEventConvert
 
             return new ImmutableCacheEntryEvent<>(key, oldValue, newValue, eventType, cacheName);
         } catch (IOException | ClassNotFoundException e) {
+            logger.error("Unable to deserialize from binary event", e);
             throw new RuntimeException(e);
         }
     }

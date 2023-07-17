@@ -1,11 +1,12 @@
 package net.cache.bus.transport.addons;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import javax.annotation.Nonnegative;
 import javax.annotation.Nonnull;
 import java.util.Objects;
 import java.util.Random;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * Обработчик для выполнения переподключения к каналу сообщений шины кэшей.
@@ -14,7 +15,7 @@ import java.util.logging.Logger;
  */
 public final class ChannelRecoveryProcessor {
 
-    private static final Logger logger = Logger.getLogger(ChannelRecoveryProcessor.class.getCanonicalName());
+    private static final Logger logger = LoggerFactory.getLogger(ChannelRecoveryProcessor.class);
 
     private final Runnable cleaningCallback;
     private final Runnable recoveryCallback;
@@ -32,12 +33,12 @@ public final class ChannelRecoveryProcessor {
 
     public void recover(@Nonnull Exception exception) {
 
-        logger.log(Level.FINE, "Trying to recover connection, exception detected", exception);
+        logger.debug("Trying to recover connection, exception detected", exception);
 
         this.clean();
 
         if (!this.recover()) {
-            logger.log(Level.ALL, "Fatal disconnect, can not recover connection in {} ms", this.maxRecoveryAttemptTimeMillis);
+            logger.error("Fatal disconnect, can not recover connection in {} ms", this.maxRecoveryAttemptTimeMillis);
             throw new NotRecoverableException(exception);
         }
     }
@@ -47,7 +48,7 @@ public final class ChannelRecoveryProcessor {
         try {
             this.cleaningCallback.run();
         } catch (Exception e) {
-            logger.log(Level.FINE, "Exception while execution of cleaning callback", e);
+            logger.warn("Exception while execution of cleaning callback", e);
         }
     }
 
@@ -79,7 +80,6 @@ public final class ChannelRecoveryProcessor {
             Thread.sleep(waitTimeInMillis);
         } catch (InterruptedException ex) {
             logger.info("Waiting of next attempt is interrupted");
-
             Thread.currentThread().interrupt();
         }
 
@@ -91,10 +91,10 @@ public final class ChannelRecoveryProcessor {
         try {
             this.recoveryCallback.run();
 
-            logger.fine("Successful connection recovery");
+            logger.debug("Successful connection recovery");
             return true;
         } catch (Exception ex) {
-            logger.log(Level.FINE, "Recovery attempt unsuccessful", ex);
+            logger.debug("Recovery attempt unsuccessful", ex);
         }
 
         return false;

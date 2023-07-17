@@ -4,6 +4,8 @@ import net.cache.bus.core.CacheBus;
 import net.cache.bus.core.CacheEventMessageConsumer;
 import net.cache.bus.core.impl.internal.util.RingBuffer;
 import net.cache.bus.core.impl.internal.util.StripedRingBuffersContainer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.Immutable;
@@ -13,8 +15,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * Реализация асинхронного потребителя сообщений из канала на основе кольцевых буферов.
@@ -29,7 +29,7 @@ import java.util.logging.Logger;
 @Immutable
 public final class AsynchronousCacheEventMessageConsumer implements CacheEventMessageConsumer {
 
-    private static final Logger logger = Logger.getLogger(AsynchronousCacheEventMessageConsumer.class.getCanonicalName());
+    private static final Logger logger = LoggerFactory.getLogger(AsynchronousCacheEventMessageConsumer.class);
 
     private final StripedRingBuffersContainer<byte[]> messageBuffers;
     private final List<Future<?>> processingTasks;
@@ -50,7 +50,7 @@ public final class AsynchronousCacheEventMessageConsumer implements CacheEventMe
         try {
             ringBuffer.offer(messageBody);
         } catch (InterruptedException ex) {
-            logger.log(Level.ALL, "Thread was interrupted", ex);
+            logger.info("Thread was interrupted", ex);
             Thread.currentThread().interrupt();
         }
     }
@@ -78,7 +78,7 @@ public final class AsynchronousCacheEventMessageConsumer implements CacheEventMe
 
     @Override
     public void close() {
-        logger.fine("Consumer closure was called");
+        logger.info("Consumer closure was called");
         this.processingTasks.forEach(future -> future.cancel(true));
     }
 }

@@ -4,6 +4,8 @@ import net.cache.bus.core.configuration.CacheConfiguration;
 import net.cache.bus.core.configuration.CacheConfigurationSource;
 import net.cache.bus.core.configuration.CacheType;
 import net.cache.bus.core.configuration.InvalidCacheConfigurationException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -27,8 +29,6 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * Реализация источника конфигурации кэшей шины на основе конфигурационного XML-файла.
@@ -40,7 +40,7 @@ import java.util.logging.Logger;
 @Immutable
 public final class XmlCacheConfigurationSource implements CacheConfigurationSource {
 
-    private static final Logger logger = Logger.getLogger(XmlCacheConfigurationSource.class.getCanonicalName());
+    private static final Logger logger = LoggerFactory.getLogger(XmlCacheConfigurationSource.class);
 
     private static final String SCHEMA_PATH = "/configuration/configuration.xsd";
 
@@ -67,18 +67,18 @@ public final class XmlCacheConfigurationSource implements CacheConfigurationSour
     @Override
     public Set<CacheConfiguration> pull() {
 
-        logger.fine(() -> "Pull configurations from xml was called: " + this);
+        logger.debug("Pull configurations from xml was called: {}", this);
 
         try (final InputStream xmlStream = openConfigurationStream()) {
 
             validateConfiguration();
-            logger.fine("Configuration validated");
+            logger.debug("Configuration validated");
 
             final Document doc = parseConfiguration(xmlStream);
 
             return buildConfigurationsFromDocument(doc);
         } catch (ParserConfigurationException | SAXException | IOException ex) {
-            logger.log(Level.ALL, "Unable to parse configuration from xml", ex);
+            logger.error("Unable to parse configuration from xml", ex);
             throw new InvalidCacheConfigurationException(ex);
         }
     }
@@ -119,7 +119,7 @@ public final class XmlCacheConfigurationSource implements CacheConfigurationSour
             result.add(cacheConfiguration);
         }
 
-        logger.fine(() -> "Configuration was build: " + result);
+        logger.debug("Configuration was build: {}", result);
 
         return Collections.unmodifiableSet(result);
     }

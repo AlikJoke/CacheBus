@@ -8,6 +8,8 @@ import net.cache.bus.core.transport.MessageChannelException;
 import net.cache.bus.rabbit.configuration.RabbitCacheBusMessageChannelConfiguration;
 import net.cache.bus.transport.addons.ChannelRecoveryProcessor;
 import net.cache.bus.transport.addons.ConcurrentLinkedBlockingQueue;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.ThreadSafe;
@@ -16,8 +18,6 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import static net.cache.bus.transport.ChannelConstants.MESSAGE_TYPE;
 import static net.cache.bus.transport.ChannelConstants.POLL_CHANNEL_TIMEOUT;
@@ -32,7 +32,7 @@ import static net.cache.bus.transport.ChannelConstants.POLL_CHANNEL_TIMEOUT;
 @ThreadSafe
 public final class RabbitCacheBusMessageChannel implements CacheBusMessageChannel<RabbitCacheBusMessageChannelConfiguration> {
 
-    private static final Logger logger = Logger.getLogger(RabbitCacheBusMessageChannel.class.getCanonicalName());
+    private static final Logger logger = LoggerFactory.getLogger(RabbitCacheBusMessageChannel.class);
 
     static final String HOST_PROPERTY = "host";
     static final String HASH_KEY_PROPERTY = "hash";
@@ -43,7 +43,7 @@ public final class RabbitCacheBusMessageChannel implements CacheBusMessageChanne
 
     @Override
     public synchronized void activate(@Nonnull RabbitCacheBusMessageChannelConfiguration rabbitConfiguration) {
-        logger.info(() -> "Activation of channel was called");
+        logger.info("Activation of channel was called");
 
         if (this.producerSessionConfiguration != null || this.consumerSessionConfiguration != null) {
             throw new MessageChannelException("Channel already activated");
@@ -82,11 +82,12 @@ public final class RabbitCacheBusMessageChannel implements CacheBusMessageChanne
                         eventOutputMessage.cacheEntryMessageBody()
                 );
 
-                logger.fine(() -> "Message %s was sent to topic: %s".formatted(eventOutputMessage, channelName));
+                logger.info("Message {} was sent to topic: {}", eventOutputMessage, channelName);
             } catch (IOException ex) {
                 recoverProducerSession(ex, sessionConfiguration);
                 retry = true;
             } catch (InterruptedException ex) {
+                logger.info("Thread was interrupted", ex);
                 Thread.currentThread().interrupt();
             } finally {
                 if (channel != null && !retry) {
@@ -108,7 +109,7 @@ public final class RabbitCacheBusMessageChannel implements CacheBusMessageChanne
 
     @Override
     public synchronized void close() {
-        logger.info(() -> "Channel closure was called");
+        logger.info("Channel closure was called");
 
         if (this.consumerSessionConfiguration == null || this.producerSessionConfiguration == null) {
             throw new MessageChannelException("Already in closed state");
@@ -125,7 +126,7 @@ public final class RabbitCacheBusMessageChannel implements CacheBusMessageChanne
 
     private void subscribeToChannel() {
 
-        logger.info(() -> "Subscribe was called");
+        logger.info("Subscribe was called");
 
         RabbitConsumerSessionConfiguration sessionConfiguration;
         if ((sessionConfiguration = this.consumerSessionConfiguration) == null) {
@@ -165,7 +166,7 @@ public final class RabbitCacheBusMessageChannel implements CacheBusMessageChanne
                     rabbitConsumer
             );
         } catch (IOException ex) {
-            logger.log(Level.ALL, "Unable to subscribe", ex);
+            logger.error("Unable to subscribe", ex);
             throw new MessageChannelException(ex);
         }
     }
@@ -191,7 +192,7 @@ public final class RabbitCacheBusMessageChannel implements CacheBusMessageChanne
         try {
             this.consumerSessionConfiguration = new RabbitConsumerSessionConfiguration(rabbitConfiguration);
         } catch (IOException | TimeoutException ex) {
-            logger.log(Level.ALL, "Unable to activate channel", ex);
+            logger.error("Unable to activate channel", ex);
             throw new MessageChannelException(ex);
         }
     }
@@ -200,7 +201,7 @@ public final class RabbitCacheBusMessageChannel implements CacheBusMessageChanne
         try {
             this.producerSessionConfiguration = new RabbitProducerSessionConfiguration(rabbitConfiguration);
         } catch (IOException | TimeoutException ex) {
-            logger.log(Level.ALL, "Unable to activate channel", ex);
+            logger.error("Unable to activate channel", ex);
             throw new MessageChannelException(ex);
         }
     }
@@ -271,7 +272,7 @@ public final class RabbitCacheBusMessageChannel implements CacheBusMessageChanne
             try {
                 this.rabbitConnection.close();
             } catch (IOException ex) {
-                logger.log(Level.ALL, "Unable to close connection to rabbit", ex);
+                logger.error("Unable to close connection to rabbit", ex);
             }
         }
     }

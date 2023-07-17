@@ -74,7 +74,6 @@ public final class ImmutableCacheEntryOutputMessage implements CacheEntryOutputM
     public String toString() {
         return "ImmutableCacheEntryOutputMessage{" +
                 "cacheName='" + cacheName + '\'' +
-                ", messageBody=" + Arrays.toString(messageBody) +
                 ", hashKey=" + hashKey +
                 '}';
     }
