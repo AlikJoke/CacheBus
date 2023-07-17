@@ -27,6 +27,8 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Реализация источника конфигурации кэшей шины на основе конфигурационного XML-файла.
@@ -37,6 +39,8 @@ import java.util.Set;
 @ThreadSafe
 @Immutable
 public final class XmlCacheConfigurationSource implements CacheConfigurationSource {
+
+    private static final Logger logger = Logger.getLogger(XmlCacheConfigurationSource.class.getCanonicalName());
 
     private static final String SCHEMA_PATH = "/configuration/configuration.xsd";
 
@@ -63,15 +67,28 @@ public final class XmlCacheConfigurationSource implements CacheConfigurationSour
     @Override
     public Set<CacheConfiguration> pull() {
 
+        logger.fine(() -> "Pull configurations from xml was called: " + this);
+
         try (final InputStream xmlStream = openConfigurationStream()) {
 
             validateConfiguration();
+            logger.fine("Configuration validated");
+
             final Document doc = parseConfiguration(xmlStream);
 
             return buildConfigurationsFromDocument(doc);
         } catch (ParserConfigurationException | SAXException | IOException ex) {
+            logger.log(Level.ALL, "Unable to parse configuration from xml", ex);
             throw new InvalidCacheConfigurationException(ex);
         }
+    }
+
+    @Override
+    public String toString() {
+        return "XmlCacheConfigurationSource{" +
+                "configurationFile=" + configurationFile +
+                ", resourceConfigurationFilePath='" + resourceConfigurationFilePath + '\'' +
+                '}';
     }
 
     private Set<CacheConfiguration> buildConfigurationsFromDocument(final Document document) {
@@ -101,6 +118,8 @@ public final class XmlCacheConfigurationSource implements CacheConfigurationSour
                                                                 .build();
             result.add(cacheConfiguration);
         }
+
+        logger.fine(() -> "Configuration was build: " + result);
 
         return Collections.unmodifiableSet(result);
     }

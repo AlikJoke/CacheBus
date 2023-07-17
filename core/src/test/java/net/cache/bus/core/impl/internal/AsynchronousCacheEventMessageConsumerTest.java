@@ -35,7 +35,7 @@ public class AsynchronousCacheEventMessageConsumerTest {
                 consumer.accept(i, message);
             }
 
-            Thread.sleep(Duration.ofMillis(10));
+            Thread.sleep(Duration.ofMillis(100));
         }
 
         processingPool.close();

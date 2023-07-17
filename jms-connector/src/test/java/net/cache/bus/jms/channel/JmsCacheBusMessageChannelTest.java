@@ -120,7 +120,7 @@ public class JmsCacheBusMessageChannelTest {
             // action
             channel.subscribe(consumer);
 
-            Thread.sleep(Duration.ofMillis(100));
+            Thread.sleep(Duration.ofMillis(200));
 
             // checks
             // CONNECTIONS_COUNT - количество изначально созданных соединений,

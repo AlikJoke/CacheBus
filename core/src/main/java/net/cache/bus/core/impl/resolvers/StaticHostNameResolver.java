@@ -25,4 +25,11 @@ public final class StaticHostNameResolver implements HostNameResolver {
     public String resolve() {
         return this.hostName;
     }
+
+    @Override
+    public String toString() {
+        return "StaticHostNameResolver{" +
+                "hostName='" + hostName + '\'' +
+                '}';
+    }
 }

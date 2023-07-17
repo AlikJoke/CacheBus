@@ -78,6 +78,7 @@ public final class AsynchronousCacheEventMessageConsumer implements CacheEventMe
 
     @Override
     public void close() {
+        logger.fine("Consumer closure was called");
         this.processingTasks.forEach(future -> future.cancel(true));
     }
 }

@@ -32,7 +32,7 @@ public final class ChannelRecoveryProcessor {
 
     public void recover(@Nonnull Exception exception) {
 
-        logger.log(Level.ALL, "Trying to recover connection, exception detected", exception);
+        logger.log(Level.FINE, "Trying to recover connection, exception detected", exception);
 
         this.clean();
 

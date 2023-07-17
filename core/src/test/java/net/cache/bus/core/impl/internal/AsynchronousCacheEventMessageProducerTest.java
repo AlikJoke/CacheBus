@@ -66,7 +66,7 @@ public class AsynchronousCacheEventMessageProducerTest {
                 producer.produce(cacheConfiguration, event);
             }
 
-            Thread.sleep(Duration.ofMillis(10));
+            Thread.sleep(Duration.ofMillis(100));
         }
 
         // checks

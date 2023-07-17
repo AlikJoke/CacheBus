@@ -36,8 +36,6 @@ public abstract class CacheEventMessageProducer implements AutoCloseable {
             @Nonnull final CacheConfiguration cacheConfiguration,
             @Nonnull final CacheEntryEvent<?, ?> event) {
 
-        logger.fine(() -> "Event %s will be sent to endpoint".formatted(event));
-
         final CacheEntryEventConverter converter = this.transportConfiguration.converter();
         final byte[] binaryEventData = converter.toBinary(event, cacheConfiguration.cacheType().serializeValueFields());
 

@@ -35,4 +35,12 @@ public abstract class CacheProviderConfigurationTemplate implements CacheProvide
     public CacheEventListenerRegistrar cacheEventListenerRegistrar() {
         return this.cacheEventListenerRegistrar;
     }
+
+    @Override
+    public String toString() {
+        return "CacheProviderConfigurationTemplate{" +
+                "cacheManager=" + cacheManager +
+                ", cacheEventListenerRegistrar=" + cacheEventListenerRegistrar +
+                '}';
+    }
 }

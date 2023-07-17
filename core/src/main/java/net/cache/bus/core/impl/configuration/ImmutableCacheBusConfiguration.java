@@ -18,50 +18,15 @@ import java.util.Objects;
  */
 @ThreadSafe
 @Immutable
-public final class ImmutableCacheBusConfiguration implements CacheBusConfiguration {
+public record ImmutableCacheBusConfiguration(
+        @Nonnull CacheConfigurationSource cacheConfigurationSource,
+        @Nonnull CacheBusTransportConfiguration transportConfiguration,
+        @Nonnull CacheProviderConfiguration providerConfiguration) implements CacheBusConfiguration {
 
-    private final CacheConfigurationSource cacheConfigurationSource;
-    private final CacheBusTransportConfiguration transportConfiguration;
-    private final CacheProviderConfiguration providerConfiguration;
-
-    public ImmutableCacheBusConfiguration(@Nonnull CacheBusConfiguration configuration) {
-        this(configuration.cacheConfigurationSource(), configuration.transportConfiguration(), configuration.providerConfiguration());
-    }
-
-    public ImmutableCacheBusConfiguration(
-            @Nonnull CacheConfigurationSource cacheConfigurationSource,
-            @Nonnull CacheBusTransportConfiguration transportConfiguration,
-            @Nonnull CacheProviderConfiguration providerConfiguration) {
-        this.cacheConfigurationSource = Objects.requireNonNull(cacheConfigurationSource, "cacheConfigurationBuilder");
-        this.providerConfiguration = Objects.requireNonNull(providerConfiguration, "providerConfiguration");
-        this.transportConfiguration = Objects.requireNonNull(transportConfiguration, "transportConfiguration");
-    }
-
-    @Nonnull
-    @Override
-    public CacheConfigurationSource cacheConfigurationSource() {
-        return this.cacheConfigurationSource;
-    }
-
-    @Nonnull
-    @Override
-    public CacheBusTransportConfiguration transportConfiguration() {
-        return this.transportConfiguration;
-    }
-
-    @Nonnull
-    @Override
-    public CacheProviderConfiguration providerConfiguration() {
-        return this.providerConfiguration;
-    }
-
-    @Override
-    public String toString() {
-        return "ImmutableCacheBusConfiguration{" +
-                ", transportConfiguration=" + transportConfiguration +
-                ", providerConfiguration=" + providerConfiguration +
-                ", cacheConfigurationSource=" + cacheConfigurationSource +
-                '}';
+    public ImmutableCacheBusConfiguration {
+        Objects.requireNonNull(cacheConfigurationSource, "cacheConfigurationBuilder");
+        Objects.requireNonNull(providerConfiguration, "providerConfiguration");
+        Objects.requireNonNull(transportConfiguration, "transportConfiguration");
     }
 
     /**

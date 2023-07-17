@@ -76,6 +76,8 @@ public final class DefaultCacheBus implements ExtendedCacheBus {
             return;
         }
 
+        logger.fine(() -> "Event %s will be sent to endpoint".formatted(event));
+
         this.cacheEventMessageProducer.produce(cacheConfiguration, event);
     }
 
@@ -131,10 +133,14 @@ public final class DefaultCacheBus implements ExtendedCacheBus {
             throw new LifecycleException("Bus already started");
         }
 
-        initializeCacheEventSender();
+        logger.info(() -> "Cache bus starting with configuration " + this.configuration);
+
+        initializeCacheEventProducer();
         initializeInputMessageChannelSubscriber();
         initializeCacheEventListeners();
         this.started = true;
+
+        logger.info("Cache bus started");
     }
 
     @Override
@@ -142,6 +148,8 @@ public final class DefaultCacheBus implements ExtendedCacheBus {
         if (!this.started) {
             throw new LifecycleException("Bus isn't started");
         }
+
+        logger.info("Cache bus stopping...");
 
         final CacheBusTransportConfiguration transportConfiguration = this.configuration.transportConfiguration();
         final CacheBusMessageChannel<CacheBusMessageChannelConfiguration> messageChannel = transportConfiguration.messageChannel();
@@ -151,6 +159,8 @@ public final class DefaultCacheBus implements ExtendedCacheBus {
         this.messageConsumer.close();
 
         this.started = false;
+
+        logger.info("Cache bus stopped");
     }
 
     private boolean needToSendEvent(final CacheConfiguration cacheConfiguration, final CacheEntryEventType eventType) {
@@ -179,6 +189,7 @@ public final class DefaultCacheBus implements ExtendedCacheBus {
                 case REPLICATED -> event.applyToReplicatedCache(cache);
             }
         } catch (RuntimeException ex) {
+            logger.log(Level.INFO, ex, () -> "Exception while processing of event (%s), will be applied like to invalidated cache".formatted(event));
             // If we fail then remove value from cache by key and ack receiving of message
             event.applyToInvalidatedCache(cache);
         } finally {
@@ -198,7 +209,9 @@ public final class DefaultCacheBus implements ExtendedCacheBus {
         }
     }
 
-    private void initializeCacheEventSender() {
+    private void initializeCacheEventProducer() {
+
+        logger.fine("Cache event producer initializing...");
 
         final CacheBusTransportConfiguration transportConfiguration = this.configuration.transportConfiguration();
         if (transportConfiguration.useAsyncSending()) {
@@ -207,12 +220,25 @@ public final class DefaultCacheBus implements ExtendedCacheBus {
                     transportConfiguration.maxAsyncSendingThreadBufferCapacity()
             );
             this.cacheEventMessageProducer = new AsynchronousCacheEventMessageProducer(transportConfiguration, this.cacheConfigurationsByName, eventBuffers);
+            logger.log(
+                    Level.FINE,
+                    "Cache event producer initialized with async mode: threads = {}, buffers capacity = {}",
+                    new Object[]{
+                            eventBuffers.size(),
+                            transportConfiguration.maxAsyncSendingThreadBufferCapacity()
+                    }
+            );
         } else {
             this.cacheEventMessageProducer = new SynchronousCacheEventMessageProducer(transportConfiguration);
+            logger.fine("Cache event producer initialized with sync mode");
         }
+
+        logger.fine("Cache event producer initialized");
     }
 
     private void initializeCacheEventListeners() {
+
+        logger.fine("Cache event listeners initializing...");
 
         /*
          * Регистрируем подписчиков на кэшах
@@ -226,10 +252,15 @@ public final class DefaultCacheBus implements ExtendedCacheBus {
                 .map(CacheConfiguration::cacheName)
                 .map(cacheManager::getCache)
                 .flatMap(Optional::stream)
+                .peek(cache -> logger.fine(() -> "Listeners will be registered for cache " + cache))
                 .forEach(cache -> cacheEventListenerRegistrar.registerFor(this, cache));
+
+        logger.fine("Cache event listeners initialized");
     }
 
     private void initializeInputMessageChannelSubscriber() {
+
+        logger.fine("Message channel initializing...");
 
         /*
          * Активируем канал сообщений
@@ -238,6 +269,7 @@ public final class DefaultCacheBus implements ExtendedCacheBus {
         final CacheBusMessageChannel<CacheBusMessageChannelConfiguration> channel = transportConfiguration.messageChannel();
 
         channel.activate(transportConfiguration.messageChannelConfiguration());
+        logger.fine(() -> "Message channel activated with configuration: " + transportConfiguration.messageChannelConfiguration());
 
         /*
          *  Формируем обработчик сообщений и подписываемся на входящий поток сообщений об изменениях элементов кэшей
@@ -246,10 +278,14 @@ public final class DefaultCacheBus implements ExtendedCacheBus {
         final int bufferCapacity = transportConfiguration.maxProcessingThreadBufferCapacity();
         final ExecutorService processingPool = transportConfiguration.processingPool();
 
+        logger.log(Level.FINE, () -> "Message channel consumer will be " + (transportConfiguration.useSynchronousProcessing() ? "sync" : "async"));
+
         this.messageConsumer = transportConfiguration.useSynchronousProcessing()
                 ? new SynchronousCacheEventMessageConsumer(this)
                 : new AsynchronousCacheEventMessageConsumer(this, new StripedRingBuffersContainer<>(buffersCount, bufferCapacity), processingPool);
 
         channel.subscribe(this.messageConsumer);
+
+        logger.fine(() -> "Message channel " + channel + " initialized");
     }
 }

@@ -64,15 +64,6 @@ public record ImmutableCacheConfiguration(
     }
 
     @Override
-    public String toString() {
-        return "ImmutableCacheConfiguration{" +
-                "cacheName='" + cacheName + '\'' +
-                ", cacheType=" + cacheType +
-                ", cacheAliases=" + cacheAliases +
-                '}';
-    }
-
-    @Override
     @Nonnull
     public Set<String> cacheAliases() {
         return Collections.unmodifiableSet(this.cacheAliases);

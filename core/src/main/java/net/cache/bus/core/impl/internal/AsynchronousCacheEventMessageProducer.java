@@ -58,6 +58,7 @@ public final class AsynchronousCacheEventMessageProducer extends CacheEventMessa
 
     @Override
     public void close() {
+        logger.fine("Producer closure was called");
         this.sendingTasks.forEach(future -> future.cancel(true));
     }
 

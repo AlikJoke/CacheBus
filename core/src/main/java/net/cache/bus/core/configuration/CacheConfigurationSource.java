@@ -88,5 +88,12 @@ public interface CacheConfigurationSource {
             this.configurations.clear();
             return this;
         }
+
+        @Override
+        public String toString() {
+            return "SimpleCacheConfigurationSource{" +
+                    "configurations=" + configurations +
+                    '}';
+        }
     }
 }
