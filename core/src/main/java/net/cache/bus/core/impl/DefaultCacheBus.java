@@ -4,6 +4,8 @@ import net.cache.bus.core.*;
 import net.cache.bus.core.configuration.*;
 import net.cache.bus.core.impl.internal.*;
 import net.cache.bus.core.impl.internal.util.StripedRingBuffersContainer;
+import net.cache.bus.core.state.ComponentState;
+import net.cache.bus.core.state.CacheBusState;
 import net.cache.bus.core.transport.CacheBusMessageChannel;
 import net.cache.bus.core.transport.CacheEntryEventConverter;
 import org.slf4j.Logger;
@@ -14,6 +16,7 @@ import javax.annotation.concurrent.ThreadSafe;
 import java.io.Serializable;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
+import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -30,17 +33,23 @@ import java.util.stream.Collectors;
 public final class DefaultCacheBus implements ExtendedCacheBus {
 
     private static final Logger logger = LoggerFactory.getLogger(DefaultCacheBus.class);
+
+    private static final String CACHE_BUS_LABEL = "cache-bus";
     private static final ThreadLocal<Boolean> locked = new ThreadLocal<>();
 
+    private final String id;
     private final CacheBusConfiguration configuration;
     private final Map<String, CacheConfiguration> cacheConfigurationsByName;
     private final Map<String, Set<String>> cachesByAliases;
+    private final CompositeCacheBusState state;
 
     private volatile boolean started;
     private volatile CacheEventMessageConsumer messageConsumer;
     private volatile CacheEventMessageProducer cacheEventMessageProducer;
 
     public DefaultCacheBus(@Nonnull CacheBusConfiguration configuration) {
+        this.id = CACHE_BUS_LABEL + "_" + UUID.randomUUID();
+        this.state = new CompositeCacheBusState(this);
         this.configuration = Objects.requireNonNull(configuration, "configuration");
         final Set<CacheConfiguration> cacheConfigurations = configuration.cacheConfigurationSource().pull();
         this.cacheConfigurationsByName = cacheConfigurations
@@ -113,13 +122,13 @@ public final class DefaultCacheBus implements ExtendedCacheBus {
     }
 
     @Override
-    public void setConfiguration(@Nonnull CacheBusConfiguration configuration) {
+    public void withConfiguration(@Nonnull CacheBusConfiguration configuration) {
         throw new ConfigurationException("Configuration can be set only via constructor in this implementation of CacheBus");
     }
 
     @Override
     @Nonnull
-    public CacheBusConfiguration getConfiguration() {
+    public CacheBusConfiguration configuration() {
         if (!this.started) {
             throw new LifecycleException("CacheBus must be in started state");
         }
@@ -151,6 +160,8 @@ public final class DefaultCacheBus implements ExtendedCacheBus {
 
         logger.info("Cache bus stopping...");
 
+        unregisterCacheEventListeners();
+
         final CacheBusTransportConfiguration transportConfiguration = this.configuration.transportConfiguration();
         final CacheBusMessageChannel<CacheBusMessageChannelConfiguration> messageChannel = transportConfiguration.messageChannel();
 
@@ -161,6 +172,12 @@ public final class DefaultCacheBus implements ExtendedCacheBus {
         this.started = false;
 
         logger.info("Cache bus stopped");
+    }
+
+    @Nonnull
+    @Override
+    public CacheBusState state() {
+        return this.state;
     }
 
     private boolean needToSendEvent(final CacheConfiguration cacheConfiguration, final CacheEntryEventType eventType) {
@@ -237,20 +254,11 @@ public final class DefaultCacheBus implements ExtendedCacheBus {
 
         logger.debug("Cache event listeners initializing...");
 
-        /*
-         * Регистрируем подписчиков на кэшах
-         */
-        final CacheProviderConfiguration providerConfiguration = this.configuration.providerConfiguration();
-        final CacheManager cacheManager = providerConfiguration.cacheManager();
-        final CacheEventListenerRegistrar cacheEventListenerRegistrar = providerConfiguration.cacheEventListenerRegistrar();
-        this.cacheConfigurationsByName
-                .values()
-                .stream()
-                .map(CacheConfiguration::cacheName)
-                .map(cacheManager::getCache)
-                .flatMap(Optional::stream)
-                .peek(cache -> logger.debug("Listeners will be registered for cache {}", cache))
-                .forEach(cache -> cacheEventListenerRegistrar.registerFor(this, cache));
+        // Регистрируем подписчиков на кэшах
+        executeWithCacheEventListeners(
+                (registrar, cache) -> registrar.registerFor(this, cache),
+                "registered"
+        );
 
         logger.debug("Cache event listeners initialized");
     }
@@ -284,5 +292,108 @@ public final class DefaultCacheBus implements ExtendedCacheBus {
         channel.subscribe(this.messageConsumer);
 
         logger.debug("Message channel {} initialized", channel);
+    }
+
+    private void unregisterCacheEventListeners() {
+
+        logger.debug("Cache event listeners unregistering...");
+
+        executeWithCacheEventListeners(
+                (registrar, cache) -> registrar.unregisterFor(this, cache),
+                "unregistered");
+
+        logger.debug("Cache event listeners unregistered");
+    }
+
+    private void executeWithCacheEventListeners(
+            final BiConsumer<CacheEventListenerRegistrar, Cache<?, ?>> action,
+            final String logLabel) {
+
+        final CacheProviderConfiguration providerConfiguration = this.configuration.providerConfiguration();
+        final CacheManager cacheManager = providerConfiguration.cacheManager();
+        final CacheEventListenerRegistrar cacheEventListenerRegistrar = providerConfiguration.cacheEventListenerRegistrar();
+        this.cacheConfigurationsByName
+                .values()
+                .stream()
+                .map(CacheConfiguration::cacheName)
+                .map(cacheManager::getCache)
+                .flatMap(Optional::stream)
+                .peek(cache -> logger.debug("Listeners will be {} for cache {}", logLabel, cache))
+                .forEach(cache -> action.accept(cacheEventListenerRegistrar, cache));
+    }
+
+    private record CompositeCacheBusState(@Nonnull DefaultCacheBus cacheBus) implements CacheBusState {
+
+        @Nonnull
+        @Override
+        public String componentId() {
+            return this.cacheBus.id;
+        }
+
+        @Nonnull
+        @Override
+        public Status status() {
+            if (!this.cacheBus.started) {
+                return Status.DOWN;
+            }
+
+            // Если один из компонентов упал / не запустился / попал в неисправимое состояние,
+            // то шина считается активной, но не способной продолжать нормальную работу
+            if (channelState().status() == Status.DOWN
+                    || channelState().status() == Status.UP_FATAL_BROKEN
+                    || processingQueueState().status() == Status.DOWN
+                    || processingQueueState().status() == Status.UP_FATAL_BROKEN
+                    || sendingQueueState().status() == Status.DOWN
+                    || sendingQueueState().status() == Status.UP_FATAL_BROKEN
+                    || cacheManagerState().status() == Status.DOWN
+                    || cacheManagerState().status() == Status.UP_FATAL_BROKEN) {
+                return Status.UP_FATAL_BROKEN;
+            }
+
+            return Status.UP_OK;
+        }
+
+        @Nonnull
+        @Override
+        public List<SeverityInfo> severities() {
+            final var channelSeverities = channelState().severities();
+            final var processingQueueSeverities = processingQueueState().severities();
+            final var sendingQueueSeverities = sendingQueueState().severities();
+            final var cacheManagerSeverities = cacheManagerState().severities();
+
+            final List<SeverityInfo> severities = new ArrayList<>(channelSeverities.size() + processingQueueSeverities.size() + cacheManagerSeverities.size() + sendingQueueSeverities.size());
+            severities.addAll(channelSeverities);
+            severities.addAll(cacheManagerSeverities);
+            severities.addAll(sendingQueueSeverities);
+            severities.addAll(processingQueueSeverities);
+
+            return severities;
+        }
+
+        @Nonnull
+        @Override
+        public ComponentState channelState() {
+            final var transportConfig = this.cacheBus.configuration.transportConfiguration();
+            return transportConfig.messageChannel().state();
+        }
+
+        @Nonnull
+        @Override
+        public ComponentState processingQueueState() {
+            return this.cacheBus.messageConsumer.state();
+        }
+
+        @Nonnull
+        @Override
+        public ComponentState sendingQueueState() {
+            return this.cacheBus.cacheEventMessageProducer.state();
+        }
+
+        @Override
+        @Nonnull
+        public ComponentState cacheManagerState() {
+            final var providerConfig = this.cacheBus.configuration.providerConfiguration();
+            return providerConfig.cacheManager().state();
+        }
     }
 }

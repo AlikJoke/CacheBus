@@ -7,6 +7,7 @@ import org.ehcache.event.EventType;
 import org.mockito.Mock;
 
 import java.util.List;
+import java.util.UUID;
 
 public class EhCache3CacheEntryEventListenerTest extends BaseCacheEventListenerTest<CacheEvent<? extends String, ? extends String>, EventType> {
 
@@ -83,6 +84,6 @@ public class EhCache3CacheEntryEventListenerTest extends BaseCacheEventListenerT
 
     @Override
     protected void makePreparationActions() {
-        this.listener = new EhCache3CacheEntryEventListener<>(this.cacheBus, CACHE_NAME);
+        this.listener = new EhCache3CacheEntryEventListener<>(UUID.randomUUID().toString(), this.cacheBus, CACHE_NAME);
     }
 }

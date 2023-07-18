@@ -6,6 +6,7 @@ import net.cache.bus.core.ExtendedCacheBus;
 import net.cache.bus.core.LifecycleException;
 import net.cache.bus.core.configuration.CacheBusConfiguration;
 import net.cache.bus.core.impl.DefaultCacheBus;
+import net.cache.bus.core.state.CacheBusState;
 import org.springframework.context.SmartLifecycle;
 import org.springframework.context.event.ContextStartedEvent;
 import org.springframework.context.event.ContextStoppedEvent;
@@ -37,7 +38,7 @@ public class SpringCacheBusBean implements CacheBus, SmartLifecycle {
 
     /**
      * Создает реализацию шины с включенным автоматическим управлением жизненным циклом бина.<br>
-     * Обязательно после этого должен последовать вызов {@link SpringCacheBusBean#setConfiguration(CacheBusConfiguration)}.
+     * Обязательно после этого должен последовать вызов {@link SpringCacheBusBean#withConfiguration(CacheBusConfiguration)}.
      */
     public SpringCacheBusBean() {
         this(true);
@@ -45,7 +46,7 @@ public class SpringCacheBusBean implements CacheBus, SmartLifecycle {
 
     /**
      * Создает реализацию шины с заданным параметром признаком автоматического управления жизненным циклом бина.<br>
-     * Обязательно после этого должен последовать вызов {@link SpringCacheBusBean#setConfiguration(CacheBusConfiguration)}.
+     * Обязательно после этого должен последовать вызов {@link SpringCacheBusBean#withConfiguration(CacheBusConfiguration)}.
      *
      * @param isAutoStart если {@code true}, то шина активируется после завершения построения Spring-контекста;
      *                    если {@code false}, то для запуска шины приложение должно явно вызывать методы {@link #start()} и {@link #stop()}.
@@ -86,7 +87,7 @@ public class SpringCacheBusBean implements CacheBus, SmartLifecycle {
      * @throws LifecycleException если {@code isRunning == true}, т.е. если шина уже была запущена
      */
     @Override
-    public void setConfiguration(@Nonnull CacheBusConfiguration configuration) {
+    public void withConfiguration(@Nonnull CacheBusConfiguration configuration) {
         if (this.isRunning) {
             throw new LifecycleException("Configuration changing isn't allowed in running state");
         }
@@ -95,8 +96,18 @@ public class SpringCacheBusBean implements CacheBus, SmartLifecycle {
     }
 
     @Override
-    public CacheBusConfiguration getConfiguration() {
+    public CacheBusConfiguration configuration() {
         return this.configuration;
+    }
+
+    @Nonnull
+    @Override
+    public CacheBusState state() {
+        if (!this.isRunning && this.delegateCacheBus == null) {
+            throw new LifecycleException("Cache bus isn't running yet");
+        }
+
+        return this.delegateCacheBus.state();
     }
 
     /**

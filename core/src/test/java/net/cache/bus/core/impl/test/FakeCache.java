@@ -76,6 +76,11 @@ public class FakeCache<K extends Serializable, V extends Serializable> implement
         this.cacheEventListener = listener;
     }
 
+    @Override
+    public void unregisterEventListener(@Nonnull CacheEventListener<K, V> listener) {
+        this.cacheEventListener = null;
+    }
+
     public CacheEventListener<K, V> getRegisteredEventListener() {
         return this.cacheEventListener;
     }

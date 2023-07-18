@@ -44,4 +44,22 @@ public class JCacheCacheEventListenerRegistrarTest {
         assertNotNull(listener, "Event listener must be not null");
         assertEquals(JCacheCacheEntryEventListener.class, listener.getClass(), "Event listener must be not null");
     }
+
+    @Test
+    public void testRemoveRegistration() {
+        final JCacheCacheEventListenerRegistrar registrar = new JCacheCacheEventListenerRegistrar();
+        final JCacheCacheAdapter<String, String> cacheAdapter = new JCacheCacheAdapter<>(this.cache);
+        doNothing().when(this.cache).registerCacheEntryListener(captor.capture());
+        doNothing().when(this.cache).deregisterCacheEntryListener(captor.capture());
+
+        registrar.registerFor(this.cacheBus, cacheAdapter);
+        registrar.unregisterFor(this.cacheBus, cacheAdapter);
+
+        assertEquals(2, captor.getAllValues().size(), "Must be captured 2 listeners");
+        assertEquals(
+                captor.getAllValues().get(0).getCacheEntryListenerFactory().create(),
+                captor.getAllValues().get(1).getCacheEntryListenerFactory().create(),
+                "Registered listener and unregistered must be equal"
+        );
+    }
 }

@@ -20,10 +20,12 @@ import java.util.Objects;
 @Immutable
 final class EhCache2CacheEntryEventListener<K extends Serializable, V extends Serializable> extends CacheEventListenerAdapter implements CacheEventListener<K, V> {
 
+    private final String listenerId;
     private final CacheBus cacheBus;
 
-    public EhCache2CacheEntryEventListener(@Nonnull CacheBus cacheBus) {
+    public EhCache2CacheEntryEventListener(@Nonnull String listenerId, @Nonnull CacheBus cacheBus) {
         this.cacheBus = Objects.requireNonNull(cacheBus, "cacheBus");
+        this.listenerId = Objects.requireNonNull(listenerId, "listenerId");
     }
 
     @Override
@@ -97,6 +99,33 @@ final class EhCache2CacheEntryEventListener<K extends Serializable, V extends Se
                 cache.getName()
         );
         this.cacheBus.send(event);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+
+        final EhCache2CacheEntryEventListener<?, ?> that = (EhCache2CacheEntryEventListener<?, ?>) o;
+        return listenerId.equals(that.listenerId) && cacheBus.equals(that.cacheBus);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = listenerId.hashCode();
+        result = 31 * result + cacheBus.hashCode();
+        return result;
+    }
+
+    @Override
+    public String toString() {
+        return "EhCache2CacheEntryEventListener{" +
+                "listenerId='" + listenerId +
+                '}';
     }
 
     private CacheEntryEvent<Serializable, V> composeCacheEntryEvent(

@@ -114,4 +114,16 @@ public final class EhCache3CacheAdapter<K extends Serializable, V extends Serial
             throw new ClassCastException("Cache listener implementation must implement " + CacheEventListener.class.getCanonicalName());
         }
     }
+
+    @Override
+    public void unregisterEventListener(@Nonnull net.cache.bus.core.CacheEventListener<K, V> listener) {
+
+        if (listener instanceof CacheEventListener<?, ?>) {
+            @SuppressWarnings("unchecked")
+            final CacheEventListener<K, V> eventListener = (CacheEventListener<K, V>) listener;
+            this.cache.getRuntimeConfiguration().deregisterCacheEventListener(eventListener);
+        } else {
+            throw new ClassCastException("Cache listener implementation must implement " + CacheEventListener.class.getCanonicalName());
+        }
+    }
 }

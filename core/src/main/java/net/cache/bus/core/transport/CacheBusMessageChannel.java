@@ -3,6 +3,7 @@ package net.cache.bus.core.transport;
 import net.cache.bus.core.CacheEntryEvent;
 import net.cache.bus.core.CacheEventMessageConsumer;
 import net.cache.bus.core.configuration.CacheBusMessageChannelConfiguration;
+import net.cache.bus.core.state.ComponentState;
 
 import javax.annotation.Nonnull;
 
@@ -14,7 +15,7 @@ import javax.annotation.Nonnull;
  * @see CacheEntryOutputMessage
  * @see CacheBusMessageChannelConfiguration
  */
-public interface CacheBusMessageChannel<T extends CacheBusMessageChannelConfiguration> extends AutoCloseable{
+public interface CacheBusMessageChannel<T extends CacheBusMessageChannelConfiguration> extends AutoCloseable {
 
     /**
      * Производит активацию канала сообщений шины кэшей.
@@ -43,4 +44,13 @@ public interface CacheBusMessageChannel<T extends CacheBusMessageChannelConfigur
      */
     @Override
     void close();
+
+    /**
+     * Возвращает информацию о состоянии канала взаимодействия с другими серверами.
+     *
+     * @return не может быть {@code null}.
+     * @see ComponentState
+     */
+    @Nonnull
+    ComponentState state();
 }

@@ -1,5 +1,7 @@
 package net.cache.bus.core;
 
+import net.cache.bus.core.state.ComponentState;
+
 import javax.annotation.Nonnull;
 import java.io.Serializable;
 import java.util.Optional;
@@ -26,6 +28,15 @@ public interface CacheManager {
      */
     @Nonnull
     <T> T getUnderlyingCacheManager(@Nonnull Class<T> managerType);
+
+    /**
+     * Возвращает информацию о состоянии менеджера кэшей.
+     *
+     * @return не может быть {@code null}.
+     * @see ComponentState
+     */
+    @Nonnull
+    ComponentState state();
 
     /**
      * Возвращает кэш по его имени.

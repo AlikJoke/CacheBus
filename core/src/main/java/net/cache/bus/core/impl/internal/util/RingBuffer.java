@@ -45,11 +45,14 @@ public final class RingBuffer<E> {
      * Добавляет элемент в буфер. Метод блокируется, если буфер полон.
      *
      * @param elem элемент для добавления в буфер, не может быть {@code null}.
+     * @return признак, потребовалась ли блокировка при добавлении в буфер (т.е. буфер был полон)
      */
-    public void offer(@Nonnull final E elem) throws InterruptedException {
+    public boolean offer(@Nonnull final E elem) throws InterruptedException {
 
         int currentWriteValue;
+        boolean isFull = false;
         while ((currentWriteValue = this.writeCounter) - this.readCounter == this.capacity - 1) {
+            isFull = true;
             this.writeSemaphore.acquire();
         }
 
@@ -57,6 +60,8 @@ public final class RingBuffer<E> {
         this.elements[nextCounter % this.capacity] = elem;
         this.writeCounter = nextCounter;
         this.readSemaphore.release();
+
+        return isFull;
     }
 
     /**

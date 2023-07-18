@@ -4,6 +4,7 @@ import net.cache.bus.core.CacheBus;
 import net.cache.bus.core.CacheEventMessageConsumer;
 import net.cache.bus.core.impl.internal.util.RingBuffer;
 import net.cache.bus.core.impl.internal.util.StripedRingBuffersContainer;
+import net.cache.bus.core.state.ComponentState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,14 +32,18 @@ public final class AsynchronousCacheEventMessageConsumer implements CacheEventMe
 
     private static final Logger logger = LoggerFactory.getLogger(AsynchronousCacheEventMessageConsumer.class);
 
+    private static final String CONSUMER_ID = "async-message-consumer";
+
     private final StripedRingBuffersContainer<byte[]> messageBuffers;
     private final List<Future<?>> processingTasks;
+    private final AsyncMessageProcessingState state;
 
     public AsynchronousCacheEventMessageConsumer(
             @Nonnull final CacheBus cacheBus,
             @Nonnull final StripedRingBuffersContainer<byte[]> messageBuffers,
             @Nonnull final ExecutorService processingPool) {
         this.messageBuffers = Objects.requireNonNull(messageBuffers, "messageBuffers");
+        this.state = new AsyncMessageProcessingState(CONSUMER_ID, "Count of interrupted threads on processing messages from channel: %d", messageBuffers.size());
         this.processingTasks = startProcessingTasks(cacheBus, messageBuffers, processingPool);
     }
 
@@ -48,11 +53,20 @@ public final class AsynchronousCacheEventMessageConsumer implements CacheEventMe
         final RingBuffer<byte[]> ringBuffer = this.messageBuffers.get(bufferIndex);
 
         try {
-            ringBuffer.offer(messageBody);
+            if (ringBuffer.offer(messageBody)) {
+                logger.info("Buffer of messages to processing is full: maybe you should increase count of threads or buffers capacity?");
+                this.state.onBufferFull();
+            }
         } catch (InterruptedException ex) {
             logger.info("Thread was interrupted", ex);
             Thread.currentThread().interrupt();
         }
+    }
+
+    @Nonnull
+    @Override
+    public ComponentState state() {
+        return this.state;
     }
 
     private int computeBufferIndexByHash(final int hash) {
@@ -67,7 +81,7 @@ public final class AsynchronousCacheEventMessageConsumer implements CacheEventMe
         final List<Future<?>> futures = new ArrayList<>();
         for (int i = 0; i < messageBuffers.size(); i++) {
             final RingBuffer<byte[]> messageBuffer = messageBuffers.get(i);
-            final Runnable processingTask = new CacheEventMessageProcessingTask(cacheBus, messageBuffer);
+            final Runnable processingTask = new CacheEventMessageProcessingTask(cacheBus, messageBuffer, this.state::increaseCountOfInterruptedThreads);
 
             final Future<?> future = processingPool.submit(processingTask);
             futures.add(future);
@@ -80,5 +94,6 @@ public final class AsynchronousCacheEventMessageConsumer implements CacheEventMe
     public void close() {
         logger.info("Consumer closure was called");
         this.processingTasks.forEach(future -> future.cancel(true));
+        this.state.toStoppedState();
     }
 }

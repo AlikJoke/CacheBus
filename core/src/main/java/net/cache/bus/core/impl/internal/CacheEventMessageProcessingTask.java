@@ -27,12 +27,15 @@ final class CacheEventMessageProcessingTask implements Runnable {
 
     private final CacheBus cacheBus;
     private final RingBuffer<byte[]> messageBuffer;
+    private final Runnable interruptionHandler;
 
     CacheEventMessageProcessingTask(
             @Nonnull final CacheBus cacheBus,
-            @Nonnull final RingBuffer<byte[]> messageBuffer) {
+            @Nonnull final RingBuffer<byte[]> messageBuffer,
+            @Nonnull final Runnable interruptionHandler) {
         this.messageBuffer = Objects.requireNonNull(messageBuffer, "messageBuffer");
         this.cacheBus = Objects.requireNonNull(cacheBus, "cacheBus");
+        this.interruptionHandler = Objects.requireNonNull(interruptionHandler, "interruptionHandler");
     }
 
     @Override
@@ -44,6 +47,7 @@ final class CacheEventMessageProcessingTask implements Runnable {
                 this.cacheBus.receive(message);
             } catch (InterruptedException ex) {
                 logger.info("Thread was interrupted", ex);
+                this.interruptionHandler.run();
                 return;
             }
         }

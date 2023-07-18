@@ -2,6 +2,8 @@ package net.cache.bus.jcache.adapters;
 
 import net.cache.bus.core.Cache;
 import net.cache.bus.core.CacheManager;
+import net.cache.bus.core.impl.ImmutableComponentState;
+import net.cache.bus.core.state.ComponentState;
 
 import javax.annotation.Nonnull;
 import java.io.Serializable;
@@ -11,6 +13,8 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 public final class JCacheCacheManagerAdapter implements CacheManager {
+
+    private static final String CACHE_MANAGER_ID = "jcache-cache-manager";
 
     private final javax.cache.CacheManager cacheManager;
     private final Map<String, Optional<Cache<Serializable, Serializable>>> cachesMap;
@@ -31,6 +35,17 @@ public final class JCacheCacheManagerAdapter implements CacheManager {
     public <K extends Serializable, V extends Serializable> Optional<Cache<K, V>> getCache(@Nonnull String cacheName) {
         return this.cachesMap.computeIfAbsent(cacheName, this::composeCacheAdapter)
                                 .map(this::cast);
+    }
+
+    @Override
+    @Nonnull
+    public ComponentState state() {
+        return new ImmutableComponentState(
+                CACHE_MANAGER_ID,
+                this.cacheManager.isClosed()
+                        ? ComponentState.Status.UP_OK
+                        : ComponentState.Status.DOWN
+        );
     }
 
     private <K extends Serializable, V extends Serializable> Optional<Cache<K, V>> composeCacheAdapter(@Nonnull String cacheName) {

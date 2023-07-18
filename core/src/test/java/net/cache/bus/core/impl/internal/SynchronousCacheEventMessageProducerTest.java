@@ -10,6 +10,7 @@ import net.cache.bus.core.impl.ImmutableCacheEntryEvent;
 import net.cache.bus.core.impl.configuration.ImmutableCacheBusTransportConfiguration;
 import net.cache.bus.core.impl.configuration.ImmutableCacheConfiguration;
 import net.cache.bus.core.impl.test.FakeCacheBusMessageChannel;
+import net.cache.bus.core.state.ComponentState;
 import net.cache.bus.core.transport.CacheEntryEventConverter;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -56,6 +57,17 @@ public class SynchronousCacheEventMessageProducerTest {
         assertEquals(1, channel.getMessages().size(), "Channel must contain 1 output message");
         assertEquals(event.computeEventHashKey(), channel.getMessages().get(0).messageHashKey(), "Hash key must be equal");
         assertArrayEquals(body, channel.getMessages().get(0).cacheEntryMessageBody(), "Message must be equal");
+    }
+
+    @Test
+    public void testState() {
+        final CacheBusTransportConfiguration configuration = createTransportConfiguration();
+        SynchronousCacheEventMessageProducer messageProducer = new SynchronousCacheEventMessageProducer(configuration);
+        try (messageProducer) {
+            assertEquals(ComponentState.Status.UP_OK, messageProducer.state().status(), "Status of sync message producer before closure must be UP_OK");
+        }
+
+        assertEquals(ComponentState.Status.DOWN, messageProducer.state().status(), "Status of sync message producer after closure must be DOWN");
     }
 
     private CacheBusTransportConfiguration createTransportConfiguration() {

@@ -3,8 +3,11 @@ package net.cache.bus.jms.channel;
 import net.cache.bus.core.CacheEntryEvent;
 import net.cache.bus.core.CacheEntryEventType;
 import net.cache.bus.core.CacheEventMessageConsumer;
+import net.cache.bus.core.impl.ImmutableComponentState;
 import net.cache.bus.core.impl.ImmutableCacheEntryEvent;
+import net.cache.bus.core.impl.internal.ImmutableCacheEntryOutputMessage;
 import net.cache.bus.core.impl.resolvers.StaticHostNameResolver;
+import net.cache.bus.core.state.ComponentState;
 import net.cache.bus.core.transport.CacheEntryOutputMessage;
 import net.cache.bus.core.transport.MessageChannelException;
 import net.cache.bus.jms.configuration.JmsCacheBusMessageChannelConfiguration;
@@ -64,6 +67,8 @@ public class JmsCacheBusMessageChannelTest {
         assertThrows(MessageChannelException.class, () -> channel.send(mock(CacheEntryOutputMessage.class)));
         assertThrows(MessageChannelException.class, channel::close, "Closure available only after activation");
         assertThrows(MessageChannelException.class, () -> channel.subscribe(new TestMessageConsumer()), "Subscribing available only after activation of channel");
+        assertNotNull(channel.state(), "State must be not null");
+        assertEquals(ComponentState.Status.DOWN, channel.state().status(), "State must be DOWN");
     }
 
     @Test
@@ -74,13 +79,14 @@ public class JmsCacheBusMessageChannelTest {
 
         final CacheEntryEvent<String, String> event = new ImmutableCacheEntryEvent<>("1", null, "v1", CacheEntryEventType.ADDED, "test1");
         final byte[] binaryEvent = event.key().getBytes();
-        final CacheEntryOutputMessage outputMessage = new TestCacheEntryOutputMessage(event, binaryEvent);
+        final CacheEntryOutputMessage outputMessage = new ImmutableCacheEntryOutputMessage(event, binaryEvent);
 
         // action
         channel.send(outputMessage);
 
         // checks
         makeSuccessSendChecks(outputMessage);
+        assertEquals(ComponentState.Status.UP_NOT_READY, channel.state().status(), "State must be UP_NOT_READY (no subscribing detected)");
     }
 
     @Test
@@ -91,7 +97,7 @@ public class JmsCacheBusMessageChannelTest {
 
         final CacheEntryEvent<String, String> event = new ImmutableCacheEntryEvent<>("1", null, "v1", CacheEntryEventType.ADDED, "test1");
         final byte[] binaryEvent = event.key().getBytes();
-        final CacheEntryOutputMessage outputMessage = new TestCacheEntryOutputMessage(event, binaryEvent);
+        final CacheEntryOutputMessage outputMessage = new ImmutableCacheEntryOutputMessage(event, binaryEvent);
 
         // action
         // Флаг сбросится в методе send
@@ -119,9 +125,10 @@ public class JmsCacheBusMessageChannelTest {
             // action
             channel.subscribe(consumer);
 
-            Thread.sleep(Duration.ofMillis(200));
+            Thread.sleep(Duration.ofMillis(300));
 
             // checks
+            assertEquals(ComponentState.Status.UP_OK, channel.state().status(), "State must be UP_OK");
             // CONNECTIONS_COUNT - количество изначально созданных соединений,
             // и +1 - пересозданное при ошибке при получении данных из канала
             verify(this.connectionFactory, times(CONNECTIONS_COUNT + 1)).createContext();
@@ -170,6 +177,7 @@ public class JmsCacheBusMessageChannelTest {
         channel.close();
 
         // checks
+        assertEquals(ComponentState.Status.DOWN, channel.state().status(), "State must be DOWN");
         verify(this.jmsContext, times(CONNECTIONS_COUNT)).close();
     }
 
@@ -216,6 +224,12 @@ public class JmsCacheBusMessageChannelTest {
         @Override
         public void accept(int messageHash, @Nonnull byte[] messageBody) {
             this.bodyMap.put(messageHash, messageBody);
+        }
+
+        @Nonnull
+        @Override
+        public ComponentState state() {
+            return new ImmutableComponentState("test-consumer", ComponentState.Status.UP_OK);
         }
     }
 
@@ -565,34 +579,6 @@ public class JmsCacheBusMessageChannelTest {
         @Override
         public Destination getJMSReplyTo() {
             throw new UnsupportedOperationException();
-        }
-    }
-
-    static class TestCacheEntryOutputMessage implements CacheEntryOutputMessage {
-
-        private final CacheEntryEvent<?, ?> event;
-        private final byte[] body;
-
-        private TestCacheEntryOutputMessage(CacheEntryEvent<?, ?> event, byte[] body) {
-            this.event = event;
-            this.body = body;
-        }
-
-        @Nonnull
-        @Override
-        public String cacheName() {
-            return this.event.cacheName();
-        }
-
-        @Nonnull
-        @Override
-        public byte[] cacheEntryMessageBody() {
-            return this.body;
-        }
-
-        @Override
-        public int messageHashKey() {
-            return this.event.computeEventHashKey();
         }
     }
 }

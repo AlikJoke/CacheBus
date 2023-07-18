@@ -4,9 +4,11 @@ import com.rabbitmq.client.*;
 import net.cache.bus.core.CacheEntryEvent;
 import net.cache.bus.core.CacheEntryEventType;
 import net.cache.bus.core.CacheEventMessageConsumer;
+import net.cache.bus.core.impl.ImmutableComponentState;
 import net.cache.bus.core.impl.ImmutableCacheEntryEvent;
 import net.cache.bus.core.impl.internal.ImmutableCacheEntryOutputMessage;
 import net.cache.bus.core.impl.resolvers.StaticHostNameResolver;
+import net.cache.bus.core.state.ComponentState;
 import net.cache.bus.core.transport.CacheEntryOutputMessage;
 import net.cache.bus.core.transport.MessageChannelException;
 import net.cache.bus.rabbit.configuration.RabbitCacheBusMessageChannelConfiguration;
@@ -73,6 +75,8 @@ public class RabbitCacheBusMessageChannelTest {
         assertThrows(MessageChannelException.class, () -> channel.send(mock(CacheEntryOutputMessage.class)));
         assertThrows(MessageChannelException.class, channel::close, "Closure available only after activation");
         assertThrows(MessageChannelException.class, () -> channel.subscribe(new TestMessageConsumer()), "Subscribing available only after activation of channel");
+        assertNotNull(channel.state(), "State must be not null");
+        assertEquals(ComponentState.Status.DOWN, channel.state().status(), "State must be DOWN");
     }
 
     @Test
@@ -84,6 +88,7 @@ public class RabbitCacheBusMessageChannelTest {
         activateChannel(channel);
 
         //check
+        assertEquals(ComponentState.Status.UP_NOT_READY, channel.state().status(), "State must be UP_NOT_READY");
         verify(this.channel, times(1)).queueDeclare(CHANNEL_NAME, false, false, false, Collections.emptyMap());
     }
 
@@ -98,6 +103,7 @@ public class RabbitCacheBusMessageChannelTest {
         final CacheEntryOutputMessage outputMessage = new ImmutableCacheEntryOutputMessage(event, binaryEvent);
 
         // checks
+        assertEquals(2, this.shutdownListenerCaptor.getAllValues().size(), "Must be registered 2 shutdown listeners");
         assertEquals(2, this.shutdownListenerCaptor.getAllValues().size(), "Must be registered 2 shutdown listeners");
 
         // actions
@@ -130,6 +136,7 @@ public class RabbitCacheBusMessageChannelTest {
         this.shutdownListenerCaptor.getAllValues().forEach(l -> l.shutdownCompleted(new ShutdownSignalException(false, false, mock(Method.class), new Object())));
 
         // checks
+        assertEquals(ComponentState.Status.UP_OK, channel.state().status(), "State must be UP_OK");
         verify(this.channel, times(2)).basicConsume(eq(CHANNEL_NAME), eq(true), nullable(String.class), eq(true), eq(false), eq(Collections.emptyMap()), any());
         verify(this.connectionFactory, times(2 * 2)).newConnection();
 
@@ -268,6 +275,12 @@ public class RabbitCacheBusMessageChannelTest {
         @Override
         public void accept(int messageHash, @Nonnull byte[] messageBody) {
             this.bodyMap.computeIfAbsent(messageHash, k -> new ConcurrentLinkedQueue<>()).add(messageBody);
+        }
+
+        @Nonnull
+        @Override
+        public ComponentState state() {
+            return new ImmutableComponentState("test-consumer", ComponentState.Status.UP_OK);
         }
     }
 }

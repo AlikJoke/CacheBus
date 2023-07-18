@@ -10,6 +10,7 @@ import org.mockito.Mock;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
@@ -85,7 +86,7 @@ public class EhCache2CacheEntryEventListenerTest extends BaseCacheEventListenerT
     @Override
     protected void makePreparationActions() {
         when(this.cache.getName()).thenReturn(CACHE_NAME);
-        this.listener = new EhCache2CacheEntryEventListener<>(this.cacheBus);
+        this.listener = new EhCache2CacheEntryEventListener<>(UUID.randomUUID().toString(), this.cacheBus);
     }
 
     @Override

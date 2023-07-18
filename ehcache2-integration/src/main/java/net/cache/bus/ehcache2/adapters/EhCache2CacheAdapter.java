@@ -126,6 +126,16 @@ public final class EhCache2CacheAdapter<K extends Serializable, V extends Serial
         }
     }
 
+    @Override
+    public void unregisterEventListener(@Nonnull net.cache.bus.core.CacheEventListener<K, V> listener) {
+
+        if (listener instanceof CacheEventListener eventListener) {
+            this.cache.getCacheEventNotificationService().unregisterListener(eventListener);
+        } else {
+            throw new ClassCastException("Cache listener implementation must implement " + CacheEventListener.class.getCanonicalName());
+        }
+    }
+
     private V castValue(final Object value) {
         @SuppressWarnings("unchecked")
         final V result = (V) value;

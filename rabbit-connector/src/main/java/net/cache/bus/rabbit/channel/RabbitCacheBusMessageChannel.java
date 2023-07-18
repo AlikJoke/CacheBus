@@ -2,11 +2,14 @@ package net.cache.bus.rabbit.channel;
 
 import com.rabbitmq.client.*;
 import net.cache.bus.core.CacheEventMessageConsumer;
+import net.cache.bus.core.impl.ImmutableComponentState;
+import net.cache.bus.core.state.ComponentState;
 import net.cache.bus.core.transport.CacheBusMessageChannel;
 import net.cache.bus.core.transport.CacheEntryOutputMessage;
 import net.cache.bus.core.transport.MessageChannelException;
 import net.cache.bus.rabbit.configuration.RabbitCacheBusMessageChannelConfiguration;
 import net.cache.bus.transport.addons.ChannelRecoveryProcessor;
+import net.cache.bus.transport.addons.ChannelState;
 import net.cache.bus.transport.addons.ConcurrentLinkedBlockingQueue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,7 +17,9 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.ThreadSafe;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -32,14 +37,17 @@ import static net.cache.bus.transport.ChannelConstants.POLL_CHANNEL_TIMEOUT;
 @ThreadSafe
 public final class RabbitCacheBusMessageChannel implements CacheBusMessageChannel<RabbitCacheBusMessageChannelConfiguration> {
 
-    private static final Logger logger = LoggerFactory.getLogger(RabbitCacheBusMessageChannel.class);
-
     static final String HOST_PROPERTY = "host";
     static final String HASH_KEY_PROPERTY = "hash";
+
+    private static final Logger logger = LoggerFactory.getLogger(RabbitCacheBusMessageChannel.class);
+
+    private static final String CHANNEL_ID = "rabbit-channel";
 
     private volatile RabbitConsumerSessionConfiguration consumerSessionConfiguration;
     private volatile RabbitProducerSessionConfiguration producerSessionConfiguration;
     private volatile CacheEventMessageConsumer messageConsumer;
+    private volatile ChannelState channelState;
 
     @Override
     public synchronized void activate(@Nonnull RabbitCacheBusMessageChannelConfiguration rabbitConfiguration) {
@@ -49,6 +57,7 @@ public final class RabbitCacheBusMessageChannel implements CacheBusMessageChanne
             throw new MessageChannelException("Channel already activated");
         }
 
+        this.channelState = new ChannelState();
         initializeConsumerSession(rabbitConfiguration);
         initializeProducerSession(rabbitConfiguration);
     }
@@ -71,7 +80,7 @@ public final class RabbitCacheBusMessageChannel implements CacheBusMessageChanne
                 channel = sessionConfiguration.sendingChannels.poll(POLL_CHANNEL_TIMEOUT, TimeUnit.SECONDS);
                 if (channel == null) {
                     logger.info("Could not retrieve channel in %d seconds timeout, maybe you should increase count of available channels in rabbit channel configuration?".formatted(POLL_CHANNEL_TIMEOUT));
-                    channel = sessionConfiguration.sendingChannels.take();
+                    channel = waitForChannelUntilAvailable(sessionConfiguration.sendingChannels);
                 }
 
                 final String channelName = sessionConfiguration.sharedConfiguration.channel();
@@ -87,8 +96,7 @@ public final class RabbitCacheBusMessageChannel implements CacheBusMessageChanne
                 recoverProducerSession(ex, sessionConfiguration);
                 retry = true;
             } catch (InterruptedException ex) {
-                logger.info("Thread was interrupted", ex);
-                Thread.currentThread().interrupt();
+                handleInterruptionOfThread(ex);
             } finally {
                 if (channel != null && !retry) {
                     sessionConfiguration.sendingChannels.offer(channel);
@@ -122,6 +130,58 @@ public final class RabbitCacheBusMessageChannel implements CacheBusMessageChanne
         final RabbitProducerSessionConfiguration producerSessionConfiguration = this.producerSessionConfiguration;
         this.producerSessionConfiguration = null;
         producerSessionConfiguration.close();
+
+        this.messageConsumer = null;
+        this.channelState = null;
+    }
+
+    @Nonnull
+    @Override
+    public synchronized ComponentState state() {
+
+        final ChannelState channelState = this.channelState;
+        if (channelState == null || this.consumerSessionConfiguration == null || this.producerSessionConfiguration == null) {
+            return new ImmutableComponentState(CHANNEL_ID, ComponentState.Status.DOWN);
+        } else if (this.messageConsumer == null) {
+            return new ImmutableComponentState(CHANNEL_ID, ComponentState.Status.UP_NOT_READY);
+        }
+
+        final List<ComponentState.SeverityInfo> severities = new ArrayList<>();
+        channelState.summarizeStats().forEach(s -> severities.add(() -> s));
+
+        final ComponentState.Status status =
+                channelState.unrecoverableConsumers() > 0
+                        ? ComponentState.Status.UP_FATAL_BROKEN
+                        : ComponentState.Status.UP_OK;
+
+        return new ImmutableComponentState(CHANNEL_ID, status, severities);
+    }
+
+    private Channel waitForChannelUntilAvailable(final ConcurrentLinkedBlockingQueue<Channel> channels) throws InterruptedException {
+
+        final ChannelState channelState = this.channelState;
+        if (channelState != null) {
+            channelState.increaseCountOfProducersInBusyPollingOfConnections();
+        }
+
+        try {
+            return channels.take();
+        } finally {
+            if (channelState != null) {
+                channelState.decreaseCountOfProducersInBusyPollingOfConnections();
+            }
+        }
+    }
+
+    private void handleInterruptionOfThread(final InterruptedException ex) {
+        logger.info("Thread was interrupted", ex);
+
+        final ChannelState channelState = this.channelState;
+        if (channelState != null) {
+            channelState.increaseCountOfInterruptedThreads();
+        }
+
+        Thread.currentThread().interrupt();
     }
 
     private void subscribeToChannel() {
@@ -129,6 +189,7 @@ public final class RabbitCacheBusMessageChannel implements CacheBusMessageChanne
         logger.info("Subscribe was called");
 
         RabbitConsumerSessionConfiguration sessionConfiguration;
+        ChannelState channelState = this.channelState;
         if ((sessionConfiguration = this.consumerSessionConfiguration) == null) {
             return;
         }
@@ -167,6 +228,7 @@ public final class RabbitCacheBusMessageChannel implements CacheBusMessageChanne
             );
         } catch (IOException ex) {
             logger.error("Unable to subscribe", ex);
+            channelState.increaseCountOfUnrecoverableConsumers();
             throw new MessageChannelException(ex);
         }
     }
@@ -210,6 +272,12 @@ public final class RabbitCacheBusMessageChannel implements CacheBusMessageChanne
             final Exception ex,
             final RabbitProducerSessionConfiguration sessionConfiguration) {
 
+        final ChannelState channelState = this.channelState;
+        if (channelState == null) {
+            // Канал закрыли, больше делать нечего
+            return;
+        }
+
         // Синхронизация на объекте конфигурации на случай параллельных потоков отправки сообщений
         synchronized (sessionConfiguration) {
 
@@ -217,6 +285,8 @@ public final class RabbitCacheBusMessageChannel implements CacheBusMessageChanne
             if (this.producerSessionConfiguration != sessionConfiguration) {
                 return;
             }
+
+            channelState.increaseCountOfProducersInRecoveryState();
 
             // С высокой вероятностью, если есть проблема с одним каналом, то будут проблемы и с другими
             // из-за общего соединения, поэтому полностью пересоздаем каналы
@@ -229,7 +299,10 @@ public final class RabbitCacheBusMessageChannel implements CacheBusMessageChanne
             try {
                 recoveryProcessor.recover(ex);
             } catch (RuntimeException e) {
+                channelState.increaseCountOfUnrecoverableProducers();
                 throw new MessageChannelException(e);
+            } finally {
+                channelState.decreaseCountProducersInRecoveryState();
             }
         }
     }
@@ -238,9 +311,12 @@ public final class RabbitCacheBusMessageChannel implements CacheBusMessageChanne
 
         // Поток прервали
         final RabbitSessionConfiguration sessionConfiguration = this.consumerSessionConfiguration;
-        if (sessionConfiguration == null) {
+        final ChannelState channelState = this.channelState;
+        if (sessionConfiguration == null || channelState == null) {
             return;
         }
+
+        channelState.increaseCountOfConsumersInRecoveryState();
 
         final ChannelRecoveryProcessor recoveryProcessor = new ChannelRecoveryProcessor(
                 sessionConfiguration::close,
@@ -251,7 +327,10 @@ public final class RabbitCacheBusMessageChannel implements CacheBusMessageChanne
         try {
             recoveryProcessor.recover(ex);
         } catch (RuntimeException e) {
+            channelState.increaseCountOfUnrecoverableConsumers();
             throw new MessageChannelException(e);
+        } finally {
+            channelState.decreaseCountConsumersInRecoveryState();
         }
     }
 

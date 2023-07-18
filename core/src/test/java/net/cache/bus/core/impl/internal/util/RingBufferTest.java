@@ -13,15 +13,15 @@ public class RingBufferTest {
     @Test
     public void testWhenOfferInNotFullBufferAndPoolFromNotEmptyBufferThenOk() throws InterruptedException {
         final RingBuffer<Integer> buffer = new RingBuffer<>(3);
-        buffer.offer(1);
-        buffer.offer(2);
-        buffer.offer(3);
+        assertFalse(buffer.offer(1), "Offering must be without blocking to non-full buffer");
+        assertFalse(buffer.offer(2), "Offering must be without blocking to non-full buffer");
+        assertFalse(buffer.offer(3), "Offering must be without blocking to non-full buffer");
 
         assertEquals(1, buffer.poll());
         assertEquals(2, buffer.poll());
         assertEquals(3, buffer.poll());
 
-        buffer.offer(3);
+        assertFalse(buffer.offer(3), "Offering must be without blocking to non-full buffer");
 
         assertEquals(3, buffer.poll());
     }
@@ -62,7 +62,7 @@ public class RingBufferTest {
         try (final ExecutorService executorService = Executors.newSingleThreadExecutor()) {
             final Future<?> future = executorService.submit(() -> {
                 try {
-                    buffer.offer(3);
+                    assertTrue(buffer.offer(3), "Offering must be with blocking to full buffer");
                 } catch (InterruptedException e) {
                     throw new RuntimeException(e);
                 }

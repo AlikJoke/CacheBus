@@ -47,4 +47,23 @@ public class EhCache2CacheEventListenerRegistrarTest {
         assertNotNull(listenerCaptor.getValue(), "Listener must be not null");
         assertEquals(NotificationScope.LOCAL, scopeCaptor.getValue(), "Scope must be local");
     }
+
+    @Test
+    public void testRemoveRegistration() {
+        final EhCache2CacheEventListenerRegistrar registrar = new EhCache2CacheEventListenerRegistrar();
+        final EhCache2CacheAdapter<String, String> cacheAdapter = new EhCache2CacheAdapter<>(this.cache);
+
+        when(this.cache.getCacheEventNotificationService()).thenReturn(this.registeredEventListeners);
+        when(this.registeredEventListeners.registerListener(
+                listenerCaptor.capture(),
+                scopeCaptor.capture()
+        )).thenReturn(true);
+        when(this.registeredEventListeners.unregisterListener(listenerCaptor.capture())).thenReturn(true);
+
+        registrar.registerFor(this.cacheBus, cacheAdapter);
+        registrar.unregisterFor(this.cacheBus, cacheAdapter);
+
+        assertEquals(2, listenerCaptor.getAllValues().size(), "Must be captured 2 listeners");
+        assertEquals(listenerCaptor.getAllValues().get(0), listenerCaptor.getAllValues().get(1), "Registered listener and unregistered must be equal");
+    }
 }

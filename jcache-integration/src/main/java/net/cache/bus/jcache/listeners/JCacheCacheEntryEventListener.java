@@ -18,10 +18,12 @@ final class JCacheCacheEntryEventListener<K extends Serializable, V extends Seri
         implements CacheEntryCreatedListener<K, V>, CacheEntryUpdatedListener<K, V>,
         CacheEntryExpiredListener<K, V>, CacheEntryRemovedListener<K, V>, CacheEventListener<K, V> {
 
+    private final String listenerId;
     private final CacheBus cacheBus;
 
-    public JCacheCacheEntryEventListener(@Nonnull CacheBus cacheBus) {
+    public JCacheCacheEntryEventListener(@Nonnull String listenerId, @Nonnull CacheBus cacheBus) {
         this.cacheBus = Objects.requireNonNull(cacheBus, "cacheBus");
+        this.listenerId = Objects.requireNonNull(listenerId, "listenerId");
     }
 
     @Override
@@ -42,6 +44,33 @@ final class JCacheCacheEntryEventListener<K extends Serializable, V extends Seri
     @Override
     public void onUpdated(Iterable<CacheEntryEvent<? extends K, ? extends V>> iterable) throws CacheEntryListenerException {
         sendToBus(iterable);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+
+        final JCacheCacheEntryEventListener<?, ?> that = (JCacheCacheEntryEventListener<?, ?>) o;
+        return listenerId.equals(that.listenerId) && cacheBus.equals(that.cacheBus);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = listenerId.hashCode();
+        result = 31 * result + cacheBus.hashCode();
+        return result;
+    }
+
+    @Override
+    public String toString() {
+        return "JCacheCacheEntryEventListener{" +
+                "listenerId='" + listenerId +
+                '}';
     }
 
     private void sendToBus(final Iterable<CacheEntryEvent<? extends K, ? extends V>> iterable) {

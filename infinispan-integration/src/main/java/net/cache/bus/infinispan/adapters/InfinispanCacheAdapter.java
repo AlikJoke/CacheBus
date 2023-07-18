@@ -79,4 +79,9 @@ public final class InfinispanCacheAdapter<K extends Serializable, V extends Seri
     public void registerEventListener(@Nonnull CacheEventListener<K, V> listener) {
         this.cache.addListener(listener);
     }
+
+    @Override
+    public void unregisterEventListener(@Nonnull CacheEventListener<K, V> listener) {
+        this.cache.removeListener(listener);
+    }
 }

@@ -2,6 +2,8 @@ package net.cache.bus.core.impl.test;
 
 import net.cache.bus.core.Cache;
 import net.cache.bus.core.CacheManager;
+import net.cache.bus.core.impl.ImmutableComponentState;
+import net.cache.bus.core.state.ComponentState;
 
 import javax.annotation.Nonnull;
 import java.io.Serializable;
@@ -20,6 +22,12 @@ public class FakeCacheManager implements CacheManager {
     @Override
     public <T> T getUnderlyingCacheManager(@Nonnull Class<T> managerType) {
         throw new UnsupportedOperationException();
+    }
+
+    @Nonnull
+    @Override
+    public ComponentState state() {
+        return new ImmutableComponentState("fake-cache-manager", ComponentState.Status.UP_OK);
     }
 
     @Nonnull

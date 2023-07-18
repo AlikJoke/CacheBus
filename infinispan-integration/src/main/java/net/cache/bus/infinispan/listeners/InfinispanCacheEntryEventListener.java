@@ -15,9 +15,11 @@ import java.util.Objects;
 @Listener
 final class InfinispanCacheEntryEventListener<K extends Serializable, V extends Serializable> implements CacheEventListener<K, V> {
 
+    private final String listenerId;
     private final CacheBus cacheBus;
 
-    public InfinispanCacheEntryEventListener(@Nonnull CacheBus cacheBus) {
+    public InfinispanCacheEntryEventListener(@Nonnull String listenerId, @Nonnull CacheBus cacheBus) {
+        this.listenerId = Objects.requireNonNull(listenerId, "listenerId");
         this.cacheBus = Objects.requireNonNull(cacheBus, "cacheBus");
     }
 
@@ -59,6 +61,33 @@ final class InfinispanCacheEntryEventListener<K extends Serializable, V extends 
             );
             this.cacheBus.send(busEvent);
         });
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+
+        final InfinispanCacheEntryEventListener<?, ?> that = (InfinispanCacheEntryEventListener<?, ?>) o;
+        return listenerId.equals(that.listenerId) && cacheBus.equals(that.cacheBus);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = listenerId.hashCode();
+        result = 31 * result + cacheBus.hashCode();
+        return result;
+    }
+
+    @Override
+    public String toString() {
+        return "InfinispanCacheEntryEventListener{" +
+                "listenerId='" + listenerId +
+                '}';
     }
 
     private void sendToBus(

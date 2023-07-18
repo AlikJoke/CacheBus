@@ -2,6 +2,8 @@ package net.cache.bus.core.impl.test;
 
 import net.cache.bus.core.CacheEventMessageConsumer;
 import net.cache.bus.core.configuration.CacheBusMessageChannelConfiguration;
+import net.cache.bus.core.impl.ImmutableComponentState;
+import net.cache.bus.core.state.ComponentState;
 import net.cache.bus.core.transport.CacheBusMessageChannel;
 import net.cache.bus.core.transport.CacheEntryOutputMessage;
 
@@ -34,6 +36,12 @@ public class FakeCacheBusMessageChannel implements CacheBusMessageChannel<CacheB
     @Override
     public void close() {
         this.unsubscribeCalled = true;
+    }
+
+    @Nonnull
+    @Override
+    public ComponentState state() {
+        return new ImmutableComponentState("fake-channel", unsubscribeCalled ? ComponentState.Status.DOWN : ComponentState.Status.UP_OK);
     }
 
     public CacheBusMessageChannelConfiguration getConfiguration() {

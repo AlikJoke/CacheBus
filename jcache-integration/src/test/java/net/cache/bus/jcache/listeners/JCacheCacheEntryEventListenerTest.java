@@ -7,6 +7,7 @@ import javax.cache.Cache;
 import javax.cache.event.CacheEntryEvent;
 import javax.cache.event.EventType;
 import java.util.List;
+import java.util.UUID;
 
 import static org.mockito.Mockito.when;
 
@@ -92,6 +93,6 @@ public class JCacheCacheEntryEventListenerTest extends BaseCacheEventListenerTes
     protected void makePreparationActions() {
         when(this.cache.getName()).thenReturn(CACHE_NAME);
 
-        this.listener = new JCacheCacheEntryEventListener<>(this.cacheBus);
+        this.listener = new JCacheCacheEntryEventListener<>(UUID.randomUUID().toString(), this.cacheBus);
     }
 }

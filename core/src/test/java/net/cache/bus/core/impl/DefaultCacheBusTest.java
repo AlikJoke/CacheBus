@@ -10,6 +10,7 @@ import net.cache.bus.core.impl.internal.ImmutableCacheEntryOutputMessage;
 import net.cache.bus.core.impl.test.FakeCache;
 import net.cache.bus.core.impl.test.FakeCacheBusMessageChannel;
 import net.cache.bus.core.impl.test.FakeCacheManager;
+import net.cache.bus.core.state.ComponentState;
 import net.cache.bus.core.transport.CacheEntryEventConverter;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -59,16 +60,17 @@ public class DefaultCacheBusTest {
         final ExtendedCacheBus cacheBus = new DefaultCacheBus(configuration);
 
         //checks
-        assertThrows(LifecycleException.class, cacheBus::getConfiguration, "Configuration available only after start");
+        assertThrows(LifecycleException.class, cacheBus::configuration, "Configuration available only after start");
         assertDoesNotThrow(() -> cacheBus.send(mock(CacheEntryEvent.class)), "Send should not be happen");
         assertDoesNotThrow(() -> cacheBus.receive(new byte[0]), "Receive should not be happen");
-        assertThrows(ConfigurationException.class, () -> cacheBus.setConfiguration(configuration), "Default implementation configurable only via constructor");
+        assertThrows(ConfigurationException.class, () -> cacheBus.withConfiguration(configuration), "Default implementation configurable only via constructor");
         assertThrows(LifecycleException.class, cacheBus::stop, "Stop available only for started bus");
+        assertEquals(ComponentState.Status.DOWN, cacheBus.state().status(), "State of cache bus must be DOWN");
     }
 
     @Test
     @Order(1)
-    public void testStartOfBus() {
+    public void testStartStopOfBus() {
         // preparation
         final ExtendedCacheBus cacheBus = new DefaultCacheBus(configuration);
 
@@ -85,10 +87,26 @@ public class DefaultCacheBusTest {
         final FakeCacheBusMessageChannel channel = (FakeCacheBusMessageChannel) configuration.transportConfiguration().messageChannel();
         assertNotNull(channel.getConfiguration(), "Channel must be activated (configuration will be set when activation be happen)");
         assertNotNull(channel.getConsumer(), "Subscription must be called");
+        assertEquals(ComponentState.Status.UP_OK, cacheBus.state().status(), "State of running cache bus must be UP_OK");
 
         // clearing
         cacheBus.stop();
+        assertNull(cache.getRegisteredEventListener(), "Event listener must be unregistered");;
         assertTrue(channel.isUnsubscribeCalled(), "Unsubscribe must be called for channel");
+        assertEquals(ComponentState.Status.DOWN, cacheBus.state().status(), "State of stopped cache bus must be DOWN");
+    }
+
+    @Test
+    public void testBusStateWhenOneOfComponentsIsDown() {
+        // preparation
+        final DefaultCacheBus cacheBus = new DefaultCacheBus(configuration);
+        cacheBus.start();
+
+        // action
+        final FakeCacheBusMessageChannel channel = (FakeCacheBusMessageChannel) configuration.transportConfiguration().messageChannel();
+        channel.close();
+
+        assertEquals(ComponentState.Status.UP_FATAL_BROKEN, cacheBus.state().status(), "State of running cache bus with stopped message channel must be UP_FATAL_BROKEN");
     }
 
     @Test
@@ -269,6 +287,13 @@ public class DefaultCacheBusTest {
                 @SuppressWarnings("unchecked")
                 final CacheEventListener<K, V> listener = (CacheEventListener<K, V>) eventListener;
                 cache.registerEventListener(listener);
+            }
+
+            @Override
+            public <K extends Serializable, V extends Serializable> void unregisterFor(@Nonnull CacheBus cacheBus, @Nonnull Cache<K, V> cache) {
+                @SuppressWarnings("unchecked")
+                final CacheEventListener<K, V> listener = (CacheEventListener<K, V>) eventListener;
+                cache.unregisterEventListener(listener);
             }
         };
         final CacheProviderConfiguration providerConfiguration = new CacheProviderConfigurationTemplate(cacheManager, eventListenerRegistrar) {};

@@ -105,20 +105,27 @@ public final class JCacheCacheAdapter<K extends Serializable, V extends Serializ
 
     @Override
     public void registerEventListener(@Nonnull CacheEventListener<K, V> listener) {
+        this.cache.registerCacheEntryListener(createListenerConfiguration(listener));
+    }
 
+    @Override
+    public void unregisterEventListener(@Nonnull CacheEventListener<K, V> listener) {
+        this.cache.deregisterCacheEntryListener(createListenerConfiguration(listener));
+    }
+
+    private CacheEntryListenerConfiguration<K, V> createListenerConfiguration(@Nonnull CacheEventListener<K, V> listener) {
         if (!(listener instanceof CacheEntryListener<?,?>)) {
             throw new ClassCastException("Cache listener implementation must implement " + CacheEntryListener.class.getCanonicalName());
         }
 
         @SuppressWarnings("unchecked")
         final CacheEntryListener<K, V> eventListener = (CacheEntryListener<K, V>) listener;
-        final CacheEntryListenerConfiguration<K, V> configuration = new MutableCacheEntryListenerConfiguration<>(
+        return new MutableCacheEntryListenerConfiguration<>(
                 () -> eventListener,
                 AcceptAllFilter::new,
                 true,
                 true
         );
-        this.cache.registerCacheEntryListener(configuration);
     }
 
     private static class AcceptAllFilter<K, V> implements CacheEntryEventFilter<K, V> {

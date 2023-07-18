@@ -60,4 +60,25 @@ public class EhCache3CacheEventListenerRegistrarTest {
         assertEquals(EventFiring.SYNCHRONOUS, firingCaptor.getValue(), "Events listening must be synchronous");
         assertEquals(Set.of(EventType.values()), eventTypesCaptor.getValue(), "Events types to listen must be equals");
     }
+
+    @Test
+    public void testRemoveRegistration() {
+        final EhCache3CacheEventListenerRegistrar registrar = new EhCache3CacheEventListenerRegistrar();
+        final EhCache3CacheAdapter<String, String> cacheAdapter = new EhCache3CacheAdapter<>(this.cache, "test");
+
+        when(this.cache.getRuntimeConfiguration()).thenReturn(this.cacheConfiguration);
+        doNothing().when(this.cacheConfiguration).registerCacheEventListener(
+                listenerCaptor.capture(),
+                orderingCaptor.capture(),
+                firingCaptor.capture(),
+                eventTypesCaptor.capture()
+        );
+        doNothing().when(this.cacheConfiguration).deregisterCacheEventListener(listenerCaptor.capture());
+
+        registrar.registerFor(this.cacheBus, cacheAdapter);
+        registrar.unregisterFor(this.cacheBus, cacheAdapter);
+
+        assertEquals(2, listenerCaptor.getAllValues().size(), "Must be captured 2 listeners");
+        assertEquals(listenerCaptor.getAllValues().get(0), listenerCaptor.getAllValues().get(1), "Registered listener and unregistered must be equal");
+    }
 }

@@ -4,6 +4,7 @@ import net.cache.bus.core.CacheEntryEvent;
 import net.cache.bus.core.configuration.CacheBusMessageChannelConfiguration;
 import net.cache.bus.core.configuration.CacheBusTransportConfiguration;
 import net.cache.bus.core.configuration.CacheConfiguration;
+import net.cache.bus.core.state.ComponentState;
 import net.cache.bus.core.transport.CacheBusMessageChannel;
 import net.cache.bus.core.transport.CacheEntryEventConverter;
 import net.cache.bus.core.transport.CacheEntryOutputMessage;
@@ -46,7 +47,15 @@ public abstract class CacheEventMessageProducer implements AutoCloseable {
         messageChannel.send(outputMessage);
     }
 
+    /**
+     * Возвращает информацию о состоянии производителя сообщений в канал.
+     *
+     * @return не может быть {@code null}.
+     * @see ComponentState
+     */
+    @Nonnull
+    public abstract ComponentState state();
+
     @Override
-    public void close() {
-    }
+    public abstract void close();
 }

@@ -2,11 +2,14 @@ package net.cache.bus.kafka.channel;
 
 import net.cache.bus.core.CacheBus;
 import net.cache.bus.core.CacheEventMessageConsumer;
+import net.cache.bus.core.impl.ImmutableComponentState;
+import net.cache.bus.core.state.ComponentState;
 import net.cache.bus.core.transport.CacheBusMessageChannel;
 import net.cache.bus.core.transport.CacheEntryOutputMessage;
 import net.cache.bus.core.transport.MessageChannelException;
 import net.cache.bus.kafka.configuration.KafkaCacheBusMessageChannelConfiguration;
 import net.cache.bus.transport.addons.ChannelRecoveryProcessor;
+import net.cache.bus.transport.addons.ChannelState;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -50,9 +53,11 @@ public final class KafkaCacheBusMessageChannel implements CacheBusMessageChannel
 
     private static final byte[] MESSAGE_TYPE_BYTES = MESSAGE_TYPE.getBytes(StandardCharsets.UTF_8);
 
+    private static final String CHANNEL_ID = "kafka-channel";
     private static final String MESSAGE_TYPE_HEADER = "type";
     private static final String HOST_HEADER = "host";
 
+    private volatile ChannelState channelState;
     private volatile KafkaProducerSessionConfiguration producerSessionConfiguration;
     private volatile KafkaConsumerSessionConfiguration consumerSessionConfiguration;
     private Future<?> subscribingTask;
@@ -66,6 +71,7 @@ public final class KafkaCacheBusMessageChannel implements CacheBusMessageChannel
         }
 
         try {
+            this.channelState = new ChannelState();
             this.producerSessionConfiguration = new KafkaProducerSessionConfiguration(configuration);
             this.consumerSessionConfiguration = new KafkaConsumerSessionConfiguration(configuration, true);
         } catch (KafkaException ex) {
@@ -140,6 +146,30 @@ public final class KafkaCacheBusMessageChannel implements CacheBusMessageChannel
             this.subscribingTask.cancel(true);
             this.subscribingTask = null;
         }
+
+        this.channelState = null;
+    }
+
+    @Nonnull
+    @Override
+    public synchronized ComponentState state() {
+
+        final ChannelState channelState = this.channelState;
+        if (channelState == null || this.consumerSessionConfiguration == null || this.producerSessionConfiguration == null) {
+            return new ImmutableComponentState(CHANNEL_ID, ComponentState.Status.DOWN);
+        } else if (this.subscribingTask == null) {
+            return new ImmutableComponentState(CHANNEL_ID, ComponentState.Status.UP_NOT_READY);
+        }
+
+        final List<ComponentState.SeverityInfo> severities = new ArrayList<>();
+        channelState.summarizeStats().forEach(s -> severities.add(() -> s));
+
+        final ComponentState.Status status =
+                channelState.unrecoverableConsumers() > 0
+                        ? ComponentState.Status.UP_FATAL_BROKEN
+                        : ComponentState.Status.UP_OK;
+
+        return new ImmutableComponentState(CHANNEL_ID, status, severities);
     }
 
     private void listenUntilNotClosed(final CacheEventMessageConsumer messageConsumer) {
@@ -191,6 +221,11 @@ public final class KafkaCacheBusMessageChannel implements CacheBusMessageChannel
 
     private void closeConsumer(final Consumer<Integer, byte[]> kafkaConsumer) {
 
+        final ChannelState channelState = this.channelState;
+        if (channelState != null) {
+            channelState.increaseCountOfUnrecoverableConsumers();
+        }
+
         try {
             kafkaConsumer.unsubscribe();
             kafkaConsumer.close();
@@ -201,6 +236,12 @@ public final class KafkaCacheBusMessageChannel implements CacheBusMessageChannel
 
     private void recoverProducerSession(final Exception ex, final KafkaSessionConfiguration sessionConfiguration) {
 
+        final ChannelState channelState = this.channelState;
+        if (channelState == null) {
+            // Канал закрыли, больше делать нечего
+            return;
+        }
+
         // Синхронизация на объекте конфигурации на случай параллельных потоков отправки сообщений
         synchronized (sessionConfiguration) {
 
@@ -208,6 +249,8 @@ public final class KafkaCacheBusMessageChannel implements CacheBusMessageChannel
             if (this.producerSessionConfiguration != sessionConfiguration) {
                 return;
             }
+
+            channelState.increaseCountOfProducersInRecoveryState();
 
             final ChannelRecoveryProcessor recoveryProcessor = new ChannelRecoveryProcessor(
                     sessionConfiguration::close,
@@ -218,7 +261,10 @@ public final class KafkaCacheBusMessageChannel implements CacheBusMessageChannel
             try {
                 recoveryProcessor.recover(ex);
             } catch (RuntimeException e) {
+                channelState.increaseCountOfUnrecoverableProducers();
                 throw new MessageChannelException(e);
+            } finally {
+                channelState.decreaseCountProducersInRecoveryState();
             }
         }
     }
@@ -226,9 +272,12 @@ public final class KafkaCacheBusMessageChannel implements CacheBusMessageChannel
     private void recoverConsumerSession(final Exception ex, final KafkaSessionConfiguration sessionConfiguration) {
 
         // Поток прервали
+        final ChannelState channelState = this.channelState;
         if (sessionConfiguration == null) {
             return;
         }
+
+        channelState.increaseCountOfConsumersInRecoveryState();
 
         final ChannelRecoveryProcessor recoveryProcessor = new ChannelRecoveryProcessor(
                 sessionConfiguration::close,
@@ -239,7 +288,10 @@ public final class KafkaCacheBusMessageChannel implements CacheBusMessageChannel
         try {
             recoveryProcessor.recover(ex);
         } catch (RuntimeException e) {
+            channelState.increaseCountOfUnrecoverableConsumers();
             throw new MessageChannelException(e);
+        } finally {
+            channelState.decreaseCountConsumersInRecoveryState();
         }
     }
 

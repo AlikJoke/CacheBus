@@ -1,5 +1,7 @@
 package net.cache.bus.core;
 
+import net.cache.bus.core.state.ComponentState;
+
 import javax.annotation.Nonnull;
 import java.io.Closeable;
 
@@ -20,6 +22,15 @@ public interface CacheEventMessageConsumer extends Closeable {
      * @param messageBody тело сообщения в бинарном формате, не может быть {@code null}.
      */
     void accept(int messageHash, @Nonnull byte[] messageBody);
+
+    /**
+     * Возвращает информацию о состоянии потребителя входящих сообщений с других серверов.
+     *
+     * @return не может быть {@code null}.
+     * @see ComponentState
+     */
+    @Nonnull
+    ComponentState state();
 
     /**
      * Производит закрытие потребителя сообщений и связанных с ним ресурсов, если это необходимо.

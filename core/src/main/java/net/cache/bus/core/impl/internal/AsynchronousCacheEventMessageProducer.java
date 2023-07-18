@@ -5,6 +5,7 @@ import net.cache.bus.core.configuration.CacheBusTransportConfiguration;
 import net.cache.bus.core.configuration.CacheConfiguration;
 import net.cache.bus.core.impl.internal.util.RingBuffer;
 import net.cache.bus.core.impl.internal.util.StripedRingBuffersContainer;
+import net.cache.bus.core.state.ComponentState;
 
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.Immutable;
@@ -29,8 +30,11 @@ import java.util.concurrent.Future;
 @Immutable
 public final class AsynchronousCacheEventMessageProducer extends CacheEventMessageProducer {
 
+    private static final String PRODUCER_ID = "async-message-producer";
+
     private final StripedRingBuffersContainer<CacheEntryEvent<?, ?>> eventBuffers;
     private final List<Future<?>> sendingTasks;
+    private final AsyncMessageProcessingState state;
 
     public AsynchronousCacheEventMessageProducer(
             @Nonnull final CacheBusTransportConfiguration transportConfiguration,
@@ -38,6 +42,7 @@ public final class AsynchronousCacheEventMessageProducer extends CacheEventMessa
             @Nonnull final StripedRingBuffersContainer<CacheEntryEvent<?, ?>> eventBuffers) {
         super(transportConfiguration);
         this.eventBuffers = Objects.requireNonNull(eventBuffers, "eventBuffers");
+        this.state = new AsyncMessageProcessingState(PRODUCER_ID, "Count of interrupted on produce to channel threads: %d", eventBuffers.size());
         this.sendingTasks = startProcessingTasks(cacheConfigurations, eventBuffers);
     }
 
@@ -48,17 +53,27 @@ public final class AsynchronousCacheEventMessageProducer extends CacheEventMessa
         final RingBuffer<CacheEntryEvent<?, ?>> ringBuffer = this.eventBuffers.get(bufferIndex);
 
         try {
-            ringBuffer.offer(event);
+            if (ringBuffer.offer(event)) {
+                logger.info("Buffer of messages for producing to channel is full: maybe you should increase count of threads or buffers capacity?");
+                this.state.onBufferFull();
+            }
         } catch (InterruptedException ex) {
-            logger.info("Thread was interrupted", ex);
+            this.logger.info("Thread was interrupted", ex);
             Thread.currentThread().interrupt();
         }
     }
 
+    @Nonnull
+    @Override
+    public ComponentState state() {
+        return this.state;
+    }
+
     @Override
     public void close() {
-        logger.info("Producer closure was called");
+        logger.info("Async producer closure was called");
         this.sendingTasks.forEach(future -> future.cancel(true));
+        this.state.toStoppedState();
     }
 
     private int computeBufferIndexByHash(final int hash) {
@@ -80,7 +95,9 @@ public final class AsynchronousCacheEventMessageProducer extends CacheEventMessa
                         final CacheEntryEvent<?, ?> event = eventBuffer.poll();
                         super.produce(cacheConfigurations.get(event.cacheName()), event);
                     } catch (InterruptedException ex) {
-                        logger.info("Thread was interrupted", ex);
+                        this.logger.info("Thread was interrupted", ex);
+                        this.state.increaseCountOfInterruptedThreads();
+
                         return;
                     }
                 }

@@ -15,8 +15,7 @@ import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.lenient;
 
@@ -51,5 +50,19 @@ public class InfinispanCacheEventListenerRegistrarTest {
 
         assertNotNull(captor.getValue(), "Listener must be not null");
         assertTrue(captor.getValue().getClass().isAnnotationPresent(Listener.class), "Listener must be annotated with @Listener annotation");
+    }
+
+    @Test
+    public void testRemoveRegistration() {
+        final InfinispanCacheEventListenerRegistrar registrar = new InfinispanCacheEventListenerRegistrar();
+        final InfinispanCacheAdapter<String, String> cacheAdapter = new InfinispanCacheAdapter<>(this.cache);
+        doNothing().when(this.cache).addListener(captor.capture());
+        doNothing().when(this.cache).removeListener(captor.capture());
+
+        registrar.registerFor(this.cacheBus, cacheAdapter);
+        registrar.unregisterFor(this.cacheBus, cacheAdapter);
+
+        assertEquals(2, captor.getAllValues().size(), "Must be captured 2 listeners");
+        assertEquals(captor.getAllValues().get(0), captor.getAllValues().get(1), "Registered listener and unregistered must be equal");
     }
 }

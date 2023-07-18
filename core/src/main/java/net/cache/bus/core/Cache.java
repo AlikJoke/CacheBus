@@ -126,4 +126,12 @@ public interface Cache<K extends Serializable, V extends Serializable> {
      * @see CacheEventListener
      */
     void registerEventListener(@Nonnull CacheEventListener<K, V> listener);
+
+    /**
+     * Снимает с кэша заданный слушатель событий, если он был ранее зарегистрирован.
+     *
+     * @param listener слушатель событий, который был зарегистрирован для кэша ранее, не может быть {@code null}.
+     * @see CacheEventListener
+     */
+    void unregisterEventListener(@Nonnull CacheEventListener<K, V> listener);
 }

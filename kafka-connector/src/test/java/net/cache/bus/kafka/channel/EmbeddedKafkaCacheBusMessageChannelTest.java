@@ -6,9 +6,11 @@ import io.github.embeddedkafka.EmbeddedKafkaConfig;
 import net.cache.bus.core.CacheEntryEvent;
 import net.cache.bus.core.CacheEntryEventType;
 import net.cache.bus.core.CacheEventMessageConsumer;
+import net.cache.bus.core.impl.ImmutableComponentState;
 import net.cache.bus.core.impl.ImmutableCacheEntryEvent;
 import net.cache.bus.core.impl.internal.ImmutableCacheEntryOutputMessage;
 import net.cache.bus.core.impl.resolvers.StaticHostNameResolver;
+import net.cache.bus.core.state.ComponentState;
 import net.cache.bus.core.transport.CacheEntryOutputMessage;
 import net.cache.bus.core.transport.MessageChannelException;
 import net.cache.bus.kafka.configuration.KafkaCacheBusMessageChannelConfiguration;
@@ -122,6 +124,12 @@ public class EmbeddedKafkaCacheBusMessageChannelTest {
         @Override
         public void accept(int messageHash, @Nonnull byte[] messageBody) {
             this.bodyMap.computeIfAbsent(messageHash, k -> new ConcurrentLinkedQueue<>()).add(messageBody);
+        }
+
+        @Nonnull
+        @Override
+        public ComponentState state() {
+            return new ImmutableComponentState("test-consumer", ComponentState.Status.UP_OK);
         }
     }
 }

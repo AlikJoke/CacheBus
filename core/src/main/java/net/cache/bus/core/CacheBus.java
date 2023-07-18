@@ -1,6 +1,8 @@
 package net.cache.bus.core;
 
 import net.cache.bus.core.configuration.CacheBusConfiguration;
+import net.cache.bus.core.state.CacheBusState;
+import net.cache.bus.core.state.ComponentState;
 
 import javax.annotation.Nonnull;
 import java.io.Serializable;
@@ -40,7 +42,7 @@ public interface CacheBus {
      *
      * @param configuration конфигурация шины кэшей, не может быть {@code null}.
      */
-    void setConfiguration(@Nonnull CacheBusConfiguration configuration);
+    void withConfiguration(@Nonnull CacheBusConfiguration configuration);
 
     /**
      * Возвращает используемую конфигурацию шины кэшей.
@@ -48,5 +50,15 @@ public interface CacheBus {
      * @return конфигурацию шины кэшей, не может быть {@code null}.
      * @see CacheBusConfiguration
      */
-    CacheBusConfiguration getConfiguration();
+    CacheBusConfiguration configuration();
+
+    /**
+     * Возвращает состояние данной шины кэшей и еще компонентов.
+     *
+     * @return не может быть {@code null}.
+     * @see CacheBusState
+     * @see ComponentState
+     */
+    @Nonnull
+    CacheBusState state();
 }

@@ -14,6 +14,7 @@ import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
@@ -36,7 +37,7 @@ public class InfinispanCacheEventListenerTest extends BaseCacheEventListenerTest
     protected void makePreparationActions() {
         when(this.cache.getName()).thenReturn(CACHE_NAME);
 
-        this.listener = new InfinispanCacheEntryEventListener<>(this.cacheBus);
+        this.listener = new InfinispanCacheEntryEventListener<>(UUID.randomUUID().toString(), this.cacheBus);
     }
 
     @Override
