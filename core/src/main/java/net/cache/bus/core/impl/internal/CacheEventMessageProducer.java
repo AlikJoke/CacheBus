@@ -4,6 +4,9 @@ import net.cache.bus.core.CacheEntryEvent;
 import net.cache.bus.core.configuration.CacheBusMessageChannelConfiguration;
 import net.cache.bus.core.configuration.CacheBusTransportConfiguration;
 import net.cache.bus.core.configuration.CacheConfiguration;
+import net.cache.bus.core.metrics.CacheBusMetricsRegistry;
+import net.cache.bus.core.metrics.KnownMetrics;
+import net.cache.bus.core.metrics.Metrics;
 import net.cache.bus.core.state.ComponentState;
 import net.cache.bus.core.transport.CacheBusMessageChannel;
 import net.cache.bus.core.transport.CacheEntryEventConverter;
@@ -28,10 +31,16 @@ public abstract class CacheEventMessageProducer implements AutoCloseable {
 
     protected final Logger logger = LoggerFactory.getLogger(getClass());
 
+    protected final CacheBusMetricsRegistry metrics;
     protected final CacheBusTransportConfiguration transportConfiguration;
 
-    protected CacheEventMessageProducer(@Nonnull CacheBusTransportConfiguration transportConfiguration) {
+    protected CacheEventMessageProducer(
+            @Nonnull CacheBusMetricsRegistry metrics,
+            @Nonnull CacheBusTransportConfiguration transportConfiguration) {
+        this.metrics = Objects.requireNonNull(metrics, "metrics");
         this.transportConfiguration = Objects.requireNonNull(transportConfiguration, "transportConfiguration");
+
+        this.metrics.registerSummary(new Metrics.Summary(KnownMetrics.PRODUCED_BYTES, "bytes"));
     }
 
     public void produce(
@@ -43,6 +52,8 @@ public abstract class CacheEventMessageProducer implements AutoCloseable {
 
         final CacheEntryOutputMessage outputMessage = new ImmutableCacheEntryOutputMessage(event, binaryEventData);
         final CacheBusMessageChannel<CacheBusMessageChannelConfiguration> messageChannel = this.transportConfiguration.messageChannel();
+
+        this.metrics.putToSummary(KnownMetrics.PRODUCED_BYTES, outputMessage.cacheEntryMessageBody().length);
 
         messageChannel.send(outputMessage);
     }

@@ -10,6 +10,7 @@ import net.cache.bus.core.impl.ImmutableCacheEntryEvent;
 import net.cache.bus.core.impl.configuration.ImmutableCacheBusTransportConfiguration;
 import net.cache.bus.core.impl.configuration.ImmutableCacheConfiguration;
 import net.cache.bus.core.impl.test.FakeCacheBusMessageChannel;
+import net.cache.bus.core.metrics.NoOpCacheBusMetricsRegistry;
 import net.cache.bus.core.state.ComponentState;
 import net.cache.bus.core.transport.CacheEntryEventConverter;
 import org.junit.jupiter.api.Test;
@@ -36,7 +37,7 @@ public class SynchronousCacheEventMessageProducerTest {
     public void testSyncProducing() {
         // preparation
         final CacheBusTransportConfiguration configuration = createTransportConfiguration();
-        final SynchronousCacheEventMessageProducer producer = new SynchronousCacheEventMessageProducer(configuration);
+        final SynchronousCacheEventMessageProducer producer = new SynchronousCacheEventMessageProducer(new NoOpCacheBusMetricsRegistry(), configuration);
 
         final CacheConfiguration cacheConfiguration =
                 ImmutableCacheConfiguration
@@ -62,7 +63,7 @@ public class SynchronousCacheEventMessageProducerTest {
     @Test
     public void testState() {
         final CacheBusTransportConfiguration configuration = createTransportConfiguration();
-        SynchronousCacheEventMessageProducer messageProducer = new SynchronousCacheEventMessageProducer(configuration);
+        SynchronousCacheEventMessageProducer messageProducer = new SynchronousCacheEventMessageProducer(new NoOpCacheBusMetricsRegistry(), configuration);
         try (messageProducer) {
             assertEquals(ComponentState.Status.UP_OK, messageProducer.state().status(), "Status of sync message producer before closure must be UP_OK");
         }

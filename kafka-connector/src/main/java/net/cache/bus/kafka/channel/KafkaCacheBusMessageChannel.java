@@ -3,6 +3,7 @@ package net.cache.bus.kafka.channel;
 import net.cache.bus.core.CacheBus;
 import net.cache.bus.core.CacheEventMessageConsumer;
 import net.cache.bus.core.impl.ImmutableComponentState;
+import net.cache.bus.core.metrics.*;
 import net.cache.bus.core.state.ComponentState;
 import net.cache.bus.core.transport.CacheBusMessageChannel;
 import net.cache.bus.core.transport.CacheEntryOutputMessage;
@@ -47,7 +48,7 @@ import static net.cache.bus.transport.ChannelConstants.MESSAGE_TYPE;
  * @see CacheBusMessageChannel
  */
 @ThreadSafe
-public final class KafkaCacheBusMessageChannel implements CacheBusMessageChannel<KafkaCacheBusMessageChannelConfiguration> {
+public final class KafkaCacheBusMessageChannel implements CacheBusMessageChannel<KafkaCacheBusMessageChannelConfiguration>, MetricsWriter {
 
     private static final Logger logger = LoggerFactory.getLogger(KafkaCacheBusMessageChannel.class);
 
@@ -60,6 +61,7 @@ public final class KafkaCacheBusMessageChannel implements CacheBusMessageChannel
     private volatile ChannelState channelState;
     private volatile KafkaProducerSessionConfiguration producerSessionConfiguration;
     private volatile KafkaConsumerSessionConfiguration consumerSessionConfiguration;
+    private CacheBusMetricsRegistry metrics = new NoOpCacheBusMetricsRegistry();
     private Future<?> subscribingTask;
 
     @Override
@@ -74,6 +76,7 @@ public final class KafkaCacheBusMessageChannel implements CacheBusMessageChannel
             this.channelState = new ChannelState();
             this.producerSessionConfiguration = new KafkaProducerSessionConfiguration(configuration);
             this.consumerSessionConfiguration = new KafkaConsumerSessionConfiguration(configuration, true);
+            registerMetrics();
         } catch (KafkaException ex) {
             logger.error("Unable to activate channel", ex);
             throw new MessageChannelException(ex);
@@ -251,6 +254,7 @@ public final class KafkaCacheBusMessageChannel implements CacheBusMessageChannel
             }
 
             channelState.increaseCountOfProducersInRecoveryState();
+            this.metrics.incrementCounter(KnownMetrics.PRODUCERS_IN_RECOVERY_COUNT);
 
             final ChannelRecoveryProcessor recoveryProcessor = new ChannelRecoveryProcessor(
                     sessionConfiguration::close,
@@ -259,14 +263,26 @@ public final class KafkaCacheBusMessageChannel implements CacheBusMessageChannel
             );
 
             try {
-                recoveryProcessor.recover(ex);
+                this.metrics.recordExecutionTime(
+                        KnownMetrics.PRODUCER_CONNECTION_RECOVERY_TIME,
+                        () -> recoveryProcessor.recover(ex)
+                );
             } catch (RuntimeException e) {
                 channelState.increaseCountOfUnrecoverableProducers();
                 throw new MessageChannelException(e);
             } finally {
                 channelState.decreaseCountProducersInRecoveryState();
+                this.metrics.decrementCounter(KnownMetrics.PRODUCERS_IN_RECOVERY_COUNT);
             }
         }
+    }
+
+    private void registerMetrics() {
+        this.metrics.registerTimer(new Metrics.Timer(KnownMetrics.PRODUCER_CONNECTION_WAIT_TIME));
+        this.metrics.registerTimer(new Metrics.Timer(KnownMetrics.PRODUCER_CONNECTION_RECOVERY_TIME));
+        this.metrics.registerTimer(new Metrics.Timer(KnownMetrics.CONSUMER_CONNECTION_RECOVERY_TIME));
+        this.metrics.registerCounter(new Metrics.Counter(KnownMetrics.PRODUCERS_IN_RECOVERY_COUNT));
+        this.metrics.registerCounter(new Metrics.Counter(KnownMetrics.CONSUMERS_IN_RECOVERY_COUNT));
     }
 
     private void recoverConsumerSession(final Exception ex, final KafkaSessionConfiguration sessionConfiguration) {
@@ -278,6 +294,7 @@ public final class KafkaCacheBusMessageChannel implements CacheBusMessageChannel
         }
 
         channelState.increaseCountOfConsumersInRecoveryState();
+        this.metrics.incrementCounter(KnownMetrics.CONSUMERS_IN_RECOVERY_COUNT);
 
         final ChannelRecoveryProcessor recoveryProcessor = new ChannelRecoveryProcessor(
                 sessionConfiguration::close,
@@ -286,13 +303,26 @@ public final class KafkaCacheBusMessageChannel implements CacheBusMessageChannel
         );
 
         try {
-            recoveryProcessor.recover(ex);
+            this.metrics.recordExecutionTime(
+                    KnownMetrics.CONSUMER_CONNECTION_RECOVERY_TIME,
+                    () -> recoveryProcessor.recover(ex)
+            );
         } catch (RuntimeException e) {
             channelState.increaseCountOfUnrecoverableConsumers();
             throw new MessageChannelException(e);
         } finally {
             channelState.decreaseCountConsumersInRecoveryState();
+            this.metrics.decrementCounter(KnownMetrics.CONSUMERS_IN_RECOVERY_COUNT);
         }
+    }
+
+    @Override
+    public void setMetrics(@Nonnull CacheBusMetricsRegistry registry) {
+        if (this.subscribingTask != null || this.consumerSessionConfiguration != null) {
+            throw new MessageChannelException("Not allowed if channel already activated");
+        }
+
+        this.metrics = Objects.requireNonNull(registry, "registry");
     }
 
     private static abstract class KafkaSessionConfiguration implements AutoCloseable {

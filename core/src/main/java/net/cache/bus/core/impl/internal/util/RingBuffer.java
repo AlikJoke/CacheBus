@@ -81,4 +81,12 @@ public final class RingBuffer<E> {
         this.writeSemaphore.release();
         return elem;
     }
+
+    public int currentReadIndex() {
+        return this.readCounter;
+    }
+
+    public int currentWritePosition() {
+        return this.writeCounter;
+    }
 }

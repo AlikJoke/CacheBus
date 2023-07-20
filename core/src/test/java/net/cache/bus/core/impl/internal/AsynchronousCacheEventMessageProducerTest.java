@@ -11,6 +11,7 @@ import net.cache.bus.core.impl.configuration.ImmutableCacheBusTransportConfigura
 import net.cache.bus.core.impl.configuration.ImmutableCacheConfiguration;
 import net.cache.bus.core.impl.internal.util.StripedRingBuffersContainer;
 import net.cache.bus.core.impl.test.FakeCacheBusMessageChannel;
+import net.cache.bus.core.metrics.NoOpCacheBusMetricsRegistry;
 import net.cache.bus.core.state.ComponentState;
 import net.cache.bus.core.transport.CacheEntryEventConverter;
 import net.cache.bus.core.transport.CacheEntryOutputMessage;
@@ -57,7 +58,7 @@ public class AsynchronousCacheEventMessageProducerTest {
 
         when(this.eventConverter.toBinary(any(), eq(cacheConfiguration.cacheType().serializeValueFields()))).thenReturn(new byte[] {2, 3});
 
-        final var producer = new AsynchronousCacheEventMessageProducer(transportConfiguration, cacheConfigurations, buffersContainer);
+        final var producer = new AsynchronousCacheEventMessageProducer(new NoOpCacheBusMetricsRegistry(), transportConfiguration, cacheConfigurations, buffersContainer);
         try (final var ignored1 = transportConfiguration.processingPool();
              final var ignored2 = transportConfiguration.asyncSendingPool();
              producer) {
@@ -93,7 +94,7 @@ public class AsynchronousCacheEventMessageProducerTest {
 
         when(this.eventConverter.toBinary(any(), eq(cacheConfiguration.cacheType().serializeValueFields()))).thenReturn(new byte[] {2, 3});
 
-        final var producer = new AsynchronousCacheEventMessageProducer(transportConfiguration, cacheConfigurations, buffersContainer);
+        final var producer = new AsynchronousCacheEventMessageProducer(new NoOpCacheBusMetricsRegistry(), transportConfiguration, cacheConfigurations, buffersContainer);
         try (final var ignored1 = transportConfiguration.processingPool();
              final var ignored2 = transportConfiguration.asyncSendingPool();
              producer) {

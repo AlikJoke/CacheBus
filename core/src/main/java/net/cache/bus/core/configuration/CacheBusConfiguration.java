@@ -1,5 +1,7 @@
 package net.cache.bus.core.configuration;
 
+import net.cache.bus.core.metrics.CacheBusMetricsRegistry;
+
 import javax.annotation.Nonnull;
 
 /**
@@ -9,6 +11,7 @@ import javax.annotation.Nonnull;
  * @see CacheConfiguration
  * @see CacheBusTransportConfiguration
  * @see CacheProviderConfiguration
+ * @see CacheBusMetricsRegistry
  */
 public interface CacheBusConfiguration {
 
@@ -38,4 +41,12 @@ public interface CacheBusConfiguration {
      */
     @Nonnull
     CacheProviderConfiguration providerConfiguration();
+
+    /**
+     * Возвращает реестр метрик, используемый для сбора статистики (метрик) шины кэшей.
+     *
+     * @return реестр метрик, не может быть {@code null}.
+     * @see CacheBusMetricsRegistry
+     */
+    CacheBusMetricsRegistry metricsRegistry();
 }

@@ -1,6 +1,8 @@
 package net.cache.bus.core.impl.configuration;
 
 import net.cache.bus.core.configuration.*;
+import net.cache.bus.core.metrics.CacheBusMetricsRegistry;
+import net.cache.bus.core.metrics.NoOpCacheBusMetricsRegistry;
 
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.Immutable;
@@ -21,14 +23,22 @@ import java.util.Objects;
 public record ImmutableCacheBusConfiguration(
         @Nonnull CacheConfigurationSource cacheConfigurationSource,
         @Nonnull CacheBusTransportConfiguration transportConfiguration,
-        @Nonnull CacheProviderConfiguration providerConfiguration) implements CacheBusConfiguration {
+        @Nonnull CacheProviderConfiguration providerConfiguration,
+        @Nonnull CacheBusMetricsRegistry metricsRegistry) implements CacheBusConfiguration {
 
     public ImmutableCacheBusConfiguration {
         Objects.requireNonNull(cacheConfigurationSource, "cacheConfigurationBuilder");
         Objects.requireNonNull(providerConfiguration, "providerConfiguration");
         Objects.requireNonNull(transportConfiguration, "transportConfiguration");
+        Objects.requireNonNull(transportConfiguration, "metricsRegistry");
     }
 
+    public ImmutableCacheBusConfiguration(
+            @Nonnull CacheConfigurationSource cacheConfigurationSource,
+            @Nonnull CacheBusTransportConfiguration transportConfiguration,
+            @Nonnull CacheProviderConfiguration providerConfiguration) {
+        this(cacheConfigurationSource, transportConfiguration, providerConfiguration, new NoOpCacheBusMetricsRegistry());
+    }
     /**
      * Возвращает объект строителя для формирования объекта конфигурации.
      *
@@ -45,6 +55,7 @@ public record ImmutableCacheBusConfiguration(
         private CacheConfigurationSource cacheConfigurationSource;
         private CacheBusTransportConfiguration transportConfiguration;
         private CacheProviderConfiguration providerConfiguration;
+        private CacheBusMetricsRegistry metricsRegistry = new NoOpCacheBusMetricsRegistry();
 
         /**
          * Устанавливает построитель для формирования конфигурация кэшей, подключенных к шине.
@@ -87,6 +98,19 @@ public record ImmutableCacheBusConfiguration(
         }
 
         /**
+         * Устанавливает используемый реестр метрик. Если не задан, то используется No-Op реализация, которая не регистрирует метрики.
+         *
+         * @param metricsRegistry реестр метрик для шины, не может быть {@code null}.
+         * @return не может быть {@code null}.
+         * @see CacheBusMetricsRegistry
+         */
+        @Nonnull
+        public Builder setMetricsRegistry(@Nonnull CacheBusMetricsRegistry metricsRegistry) {
+            this.metricsRegistry = metricsRegistry;
+            return this;
+        }
+
+        /**
          * Формирует объект конфигурации шины кэшей на основе переданных данных.
          *
          * @return не может быть {@code null}.
@@ -97,7 +121,8 @@ public record ImmutableCacheBusConfiguration(
             return new ImmutableCacheBusConfiguration(
                     this.cacheConfigurationSource,
                     this.transportConfiguration,
-                    this.providerConfiguration
+                    this.providerConfiguration,
+                    this.metricsRegistry
             );
         }
     }

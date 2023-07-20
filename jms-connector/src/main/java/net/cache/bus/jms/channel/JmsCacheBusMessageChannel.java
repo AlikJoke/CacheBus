@@ -2,6 +2,7 @@ package net.cache.bus.jms.channel;
 
 import net.cache.bus.core.CacheEventMessageConsumer;
 import net.cache.bus.core.impl.ImmutableComponentState;
+import net.cache.bus.core.metrics.*;
 import net.cache.bus.core.state.ComponentState;
 import net.cache.bus.core.transport.CacheBusMessageChannel;
 import net.cache.bus.core.transport.CacheEntryOutputMessage;
@@ -18,6 +19,7 @@ import javax.annotation.concurrent.ThreadSafe;
 import javax.jms.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.Future;
 
 import static net.cache.bus.transport.ChannelConstants.*;
@@ -30,7 +32,7 @@ import static net.cache.bus.transport.ChannelConstants.*;
  * @see CacheBusMessageChannel
  */
 @ThreadSafe
-public final class JmsCacheBusMessageChannel implements CacheBusMessageChannel<JmsCacheBusMessageChannelConfiguration> {
+public final class JmsCacheBusMessageChannel implements CacheBusMessageChannel<JmsCacheBusMessageChannelConfiguration>, MetricsWriter {
 
     static final String HOST_PROPERTY = "host";
     static final String HASH_KEY_PROPERTY = "hash";
@@ -44,6 +46,7 @@ public final class JmsCacheBusMessageChannel implements CacheBusMessageChannel<J
     private volatile ConcurrentLinkedBlockingQueue<JmsProducerSessionConfiguration> producerConfigurations;
 
     private Future<?> subscribingTask;
+    private CacheBusMetricsRegistry metrics = new NoOpCacheBusMetricsRegistry();
 
     @Override
     public synchronized void activate(@Nonnull JmsCacheBusMessageChannelConfiguration jmsConfiguration) {
@@ -63,7 +66,7 @@ public final class JmsCacheBusMessageChannel implements CacheBusMessageChannel<J
             this.channelState = new ChannelState();
             this.producerConfigurations = senderConfigs;
             this.consumerConfiguration = new JmsConsumerSessionConfiguration(jmsConfiguration);
-
+            registerMetrics();
         } catch (JMSRuntimeException ex) {
             logger.error("Unable to activate channel", ex);
             throw new MessageChannelException(ex);
@@ -83,18 +86,23 @@ public final class JmsCacheBusMessageChannel implements CacheBusMessageChannel<J
             retry = false;
             JmsProducerSessionConfiguration sessionConfiguration = null;
             try {
-                sessionConfiguration = senderConfigs.poll(POLL_CHANNEL_TIMEOUT, POLL_CHANNEL_TIMEOUT_UNITS);
+                sessionConfiguration = this.metrics.recordExecutionTime(
+                        KnownMetrics.PRODUCER_CONNECTION_WAIT_TIME,
+                        () -> retrieveConnection(senderConfigs)
+                );
+
                 if (sessionConfiguration == null) {
-                    logger.info("Could not retrieve session in %d seconds timeout, maybe you should increase count of available connections in JMS channel configuration?".formatted(POLL_CHANNEL_TIMEOUT));
-                    sessionConfiguration = waitForConnectionUntilAvailable(senderConfigs);
+                    // It means that thread was interrupted
+                    return;
                 }
 
                 sendMessage(eventOutputMessage, sessionConfiguration);
             } catch (JMSRuntimeException ex) {
                 recoverProducerSession(ex, sessionConfiguration);
                 retry = true;
-            } catch (InterruptedException ex) {
-                handleInterruptionOfThread(ex);
+            } catch (Exception ex) {
+                // should never be thrown here
+                throw new RuntimeException(ex);
             } finally {
                 if (sessionConfiguration != null && !retry) {
                     senderConfigs.offer(sessionConfiguration);
@@ -161,6 +169,31 @@ public final class JmsCacheBusMessageChannel implements CacheBusMessageChannel<J
         return new ImmutableComponentState(CHANNEL_ID, status, severities);
     }
 
+    @Override
+    public void setMetrics(@Nonnull CacheBusMetricsRegistry registry) {
+        if (this.subscribingTask != null || this.consumerConfiguration != null) {
+            throw new MessageChannelException("Not allowed if channel already activated");
+        }
+
+        this.metrics = Objects.requireNonNull(registry, "registry");
+    }
+
+    private JmsProducerSessionConfiguration retrieveConnection(final ConcurrentLinkedBlockingQueue<JmsProducerSessionConfiguration> sessions) {
+
+        JmsProducerSessionConfiguration session = null;
+        try {
+            session = sessions.poll(POLL_CHANNEL_TIMEOUT, POLL_CHANNEL_TIMEOUT_UNITS);
+            if (session == null) {
+                logger.info("Could not retrieve session in %d seconds timeout, maybe you should increase count of available connections in JMS channel configuration?".formatted(POLL_CHANNEL_TIMEOUT));
+                session = waitForConnectionUntilAvailable(sessions);
+            }
+        } catch (InterruptedException ex) {
+            handleInterruptionOfThread(ex);
+        }
+
+        return session;
+    }
+
     private JmsProducerSessionConfiguration waitForConnectionUntilAvailable(final ConcurrentLinkedBlockingQueue<JmsProducerSessionConfiguration> producerConfigurations) throws InterruptedException {
 
         final ChannelState channelState = this.channelState;
@@ -187,6 +220,7 @@ public final class JmsCacheBusMessageChannel implements CacheBusMessageChannel<J
         }
 
         channelState.increaseCountOfProducersInRecoveryState();
+        this.metrics.incrementCounter(KnownMetrics.PRODUCERS_IN_RECOVERY_COUNT);
 
         final ChannelRecoveryProcessor recoveryProcessor = new ChannelRecoveryProcessor(
                 sessionConfiguration::close,
@@ -195,12 +229,16 @@ public final class JmsCacheBusMessageChannel implements CacheBusMessageChannel<J
         );
 
         try {
-            recoveryProcessor.recover(ex);
+            this.metrics.recordExecutionTime(
+                    KnownMetrics.PRODUCER_CONNECTION_RECOVERY_TIME,
+                    () -> recoveryProcessor.recover(ex)
+            );
         } catch (RuntimeException e) {
             channelState.increaseCountOfUnrecoverableProducers();
             throw new MessageChannelException(e);
         } finally {
             channelState.decreaseCountProducersInRecoveryState();
+            this.metrics.decrementCounter(KnownMetrics.PRODUCERS_IN_RECOVERY_COUNT);
         }
     }
 
@@ -217,7 +255,8 @@ public final class JmsCacheBusMessageChannel implements CacheBusMessageChannel<J
         injectProperties(producer, eventOutputMessage, sessionConfiguration);
 
         final Topic endpoint = sessionConfiguration.endpoint;
-        producer.send(endpoint, eventOutputMessage.cacheEntryMessageBody());
+        final byte[] body = eventOutputMessage.cacheEntryMessageBody();
+        producer.send(endpoint, body);
 
         logger.debug("Message {} was sent to topic: {}", eventOutputMessage, endpoint);
     }
@@ -247,6 +286,14 @@ public final class JmsCacheBusMessageChannel implements CacheBusMessageChannel<J
         }
     }
 
+    private void registerMetrics() {
+        this.metrics.registerTimer(new Metrics.Timer(KnownMetrics.PRODUCER_CONNECTION_WAIT_TIME));
+        this.metrics.registerTimer(new Metrics.Timer(KnownMetrics.PRODUCER_CONNECTION_RECOVERY_TIME));
+        this.metrics.registerTimer(new Metrics.Timer(KnownMetrics.CONSUMER_CONNECTION_RECOVERY_TIME));
+        this.metrics.registerCounter(new Metrics.Counter(KnownMetrics.PRODUCERS_IN_RECOVERY_COUNT));
+        this.metrics.registerCounter(new Metrics.Counter(KnownMetrics.CONSUMERS_IN_RECOVERY_COUNT));
+    }
+
     private void recoverConsumerSession(final Exception ex) {
 
         // Поток прервали
@@ -257,6 +304,7 @@ public final class JmsCacheBusMessageChannel implements CacheBusMessageChannel<J
         }
 
         channelState.increaseCountOfConsumersInRecoveryState();
+        this.metrics.incrementCounter(KnownMetrics.CONSUMERS_IN_RECOVERY_COUNT);
 
         final ChannelRecoveryProcessor recoveryProcessor = new ChannelRecoveryProcessor(
                 sessionConfiguration::close,
@@ -265,12 +313,16 @@ public final class JmsCacheBusMessageChannel implements CacheBusMessageChannel<J
         );
 
         try {
-            recoveryProcessor.recover(ex);
+            this.metrics.recordExecutionTime(
+                    KnownMetrics.CONSUMER_CONNECTION_RECOVERY_TIME,
+                    () -> recoveryProcessor.recover(ex)
+            );
         } catch (RuntimeException e) {
             channelState.increaseCountOfUnrecoverableConsumers();
             throw new MessageChannelException(e);
         } finally {
             channelState.decreaseCountConsumersInRecoveryState();
+            this.metrics.decrementCounter(KnownMetrics.CONSUMERS_IN_RECOVERY_COUNT);
         }
     }
 

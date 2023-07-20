@@ -2,6 +2,7 @@ package net.cache.bus.core.impl.internal;
 
 import net.cache.bus.core.configuration.CacheBusTransportConfiguration;
 import net.cache.bus.core.impl.ImmutableComponentState;
+import net.cache.bus.core.metrics.CacheBusMetricsRegistry;
 import net.cache.bus.core.state.ComponentState;
 
 import javax.annotation.Nonnull;
@@ -22,8 +23,10 @@ public final class SynchronousCacheEventMessageProducer extends CacheEventMessag
 
     private volatile ComponentState state;
 
-    public SynchronousCacheEventMessageProducer(@Nonnull CacheBusTransportConfiguration transportConfiguration) {
-        super(transportConfiguration);
+    public SynchronousCacheEventMessageProducer(
+            @Nonnull CacheBusMetricsRegistry metrics,
+            @Nonnull CacheBusTransportConfiguration transportConfiguration) {
+        super(metrics, transportConfiguration);
         this.state = new ImmutableComponentState(PRODUCER_ID, ComponentState.Status.UP_OK);
     }
 

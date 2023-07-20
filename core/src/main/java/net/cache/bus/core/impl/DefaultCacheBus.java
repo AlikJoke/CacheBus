@@ -4,8 +4,12 @@ import net.cache.bus.core.*;
 import net.cache.bus.core.configuration.*;
 import net.cache.bus.core.impl.internal.*;
 import net.cache.bus.core.impl.internal.util.StripedRingBuffersContainer;
-import net.cache.bus.core.state.ComponentState;
+import net.cache.bus.core.metrics.CacheBusMetricsRegistry;
+import net.cache.bus.core.metrics.KnownMetrics;
+import net.cache.bus.core.metrics.Metrics;
+import net.cache.bus.core.metrics.MetricsWriter;
 import net.cache.bus.core.state.CacheBusState;
+import net.cache.bus.core.state.ComponentState;
 import net.cache.bus.core.transport.CacheBusMessageChannel;
 import net.cache.bus.core.transport.CacheEntryEventConverter;
 import org.slf4j.Logger;
@@ -42,6 +46,7 @@ public final class DefaultCacheBus implements ExtendedCacheBus {
     private final Map<String, CacheConfiguration> cacheConfigurationsByName;
     private final Map<String, Set<String>> cachesByAliases;
     private final CompositeCacheBusState state;
+    private final CacheBusMetricsRegistry metrics;
 
     private volatile boolean started;
     private volatile CacheEventMessageConsumer messageConsumer;
@@ -51,6 +56,7 @@ public final class DefaultCacheBus implements ExtendedCacheBus {
         this.id = CACHE_BUS_LABEL + "_" + UUID.randomUUID();
         this.state = new CompositeCacheBusState(this);
         this.configuration = Objects.requireNonNull(configuration, "configuration");
+        this.metrics = configuration.metricsRegistry();
         final Set<CacheConfiguration> cacheConfigurations = configuration.cacheConfigurationSource().pull();
         this.cacheConfigurationsByName = cacheConfigurations
                                             .stream()
@@ -80,12 +86,20 @@ public final class DefaultCacheBus implements ExtendedCacheBus {
             return;
         }
 
+        this.metrics.incrementCounter(KnownMetrics.LOCAL_EVENTS_COMMON_COUNT);
+
         final CacheConfiguration cacheConfiguration = this.cacheConfigurationsByName.get(event.cacheName());
         if (cacheConfiguration == null || !needToSendEvent(cacheConfiguration, event.eventType())) {
             return;
         }
 
         logger.debug("Event {} will be sent to endpoint", event);
+
+        if (cacheConfiguration.cacheType() == CacheType.INVALIDATED) {
+            this.metrics.incrementCounter(KnownMetrics.FILTERED_INV_LOCAL_EVENTS_COUNT);
+        } else {
+            this.metrics.incrementCounter(KnownMetrics.FILTERED_REPL_LOCAL_EVENTS_COUNT);
+        }
 
         this.cacheEventMessageProducer.produce(cacheConfiguration, event);
     }
@@ -97,8 +111,12 @@ public final class DefaultCacheBus implements ExtendedCacheBus {
             return;
         }
 
+        this.metrics.putToSummary(KnownMetrics.CONSUMED_BYTES, binaryEventData.length);
+        this.metrics.incrementCounter(KnownMetrics.REMOTE_EVENTS_COMMON_COUNT);
+
         final CacheEntryEvent<Serializable, Serializable> event = convertFromSerializedEvent(binaryEventData);
         if (event == null) {
+            this.metrics.incrementCounter(KnownMetrics.ERROR_EVENTS_COUNT);
             return;
         }
 
@@ -144,6 +162,7 @@ public final class DefaultCacheBus implements ExtendedCacheBus {
 
         logger.info("Cache bus starting with configuration {}", this.configuration);
 
+        registerMetrics();
         initializeCacheEventProducer();
         initializeInputMessageChannelSubscriber();
         initializeCacheEventListeners();
@@ -202,13 +221,20 @@ public final class DefaultCacheBus implements ExtendedCacheBus {
 
         try {
             switch (cacheType) {
-                case INVALIDATED -> event.applyToInvalidatedCache(cache);
-                case REPLICATED -> event.applyToReplicatedCache(cache);
+                case INVALIDATED -> {
+                    event.applyToInvalidatedCache(cache);
+                    this.metrics.incrementCounter(KnownMetrics.APPLIED_INV_EVENTS_COUNT);
+                }
+                case REPLICATED -> {
+                    event.applyToReplicatedCache(cache);
+                    this.metrics.incrementCounter(KnownMetrics.APPLIED_REPL_EVENTS_COUNT);
+                }
             }
         } catch (RuntimeException ex) {
             logger.info("Exception while processing of event, will be applied like to invalidated cache; event: " + event, ex);
             // If we fail then remove value from cache by key and ack receiving of message
             event.applyToInvalidatedCache(cache);
+            this.metrics.incrementCounter(KnownMetrics.APPLIED_AS_INV_EVENT_FALLBACK_COUNT);
         } finally {
             locked.remove();
         }
@@ -236,14 +262,15 @@ public final class DefaultCacheBus implements ExtendedCacheBus {
                     transportConfiguration.maxAsyncSendingThreads(),
                     transportConfiguration.maxAsyncSendingThreadBufferCapacity()
             );
-            this.cacheEventMessageProducer = new AsynchronousCacheEventMessageProducer(transportConfiguration, this.cacheConfigurationsByName, eventBuffers);
+            this.cacheEventMessageProducer = new AsynchronousCacheEventMessageProducer(this.metrics, transportConfiguration, this.cacheConfigurationsByName, eventBuffers);
+
             logger.debug(
                     "Cache event producer initialized with async mode: threads = {}, buffers capacity = {}",
                     eventBuffers.size(),
                     transportConfiguration.maxAsyncSendingThreadBufferCapacity()
             );
         } else {
-            this.cacheEventMessageProducer = new SynchronousCacheEventMessageProducer(transportConfiguration);
+            this.cacheEventMessageProducer = new SynchronousCacheEventMessageProducer(this.metrics, transportConfiguration);
             logger.debug("Cache event producer initialized with sync mode");
         }
 
@@ -256,7 +283,10 @@ public final class DefaultCacheBus implements ExtendedCacheBus {
 
         // Регистрируем подписчиков на кэшах
         executeWithCacheEventListeners(
-                (registrar, cache) -> registrar.registerFor(this, cache),
+                (registrar, cache) -> {
+                    registrar.registerFor(this, cache);
+                    this.metrics.incrementCounter(KnownMetrics.MANAGED_CACHES_COUNT);
+                },
                 "registered"
         );
 
@@ -273,7 +303,12 @@ public final class DefaultCacheBus implements ExtendedCacheBus {
         final CacheBusTransportConfiguration transportConfiguration = this.configuration.transportConfiguration();
         final CacheBusMessageChannel<CacheBusMessageChannelConfiguration> channel = transportConfiguration.messageChannel();
 
+        if (channel instanceof MetricsWriter channelWithMetrics) {
+            channelWithMetrics.setMetrics(this.metrics);
+        }
+
         channel.activate(transportConfiguration.messageChannelConfiguration());
+
         logger.debug("Message channel activated with configuration: {}", transportConfiguration.messageChannelConfiguration());
 
         /*
@@ -287,7 +322,7 @@ public final class DefaultCacheBus implements ExtendedCacheBus {
 
         this.messageConsumer = transportConfiguration.useSynchronousProcessing()
                 ? new SynchronousCacheEventMessageConsumer(this)
-                : new AsynchronousCacheEventMessageConsumer(this, new StripedRingBuffersContainer<>(buffersCount, bufferCapacity), processingPool);
+                : new AsynchronousCacheEventMessageConsumer(this, this.metrics, new StripedRingBuffersContainer<>(buffersCount, bufferCapacity), processingPool);
 
         channel.subscribe(this.messageConsumer);
 
@@ -299,7 +334,10 @@ public final class DefaultCacheBus implements ExtendedCacheBus {
         logger.debug("Cache event listeners unregistering...");
 
         executeWithCacheEventListeners(
-                (registrar, cache) -> registrar.unregisterFor(this, cache),
+                (registrar, cache) -> {
+                    registrar.unregisterFor(this, cache);
+                    this.metrics.decrementCounter(KnownMetrics.MANAGED_CACHES_COUNT);
+                },
                 "unregistered");
 
         logger.debug("Cache event listeners unregistered");
@@ -320,6 +358,18 @@ public final class DefaultCacheBus implements ExtendedCacheBus {
                 .flatMap(Optional::stream)
                 .peek(cache -> logger.debug("Listeners will be {} for cache {}", logLabel, cache))
                 .forEach(cache -> action.accept(cacheEventListenerRegistrar, cache));
+    }
+
+    private void registerMetrics() {
+        this.metrics.registerCounter(new Metrics.Counter(KnownMetrics.MANAGED_CACHES_COUNT));
+        this.metrics.registerCounter(new Metrics.Counter(KnownMetrics.LOCAL_EVENTS_COMMON_COUNT));
+        this.metrics.registerCounter(new Metrics.Counter(KnownMetrics.FILTERED_INV_LOCAL_EVENTS_COUNT));
+        this.metrics.registerCounter(new Metrics.Counter(KnownMetrics.FILTERED_REPL_LOCAL_EVENTS_COUNT));
+        this.metrics.registerCounter(new Metrics.Counter(KnownMetrics.REMOTE_EVENTS_COMMON_COUNT));
+        this.metrics.registerCounter(new Metrics.Counter(KnownMetrics.ERROR_EVENTS_COUNT));
+        this.metrics.registerCounter(new Metrics.Counter(KnownMetrics.APPLIED_INV_EVENTS_COUNT));
+        this.metrics.registerCounter(new Metrics.Counter(KnownMetrics.APPLIED_REPL_EVENTS_COUNT));
+        this.metrics.registerSummary(new Metrics.Summary(KnownMetrics.CONSUMED_BYTES, "bytes"));
     }
 
     private record CompositeCacheBusState(@Nonnull DefaultCacheBus cacheBus) implements CacheBusState {

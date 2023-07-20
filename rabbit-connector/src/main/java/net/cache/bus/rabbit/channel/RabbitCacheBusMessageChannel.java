@@ -3,6 +3,7 @@ package net.cache.bus.rabbit.channel;
 import com.rabbitmq.client.*;
 import net.cache.bus.core.CacheEventMessageConsumer;
 import net.cache.bus.core.impl.ImmutableComponentState;
+import net.cache.bus.core.metrics.*;
 import net.cache.bus.core.state.ComponentState;
 import net.cache.bus.core.transport.CacheBusMessageChannel;
 import net.cache.bus.core.transport.CacheEntryOutputMessage;
@@ -17,15 +18,11 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.ThreadSafe;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import static net.cache.bus.transport.ChannelConstants.MESSAGE_TYPE;
-import static net.cache.bus.transport.ChannelConstants.POLL_CHANNEL_TIMEOUT;
+import static net.cache.bus.transport.ChannelConstants.*;
 
 /**
  * Реализация канала сообщений на основе RabbitMQ.
@@ -35,7 +32,7 @@ import static net.cache.bus.transport.ChannelConstants.POLL_CHANNEL_TIMEOUT;
  * @see CacheBusMessageChannel
  */
 @ThreadSafe
-public final class RabbitCacheBusMessageChannel implements CacheBusMessageChannel<RabbitCacheBusMessageChannelConfiguration> {
+public final class RabbitCacheBusMessageChannel implements CacheBusMessageChannel<RabbitCacheBusMessageChannelConfiguration>, MetricsWriter {
 
     static final String HOST_PROPERTY = "host";
     static final String HASH_KEY_PROPERTY = "hash";
@@ -46,8 +43,9 @@ public final class RabbitCacheBusMessageChannel implements CacheBusMessageChanne
 
     private volatile RabbitConsumerSessionConfiguration consumerSessionConfiguration;
     private volatile RabbitProducerSessionConfiguration producerSessionConfiguration;
-    private volatile CacheEventMessageConsumer messageConsumer;
     private volatile ChannelState channelState;
+    private CacheBusMetricsRegistry metrics = new NoOpCacheBusMetricsRegistry();
+    private CacheEventMessageConsumer messageConsumer;
 
     @Override
     public synchronized void activate(@Nonnull RabbitCacheBusMessageChannelConfiguration rabbitConfiguration) {
@@ -60,6 +58,7 @@ public final class RabbitCacheBusMessageChannel implements CacheBusMessageChanne
         this.channelState = new ChannelState();
         initializeConsumerSession(rabbitConfiguration);
         initializeProducerSession(rabbitConfiguration);
+        registerMetrics();
     }
 
     @Override
@@ -77,10 +76,15 @@ public final class RabbitCacheBusMessageChannel implements CacheBusMessageChanne
             retry = false;
             Channel channel = null;
             try {
-                channel = sessionConfiguration.sendingChannels.poll(POLL_CHANNEL_TIMEOUT, TimeUnit.SECONDS);
+                final var sendingChannels = sessionConfiguration.sendingChannels;
+                channel = this.metrics.recordExecutionTime(
+                        KnownMetrics.PRODUCER_CONNECTION_WAIT_TIME,
+                        () -> retrieveChannel(sendingChannels)
+                );
+
                 if (channel == null) {
-                    logger.info("Could not retrieve channel in %d seconds timeout, maybe you should increase count of available channels in rabbit channel configuration?".formatted(POLL_CHANNEL_TIMEOUT));
-                    channel = waitForChannelUntilAvailable(sessionConfiguration.sendingChannels);
+                    // It means that thread was interrupted
+                    return;
                 }
 
                 final String channelName = sessionConfiguration.sharedConfiguration.channel();
@@ -95,8 +99,9 @@ public final class RabbitCacheBusMessageChannel implements CacheBusMessageChanne
             } catch (IOException ex) {
                 recoverProducerSession(ex, sessionConfiguration);
                 retry = true;
-            } catch (InterruptedException ex) {
-                handleInterruptionOfThread(ex);
+            } catch (Exception ex) {
+                // should never be thrown here
+                throw new RuntimeException(ex);
             } finally {
                 if (channel != null && !retry) {
                     sessionConfiguration.sendingChannels.offer(channel);
@@ -155,6 +160,22 @@ public final class RabbitCacheBusMessageChannel implements CacheBusMessageChanne
                         : ComponentState.Status.UP_OK;
 
         return new ImmutableComponentState(CHANNEL_ID, status, severities);
+    }
+
+    private Channel retrieveChannel(final ConcurrentLinkedBlockingQueue<Channel> sendingChannels) {
+
+        Channel channel = null;
+        try {
+            channel = sendingChannels.poll(POLL_CHANNEL_TIMEOUT, TimeUnit.SECONDS);
+            if (channel == null) {
+                logger.info("Could not retrieve channel in %d seconds timeout, maybe you should increase count of available channels in rabbit channel configuration?".formatted(POLL_CHANNEL_TIMEOUT));
+                channel = waitForChannelUntilAvailable(sendingChannels);
+            }
+        } catch (InterruptedException ex) {
+            handleInterruptionOfThread(ex);
+        }
+
+        return channel;
     }
 
     private Channel waitForChannelUntilAvailable(final ConcurrentLinkedBlockingQueue<Channel> channels) throws InterruptedException {
@@ -259,6 +280,14 @@ public final class RabbitCacheBusMessageChannel implements CacheBusMessageChanne
         }
     }
 
+    private void registerMetrics() {
+        this.metrics.registerTimer(new Metrics.Timer(KnownMetrics.PRODUCER_CONNECTION_WAIT_TIME));
+        this.metrics.registerTimer(new Metrics.Timer(KnownMetrics.PRODUCER_CONNECTION_RECOVERY_TIME));
+        this.metrics.registerTimer(new Metrics.Timer(KnownMetrics.CONSUMER_CONNECTION_RECOVERY_TIME));
+        this.metrics.registerCounter(new Metrics.Counter(KnownMetrics.PRODUCERS_IN_RECOVERY_COUNT));
+        this.metrics.registerCounter(new Metrics.Counter(KnownMetrics.CONSUMERS_IN_RECOVERY_COUNT));
+    }
+
     private void initializeProducerSession(final RabbitCacheBusMessageChannelConfiguration rabbitConfiguration) {
         try {
             this.producerSessionConfiguration = new RabbitProducerSessionConfiguration(rabbitConfiguration);
@@ -287,6 +316,7 @@ public final class RabbitCacheBusMessageChannel implements CacheBusMessageChanne
             }
 
             channelState.increaseCountOfProducersInRecoveryState();
+            this.metrics.incrementCounter(KnownMetrics.PRODUCERS_IN_RECOVERY_COUNT);
 
             // С высокой вероятностью, если есть проблема с одним каналом, то будут проблемы и с другими
             // из-за общего соединения, поэтому полностью пересоздаем каналы
@@ -297,12 +327,16 @@ public final class RabbitCacheBusMessageChannel implements CacheBusMessageChanne
             );
 
             try {
-                recoveryProcessor.recover(ex);
+                this.metrics.recordExecutionTime(
+                        KnownMetrics.PRODUCER_CONNECTION_RECOVERY_TIME,
+                        () -> recoveryProcessor.recover(ex)
+                );
             } catch (RuntimeException e) {
                 channelState.increaseCountOfUnrecoverableProducers();
                 throw new MessageChannelException(e);
             } finally {
                 channelState.decreaseCountProducersInRecoveryState();
+                this.metrics.incrementCounter(KnownMetrics.CONSUMERS_IN_RECOVERY_COUNT);
             }
         }
     }
@@ -317,6 +351,7 @@ public final class RabbitCacheBusMessageChannel implements CacheBusMessageChanne
         }
 
         channelState.increaseCountOfConsumersInRecoveryState();
+        this.metrics.incrementCounter(KnownMetrics.CONSUMERS_IN_RECOVERY_COUNT);
 
         final ChannelRecoveryProcessor recoveryProcessor = new ChannelRecoveryProcessor(
                 sessionConfiguration::close,
@@ -325,13 +360,26 @@ public final class RabbitCacheBusMessageChannel implements CacheBusMessageChanne
         );
 
         try {
-            recoveryProcessor.recover(ex);
+            this.metrics.recordExecutionTime(
+                    KnownMetrics.CONSUMER_CONNECTION_RECOVERY_TIME,
+                    () -> recoveryProcessor.recover(ex)
+            );
         } catch (RuntimeException e) {
             channelState.increaseCountOfUnrecoverableConsumers();
             throw new MessageChannelException(e);
         } finally {
             channelState.decreaseCountConsumersInRecoveryState();
+            this.metrics.decrementCounter(KnownMetrics.CONSUMERS_IN_RECOVERY_COUNT);
         }
+    }
+
+    @Override
+    public void setMetrics(@Nonnull CacheBusMetricsRegistry registry) {
+        if (this.messageConsumer != null || this.consumerSessionConfiguration != null) {
+            throw new MessageChannelException("Not allowed if channel already activated");
+        }
+
+        this.metrics = Objects.requireNonNull(registry, "registry");
     }
 
     private abstract static class RabbitSessionConfiguration implements AutoCloseable {

@@ -3,7 +3,12 @@ package net.cache.bus.core.impl.internal;
 import net.cache.bus.core.CacheBus;
 import net.cache.bus.core.CacheEntryEvent;
 import net.cache.bus.core.configuration.CacheBusConfiguration;
+import net.cache.bus.core.configuration.CacheBusTransportConfiguration;
+import net.cache.bus.core.configuration.CacheConfigurationSource;
+import net.cache.bus.core.configuration.CacheProviderConfiguration;
+import net.cache.bus.core.impl.configuration.ImmutableCacheBusConfiguration;
 import net.cache.bus.core.impl.internal.util.StripedRingBuffersContainer;
+import net.cache.bus.core.metrics.NoOpCacheBusMetricsRegistry;
 import net.cache.bus.core.state.CacheBusState;
 import net.cache.bus.core.state.ComponentState;
 import org.junit.jupiter.api.Test;
@@ -19,6 +24,7 @@ import java.util.concurrent.Executors;
 
 import static net.cache.bus.core.impl.internal.AsyncMessageProcessingState.THREADS_WAITING_ON_OFFER_LABEL;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.mock;
 
 public class AsynchronousCacheEventMessageConsumerTest {
 
@@ -30,7 +36,7 @@ public class AsynchronousCacheEventMessageConsumerTest {
         final StripedRingBuffersContainer<byte[]> buffersContainer = new StripedRingBuffersContainer<>(stripes);
         final int threadsCount = buffersContainer.size();
         final var processingPool = Executors.newFixedThreadPool(threadsCount);
-        final var consumer = new AsynchronousCacheEventMessageConsumer(cacheBus, buffersContainer, processingPool);
+        final var consumer = new AsynchronousCacheEventMessageConsumer(cacheBus, new NoOpCacheBusMetricsRegistry(), buffersContainer, processingPool);
         try (processingPool; consumer) {
 
             // action
@@ -61,7 +67,7 @@ public class AsynchronousCacheEventMessageConsumerTest {
         final StripedRingBuffersContainer<byte[]> buffersContainer = new StripedRingBuffersContainer<>(stripes, 2);
         final int threadsCount = buffersContainer.size();
         final var processingPool = Executors.newFixedThreadPool(threadsCount);
-        final var consumer = new AsynchronousCacheEventMessageConsumer(cacheBus, buffersContainer, processingPool);
+        final var consumer = new AsynchronousCacheEventMessageConsumer(cacheBus, new NoOpCacheBusMetricsRegistry(), buffersContainer, processingPool);
         try (processingPool; consumer) {
 
             // action
@@ -82,6 +88,13 @@ public class AsynchronousCacheEventMessageConsumerTest {
     static class TestCacheBus implements CacheBus {
 
         private final Map<String, List<byte[]>> eventsByThread = new ConcurrentHashMap<>();
+        private CacheBusConfiguration configuration =
+                ImmutableCacheBusConfiguration
+                        .builder()
+                            .setProviderConfiguration(mock(CacheProviderConfiguration.class))
+                            .setCacheConfigurationBuilder(mock(CacheConfigurationSource.class))
+                            .setTransportConfiguration(mock(CacheBusTransportConfiguration.class))
+                        .build();
 
         @Override
         public <K extends Serializable, V extends Serializable> void send(@Nonnull CacheEntryEvent<K, V> event) {
@@ -100,7 +113,7 @@ public class AsynchronousCacheEventMessageConsumerTest {
 
         @Override
         public CacheBusConfiguration configuration() {
-            throw new UnsupportedOperationException();
+            return configuration;
         }
 
         @Nonnull
