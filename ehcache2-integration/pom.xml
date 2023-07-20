@@ -8,7 +8,6 @@
         <groupId>net.cache-bus</groupId>
         <artifactId>parent</artifactId>
         <version>1.0-SNAPSHOT</version>
-        <relativePath/>
     </parent>
     <artifactId>ehcache2-integration</artifactId>
     <name>CacheBus EhCache2 Integration</name>

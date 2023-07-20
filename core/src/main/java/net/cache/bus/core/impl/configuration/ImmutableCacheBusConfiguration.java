@@ -98,7 +98,8 @@ public record ImmutableCacheBusConfiguration(
         }
 
         /**
-         * Устанавливает используемый реестр метрик. Если не задан, то используется No-Op реализация, которая не регистрирует метрики.
+         * Устанавливает используемый реестр метрик. Если не задан, то используется No-Op реализация ({@linkplain NoOpCacheBusMetricsRegistry},
+         * которая не регистрирует метрики.
          *
          * @param metricsRegistry реестр метрик для шины, не может быть {@code null}.
          * @return не может быть {@code null}.

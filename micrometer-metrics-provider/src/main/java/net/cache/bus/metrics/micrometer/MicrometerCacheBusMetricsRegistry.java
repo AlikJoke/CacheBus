@@ -37,22 +37,22 @@ public final class MicrometerCacheBusMetricsRegistry implements CacheBusMetricsR
 
     @Override
     public void incrementCounter(@Nonnull KnownMetrics metric) {
-        findCounter(metric.getId()).increment();
+        findCounter(metric.id()).increment();
     }
 
     @Override
-    public void increaseCounter(@Nonnull KnownMetrics metric, int incValue) {
-        findCounter(metric.getId()).increment(incValue);
+    public void increaseCounter(@Nonnull KnownMetrics metric, double incValue) {
+        findCounter(metric.id()).increment(incValue);
     }
 
     @Override
     public void decrementCounter(@Nonnull KnownMetrics metric) {
-        findCounter(metric.getId()).increment(-1);
+        findCounter(metric.id()).increment(-1);
     }
 
     @Override
-    public void decreaseCounter(@Nonnull KnownMetrics metric, int decValue) {
-        findCounter(metric.getId()).increment(-decValue);
+    public void decreaseCounter(@Nonnull KnownMetrics metric, double decValue) {
+        findCounter(metric.id()).increment(-decValue);
     }
 
     @Override
@@ -69,7 +69,7 @@ public final class MicrometerCacheBusMetricsRegistry implements CacheBusMetricsR
 
     @Override
     public void putToSummary(@Nonnull KnownMetrics metric, double value) {
-        Objects.requireNonNull(this.summariesMap.get(metric.getId()), "Summary must be registered before use").record(value);
+        Objects.requireNonNull(this.summariesMap.get(metric.id()), "Summary must be registered before use").record(value);
     }
 
     @Override
@@ -94,13 +94,13 @@ public final class MicrometerCacheBusMetricsRegistry implements CacheBusMetricsR
 
     @Override
     public void recordExecutionTime(@Nonnull KnownMetrics metric, @Nonnull Runnable action) {
-        findTimer(metric.getId()).record(action);
+        findTimer(metric.id()).record(action);
     }
 
     @Nullable
     @Override
     public <T> T recordExecutionTime(@Nonnull KnownMetrics metric, @Nonnull Callable<T> action) throws Exception {
-        return findTimer(metric.getId()).recordCallable(action);
+        return findTimer(metric.id()).recordCallable(action);
     }
 
     private Timer findTimer(final String timerId) {

@@ -8,7 +8,6 @@
         <groupId>net.cache-bus</groupId>
         <artifactId>parent</artifactId>
         <version>1.0-SNAPSHOT</version>
-        <relativePath/>
     </parent>
     <artifactId>infinispan-integration</artifactId>
     <name>CacheBus Infinispan Integration</name>

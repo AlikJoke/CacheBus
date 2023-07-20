@@ -129,20 +129,20 @@ public final class AsynchronousCacheEventMessageProducer extends CacheEventMessa
     private void registerBuffersGauge(final int bufferIdx, final RingBuffer<CacheEntryEvent<?, ?>> buffer) {
 
         final Metrics.Gauge<RingBuffer<CacheEntryEvent<?, ?>>> gaugeReadIndex = new Metrics.Gauge<>(
-                KnownMetrics.BUFFER_READ_POSITION.getId() + ".producer." + bufferIdx,
+                KnownMetrics.BUFFER_READ_POSITION.id() + ".producer." + bufferIdx,
                 buffer,
                 RingBuffer::currentReadIndex,
-                KnownMetrics.BUFFER_WRITE_POSITION.getDescription(),
-                KnownMetrics.BUFFER_WRITE_POSITION.getTags()
+                KnownMetrics.BUFFER_WRITE_POSITION.description(),
+                KnownMetrics.BUFFER_WRITE_POSITION.tags()
         );
         this.metrics.registerGauge(gaugeReadIndex);
 
         final Metrics.Gauge<RingBuffer<CacheEntryEvent<?, ?>>> gaugeWriteIndex = new Metrics.Gauge<>(
-                KnownMetrics.BUFFER_WRITE_POSITION.getId() + ".producer." + bufferIdx,
+                KnownMetrics.BUFFER_WRITE_POSITION.id() + ".producer." + bufferIdx,
                 buffer,
                 RingBuffer::currentWritePosition,
-                KnownMetrics.BUFFER_WRITE_POSITION.getDescription(),
-                KnownMetrics.BUFFER_WRITE_POSITION.getTags()
+                KnownMetrics.BUFFER_WRITE_POSITION.description(),
+                KnownMetrics.BUFFER_WRITE_POSITION.tags()
         );
         this.metrics.registerGauge(gaugeWriteIndex);
     }

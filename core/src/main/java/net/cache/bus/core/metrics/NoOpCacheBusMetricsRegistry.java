@@ -4,6 +4,13 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.concurrent.Callable;
 
+/**
+ * Реализация реестра метрик, которая не выполняет никаких действий.<br>
+ * Используется в случае отсутствия задания реального провайдера метрик (Dropwizard, Micrometer, etc).
+ *
+ * @author Alik
+ * @see CacheBusMetricsRegistry
+ */
 public final class NoOpCacheBusMetricsRegistry implements CacheBusMetricsRegistry {
 
     @Override
@@ -17,7 +24,7 @@ public final class NoOpCacheBusMetricsRegistry implements CacheBusMetricsRegistr
     }
 
     @Override
-    public void increaseCounter(@Nonnull KnownMetrics metric, int incValue) {
+    public void increaseCounter(@Nonnull KnownMetrics metric, double incValue) {
 
     }
 
@@ -27,7 +34,7 @@ public final class NoOpCacheBusMetricsRegistry implements CacheBusMetricsRegistr
     }
 
     @Override
-    public void decreaseCounter(@Nonnull KnownMetrics metric, int decValue) {
+    public void decreaseCounter(@Nonnull KnownMetrics metric, double decValue) {
 
     }
 

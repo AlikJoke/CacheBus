@@ -121,20 +121,20 @@ public final class AsynchronousCacheEventMessageConsumer implements CacheEventMe
     private void registerBuffersGauge(final int bufferIdx, final RingBuffer<byte[]> buffer) {
 
         final Metrics.Gauge<RingBuffer<byte[]>> gaugeReadIndex = new Metrics.Gauge<>(
-                KnownMetrics.BUFFER_READ_POSITION.getId() + ".consumer." + bufferIdx,
+                KnownMetrics.BUFFER_READ_POSITION.id() + ".consumer." + bufferIdx,
                 buffer,
                 RingBuffer::currentReadIndex,
-                KnownMetrics.BUFFER_READ_POSITION.getDescription(),
-                KnownMetrics.BUFFER_READ_POSITION.getTags()
+                KnownMetrics.BUFFER_READ_POSITION.description(),
+                KnownMetrics.BUFFER_READ_POSITION.tags()
         );
         this.metrics.registerGauge(gaugeReadIndex);
 
         final Metrics.Gauge<RingBuffer<byte[]>> gaugeWriteIndex = new Metrics.Gauge<>(
-                KnownMetrics.BUFFER_READ_POSITION.getId() + ".consumer." + bufferIdx,
+                KnownMetrics.BUFFER_READ_POSITION.id() + ".consumer." + bufferIdx,
                 buffer,
                 RingBuffer::currentWritePosition,
-                KnownMetrics.BUFFER_READ_POSITION.getDescription(),
-                KnownMetrics.BUFFER_READ_POSITION.getTags()
+                KnownMetrics.BUFFER_READ_POSITION.description(),
+                KnownMetrics.BUFFER_READ_POSITION.tags()
         );
         this.metrics.registerGauge(gaugeWriteIndex);
     }

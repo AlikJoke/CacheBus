@@ -8,7 +8,6 @@
         <groupId>net.cache-bus</groupId>
         <artifactId>parent</artifactId>
         <version>1.0-SNAPSHOT</version>
-        <relativePath/>
     </parent>
     <artifactId>kafka-connector</artifactId>
     <name>CacheBus Kafka Transport Connector</name>

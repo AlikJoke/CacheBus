@@ -8,7 +8,6 @@
         <groupId>net.cache-bus</groupId>
         <artifactId>parent</artifactId>
         <version>1.0-SNAPSHOT</version>
-        <relativePath/>
     </parent>
     <artifactId>micrometer-metrics-provider</artifactId>
     <name>CacheBus Micrometer Metrics Implementation</name>
@@ -24,6 +23,7 @@
             <groupId>io.micrometer</groupId>
             <artifactId>micrometer-core</artifactId>
             <version>${micrometer.version}</version>
+            <scope>provided</scope>
         </dependency>
 
         <dependency>

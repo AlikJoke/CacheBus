@@ -57,6 +57,7 @@ public final class DefaultCacheBus implements ExtendedCacheBus {
         this.state = new CompositeCacheBusState(this);
         this.configuration = Objects.requireNonNull(configuration, "configuration");
         this.metrics = configuration.metricsRegistry();
+
         final Set<CacheConfiguration> cacheConfigurations = configuration.cacheConfigurationSource().pull();
         this.cacheConfigurationsByName = cacheConfigurations
                                             .stream()
@@ -95,11 +96,11 @@ public final class DefaultCacheBus implements ExtendedCacheBus {
 
         logger.debug("Event {} will be sent to endpoint", event);
 
-        if (cacheConfiguration.cacheType() == CacheType.INVALIDATED) {
-            this.metrics.incrementCounter(KnownMetrics.FILTERED_INV_LOCAL_EVENTS_COUNT);
-        } else {
-            this.metrics.incrementCounter(KnownMetrics.FILTERED_REPL_LOCAL_EVENTS_COUNT);
-        }
+        this.metrics.incrementCounter(
+                cacheConfiguration.cacheType() == CacheType.INVALIDATED
+                        ? KnownMetrics.FILTERED_INV_LOCAL_EVENTS_COUNT
+                        : KnownMetrics.FILTERED_REPL_LOCAL_EVENTS_COUNT
+        );
 
         this.cacheEventMessageProducer.produce(cacheConfiguration, event);
     }

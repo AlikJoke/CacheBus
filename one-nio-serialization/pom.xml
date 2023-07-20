@@ -8,7 +8,6 @@
         <groupId>net.cache-bus</groupId>
         <artifactId>parent</artifactId>
         <version>1.0-SNAPSHOT</version>
-        <relativePath/>
     </parent>
     <artifactId>one-nio-serialization</artifactId>
     <name>CacheBus OneNio Serialization</name>

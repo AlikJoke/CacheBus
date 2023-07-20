@@ -6,12 +6,22 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.ToDoubleFunction;
 
+/**
+ * Класс-контейнер дескрипторов разных типов метрик.
+ *
+ * @author Alik
+ */
 public abstract class Metrics {
 
+    /**
+     * Дескриптор метрики типа "счетчик", представляющей собой одно число, положительное или отрицательное.
+     *
+     * @author Alik
+     */
     public static class Counter extends Metric {
 
         public Counter(@Nonnull KnownMetrics counterMetric) {
-            this(counterMetric.getId(), counterMetric.getDescription(), counterMetric.getTags());
+            this(counterMetric.id(), counterMetric.description(), counterMetric.tags());
         }
 
         public Counter(@Nonnull String id,
@@ -21,15 +31,20 @@ public abstract class Metrics {
         }
     }
 
+    /**
+     * Дескриптор метрики, позволяющей получить текущее значение некоторой измеримой величины одного объекта.
+     * @param <T> тип объекта, чье текущее значение величины измеряется
+     * @author Alik
+     */
     public static class Gauge<T> extends Metric {
 
         private final T meterObj;
         private final ToDoubleFunction<T> meterValueFunc;
 
         public Gauge(@Nonnull KnownMetrics gaugeMetric,
-                       @Nonnull T meterObj,
-                       @Nonnull ToDoubleFunction<T> meterValueFunc) {
-            this(gaugeMetric.getId(), meterObj, meterValueFunc, gaugeMetric.getDescription(), gaugeMetric.getTags());
+                     @Nonnull T meterObj,
+                     @Nonnull ToDoubleFunction<T> meterValueFunc) {
+            this(gaugeMetric.id(), meterObj, meterValueFunc, gaugeMetric.description(), gaugeMetric.tags());
         }
 
         public Gauge(@Nonnull String id,
@@ -53,13 +68,17 @@ public abstract class Metrics {
         }
     }
 
+    /**
+     * Метрика типа "Сводка распределения величины".
+     * @author Alik
+     */
     public static class Summary extends Metric {
 
         private final String baseUnit;
 
         public Summary(@Nonnull KnownMetrics summaryMetric,
                        @Nullable String baseUnit) {
-            this(summaryMetric.getId(), baseUnit, summaryMetric.getDescription(), summaryMetric.getTags());
+            this(summaryMetric.id(), baseUnit, summaryMetric.description(), summaryMetric.tags());
         }
 
         public Summary(@Nonnull String id,
@@ -76,10 +95,15 @@ public abstract class Metrics {
         }
     }
 
+    /**
+     * Метрика "Таймер", основанная на измерении времени выполнения задачи.
+     *
+     * @author Alik
+     */
     public static class Timer extends Metric {
 
         public Timer(@Nonnull KnownMetrics timerMetric) {
-            this(timerMetric.getId(), timerMetric.getDescription(), timerMetric.getTags());
+            this(timerMetric.id(), timerMetric.description(), timerMetric.tags());
         }
 
         public Timer(@Nonnull String id,
