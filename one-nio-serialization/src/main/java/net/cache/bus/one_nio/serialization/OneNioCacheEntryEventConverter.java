@@ -57,6 +57,8 @@ public final class OneNioCacheEntryEventConverter implements CacheEntryEventConv
         try (final DeserializeStream in = new DeserializeStream(data)) {
             final byte keyType = in.readByte();
             final K key = (K) (keyType == 1 ? in.readUTF() : in.readObject());
+            final long eventTime = in.readLong();
+
             final CacheEntryEventType eventType = CacheEntryEventType.valueOf(in.readByte());
             if (eventType == null) {
                 throw new NullPointerException();
@@ -67,7 +69,7 @@ public final class OneNioCacheEntryEventConverter implements CacheEntryEventConv
             final V oldValue = (V) in.readObject();
             final V newValue = (V) in.readObject();
 
-            return new ImmutableCacheEntryEvent<>(key, oldValue, newValue, eventType, cacheName);
+            return new ImmutableCacheEntryEvent<>(key, oldValue, newValue, eventTime, eventType, cacheName);
         } catch (IOException | ClassNotFoundException e) {
             logger.error("Unable to deserialize from binary event", e);
             throw new RuntimeException(e);
@@ -87,6 +89,8 @@ public final class OneNioCacheEntryEventConverter implements CacheEntryEventConv
         } else {
             output.writeObject(event.key());
         }
+
+        output.writeLong(event.eventTime());
 
         output.writeByte(event.eventType().getId());
         output.writeUTF(event.cacheName());

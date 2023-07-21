@@ -42,6 +42,13 @@ public interface CacheEntryEvent<K extends Serializable, V extends Serializable>
     V newValue();
 
     /**
+     * Возвращает метку времени изменения элемента кэша (в миллисекундах относительно зоны UTC).
+     *
+     * @return метка времени изменения элемента кэша в миллисекундах
+     */
+    long eventTime();
+
+    /**
      * Возвращает тип изменения элемента кэша.
      *
      * @return не может быть {@code null}.

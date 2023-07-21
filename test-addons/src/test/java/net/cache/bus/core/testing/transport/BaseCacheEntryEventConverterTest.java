@@ -25,6 +25,7 @@ public abstract class BaseCacheEntryEventConverterTest {
                 "test1",
                 new Value("v1", 2, 13.5, new HashSet<>(Set.of(new Date(1002))), true, null),
                 null,
+                System.currentTimeMillis() - 600,
                 CacheEntryEventType.EVICTED
         );
         final byte[] eventSerializedWithValues = converter.toBinary(event, true);
@@ -44,6 +45,7 @@ public abstract class BaseCacheEntryEventConverterTest {
         assertEquals(event.cacheName(), deserializedEventWithoutValues.cacheName(), "Cache name must be equal");
         assertEquals(event.eventType(), deserializedEventWithoutValues.eventType(), "Event type must be equal");
         assertEquals(event.key(), deserializedEventWithoutValues.key(), "Cache key must be equal");
+        assertEquals(event.eventTime(), deserializedEventWithoutValues.eventTime(), "Cache event time must be equal");
         assertNull(deserializedEventWithoutValues.oldValue(), "Old cache value must be null");
         assertNull(deserializedEventWithoutValues.newValue(), "New cache value must be null");
     }
@@ -54,6 +56,7 @@ public abstract class BaseCacheEntryEventConverterTest {
                 "test1",
                 null,
                 null,
+                System.currentTimeMillis() - 200,
                 CacheEntryEventType.UPDATED
         );
         final byte[] eventSerialized1 = converter.toBinary(event, true);
@@ -75,6 +78,7 @@ public abstract class BaseCacheEntryEventConverterTest {
                 new Key("123", 23, new Key("-", 65, null)),
                 new Value("v1", 2, 13.5, new HashSet<>(Set.of(new Date(1002))), true, null),
                 new Value("v2", 4, 413.5, new HashSet<>(Set.of(new Date(2001))), false, new Value("3", 123, 54.9, null, true, null)),
+                System.currentTimeMillis(),
                 CacheEntryEventType.UPDATED
         );
         final byte[] eventSerialized = converter.toBinary(event, true);
@@ -90,8 +94,9 @@ public abstract class BaseCacheEntryEventConverterTest {
             final K key,
             final V oldValue,
             final V newValue,
+            final long eventTime,
             final CacheEntryEventType eventType) {
-        return new ImmutableCacheEntryEvent<>(key, oldValue, newValue, eventType, UUID.randomUUID().toString());
+        return new ImmutableCacheEntryEvent<>(key, oldValue, newValue, eventTime, eventType, UUID.randomUUID().toString());
     }
 
     protected record Key(

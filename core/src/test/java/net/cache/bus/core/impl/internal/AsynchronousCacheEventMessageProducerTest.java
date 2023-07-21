@@ -52,7 +52,12 @@ public class AsynchronousCacheEventMessageProducerTest {
         final CacheBusTransportConfiguration transportConfiguration = createTransportConfiguration();
         final StripedRingBuffersContainer<CacheEntryEvent<?, ?>> buffersContainer = new StripedRingBuffersContainer<>(transportConfiguration.maxAsyncSendingThreads(), 32);
 
-        final CacheConfiguration cacheConfiguration = new ImmutableCacheConfiguration(CACHE_NAME, CacheType.INVALIDATED);
+        final CacheConfiguration cacheConfiguration =
+                ImmutableCacheConfiguration
+                        .builder()
+                            .setCacheName(CACHE_NAME)
+                            .setCacheType(CacheType.INVALIDATED)
+                        .build();
         final Map<String, CacheConfiguration> cacheConfigurations = Map.of(CACHE_NAME, cacheConfiguration);
         final FakeCacheBusMessageChannelByThreads messageChannel = (FakeCacheBusMessageChannelByThreads) transportConfiguration.messageChannel();
 
@@ -89,7 +94,12 @@ public class AsynchronousCacheEventMessageProducerTest {
         final CacheBusTransportConfiguration transportConfiguration = createTransportConfiguration();
         final StripedRingBuffersContainer<CacheEntryEvent<?, ?>> buffersContainer = new StripedRingBuffersContainer<>(transportConfiguration.maxAsyncSendingThreads(), 32);
 
-        final CacheConfiguration cacheConfiguration = new ImmutableCacheConfiguration(CACHE_NAME, CacheType.INVALIDATED);
+        final CacheConfiguration cacheConfiguration =
+                ImmutableCacheConfiguration
+                        .builder()
+                            .setCacheName(CACHE_NAME)
+                            .setCacheType(CacheType.INVALIDATED)
+                        .build();
         final Map<String, CacheConfiguration> cacheConfigurations = Map.of(CACHE_NAME, cacheConfiguration);
 
         when(this.eventConverter.toBinary(any(), eq(cacheConfiguration.cacheType().serializeValueFields()))).thenReturn(new byte[] {2, 3});

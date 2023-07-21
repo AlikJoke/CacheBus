@@ -37,6 +37,7 @@ final class EhCache3CacheEntryEventListener<K extends Serializable, V extends Se
                 cacheEvent.getKey(),
                 cacheEvent.getOldValue(),
                 cacheEvent.getNewValue(),
+                System.currentTimeMillis(),
                 convertEhCacheEventType2BusType(cacheEvent.getType()),
                 this.cacheName
         );

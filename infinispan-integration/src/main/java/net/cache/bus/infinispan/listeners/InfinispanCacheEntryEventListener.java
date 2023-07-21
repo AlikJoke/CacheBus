@@ -56,6 +56,7 @@ final class InfinispanCacheEntryEventListener<K extends Serializable, V extends 
                     key,
                     value,
                     null,
+                    System.currentTimeMillis(),
                     CacheEntryEventType.EVICTED,
                     event.getCache().getName()
             );
@@ -100,6 +101,7 @@ final class InfinispanCacheEntryEventListener<K extends Serializable, V extends 
                 event.getKey(),
                 oldValue,
                 newValue,
+                System.currentTimeMillis(),
                 eventType,
                 event.getCache().getName()
         );

@@ -139,6 +139,7 @@ final class EhCache2CacheEntryEventListener<K extends Serializable, V extends Se
                 key,
                 oldValue,
                 newValue,
+                System.currentTimeMillis(),
                 eventType,
                 cacheName
         );

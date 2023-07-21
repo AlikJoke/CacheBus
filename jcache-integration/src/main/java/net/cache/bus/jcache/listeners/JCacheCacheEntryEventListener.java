@@ -81,6 +81,7 @@ final class JCacheCacheEntryEventListener<K extends Serializable, V extends Seri
                     cacheEvent.getKey(),
                     cacheEvent.getOldValue(),
                     cacheEvent.getValue(),
+                    System.currentTimeMillis(),
                     convertJCacheEventType2BusType(cacheEvent.getEventType()),
                     cacheEvent.getSource().getName()
             );

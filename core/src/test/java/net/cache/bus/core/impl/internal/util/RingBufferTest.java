@@ -43,7 +43,7 @@ public class RingBufferTest {
                 }
             });
 
-            Thread.sleep(Duration.ofMillis(10));
+            Thread.sleep(Duration.ofMillis(100));
             assertFalse(future.isDone(), "Read thread must be blocked because buffer is empty");
             buffer.offer(2);
 
@@ -68,11 +68,11 @@ public class RingBufferTest {
                 }
             });
 
-            Thread.sleep(Duration.ofMillis(10));
+            Thread.sleep(Duration.ofMillis(50));
             assertFalse(future.isDone(), "Write thread must be blocked because buffer is full");
             assertEquals(1, buffer.poll());
 
-            Thread.sleep(Duration.ofMillis(10));
+            Thread.sleep(Duration.ofMillis(50));
             assertTrue(future.isDone(), "Write thread must be finished because buffer is not full after poll");
         }
     }

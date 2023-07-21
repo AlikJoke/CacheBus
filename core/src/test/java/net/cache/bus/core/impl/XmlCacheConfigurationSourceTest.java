@@ -8,11 +8,11 @@ import net.cache.bus.core.impl.configuration.XmlCacheConfigurationSource;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
-import java.util.HashSet;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class XmlCacheConfigurationSourceTest {
 
@@ -56,10 +56,19 @@ public class XmlCacheConfigurationSourceTest {
 
         assertEquals(3, configurations.size(), "Configurations count must be equal");
 
-        final Set<CacheConfiguration> configsToCompare = new HashSet<>();
-        configsToCompare.add(new ImmutableCacheConfiguration("test1", CacheType.INVALIDATED, Set.of("test1_1", "test1_2")));
-        configsToCompare.add(new ImmutableCacheConfiguration("test2", CacheType.INVALIDATED));
-        configsToCompare.add(new ImmutableCacheConfiguration("test3", CacheType.REPLICATED));
+        final List<CacheConfiguration> configsToCompare = new ArrayList<>();
+        final var cacheConfig1 =
+                ImmutableCacheConfiguration
+                    .builder()
+                        .setCacheName("test1")
+                        .setCacheType(CacheType.INVALIDATED)
+                        .setCacheAliases(Set.of("test1_1", "test1_2"))
+                        .useStampBasedComparison(true)
+                        .setProbableConcurrentModificationThreads(32)
+                    .build();
+        configsToCompare.add(cacheConfig1);
+        configsToCompare.add(buildCacheConfig("test2", CacheType.INVALIDATED));
+        configsToCompare.add(buildCacheConfig("test3", CacheType.REPLICATED));
 
         configsToCompare.forEach(cc -> {
             final CacheConfiguration config = configurations
@@ -71,5 +80,21 @@ public class XmlCacheConfigurationSourceTest {
             assertEquals(cc.cacheType(), config.cacheType(), "Cache type must be equal");
             assertEquals(cc.cacheAliases(), config.cacheAliases(), "Cache aliases must be equal");
         });
+
+        final CacheConfiguration configWithStampBasedComparison =
+                configurations
+                        .stream()
+                        .filter(configsToCompare.get(0)::equals)
+                        .findAny()
+                        .orElseThrow();
+        assertTrue(configWithStampBasedComparison.useStampBasedComparison(), "Stamp based comparison should be enabled for test1 cache config");
+    }
+
+    private CacheConfiguration buildCacheConfig(String cacheName, CacheType cacheType) {
+        return ImmutableCacheConfiguration
+                        .builder()
+                            .setCacheName(cacheName)
+                            .setCacheType(cacheType)
+                        .build();
     }
 }

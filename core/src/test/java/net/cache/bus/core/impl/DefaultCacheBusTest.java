@@ -29,7 +29,6 @@ import java.util.concurrent.Executors;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -45,6 +44,8 @@ public class DefaultCacheBusTest {
     private CacheEntryEventConverter eventConverter;
     @Mock
     private CacheEventListener<String, String> eventListener;
+    @Mock
+    private CacheEntryEvent<?, ?> event;
 
     private CacheBusConfiguration configuration;
 
@@ -58,10 +59,11 @@ public class DefaultCacheBusTest {
     public void testNotStartedBus() {
         // preparation
         final ExtendedCacheBus cacheBus = new DefaultCacheBus(configuration);
+        when(event.cacheName()).thenReturn("testInv");
 
         //checks
         assertThrows(LifecycleException.class, cacheBus::configuration, "Configuration available only after start");
-        assertDoesNotThrow(() -> cacheBus.send(mock(CacheEntryEvent.class)), "Send should not be happen");
+        assertDoesNotThrow(() -> cacheBus.send(this.event), "Send should not be happen");
         assertDoesNotThrow(() -> cacheBus.receive(new byte[0]), "Receive should not be happen");
         assertThrows(ConfigurationException.class, () -> cacheBus.withConfiguration(configuration), "Default implementation configurable only via constructor");
         assertThrows(LifecycleException.class, cacheBus::stop, "Stop available only for started bus");
@@ -91,7 +93,7 @@ public class DefaultCacheBusTest {
 
         // clearing
         cacheBus.stop();
-        assertNull(cache.getRegisteredEventListener(), "Event listener must be unregistered");;
+        assertNull(cache.getRegisteredEventListener(), "Event listener must be unregistered");
         assertTrue(channel.isUnsubscribeCalled(), "Unsubscribe must be called for channel");
         assertEquals(ComponentState.Status.DOWN, cacheBus.state().status(), "State of stopped cache bus must be DOWN");
     }
@@ -150,7 +152,7 @@ public class DefaultCacheBusTest {
         // checks
         final FakeCacheBusMessageChannel channel = (FakeCacheBusMessageChannel) configuration.transportConfiguration().messageChannel();
         assertNotNull(channel.getConfiguration(), "Channel must be activated (configuration will be set when activation be happen)");
-        assertEquals(6, channel.getMessages().size(), "Only two messages should be sent");
+        assertEquals(6, channel.getMessages().size(), "Only 6 messages should be sent");
         assertEquals(
                 new ImmutableCacheEntryOutputMessage(event1, binaryEventValue),
                 channel.getMessages().get(0),
@@ -301,7 +303,7 @@ public class DefaultCacheBusTest {
                     .builder()
                         .setCacheConfigurationBuilder(
                                 CacheConfigurationSource.createDefault()
-                                        .add(new ImmutableCacheConfiguration(INV_CACHE, CacheType.INVALIDATED, Set.of(INV_CACHE_ALIAS)))
+                                        .add(new ImmutableCacheConfiguration(INV_CACHE, CacheType.INVALIDATED, Set.of(INV_CACHE_ALIAS), false, 0))
                                         .add(new ImmutableCacheConfiguration(REPL_CACHE, CacheType.REPLICATED))
                         )
                         .setProviderConfiguration(providerConfiguration)

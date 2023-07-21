@@ -4,6 +4,7 @@ import net.cache.bus.core.configuration.CacheConfiguration;
 import net.cache.bus.core.configuration.CacheType;
 import net.cache.bus.core.configuration.InvalidCacheConfigurationException;
 
+import javax.annotation.Nonnegative;
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
@@ -16,9 +17,12 @@ import java.util.Set;
 /**
  * Неизменяемая реализация конфигурации одного кэша для шины.
  *
- * @param cacheName    имя кэша, к которому относится конфигурация, не может быть {@code null}.
- * @param cacheType    тип кэша, не может быть {@code null}.
- * @param cacheAliases дополнительные алиасы кэша, не может быть {@code null}.
+ * @param cacheName                             имя кэша, к которому относится конфигурация, не может быть {@code null}.
+ * @param cacheType                             тип кэша, не может быть {@code null}.
+ * @param cacheAliases                          дополнительные алиасы кэша, не может быть {@code null}.
+ * @param useStampBasedComparison               нужно ли использовать метки времени для определения необходимости применения изменений к локальному кэшу
+ * @param probableConcurrentModificationThreads вероятное количество параллельных потоков, выполняющих модификацию элементов данного кэша,
+ *                                              не может быть отрицательным; если {@code useStampBasedComparison == false}, то данное свойство задать не требуется.
  * @author Alik
  * @see CacheConfiguration
  */
@@ -27,10 +31,12 @@ import java.util.Set;
 public record ImmutableCacheConfiguration(
         @Nonnull String cacheName,
         @Nonnull CacheType cacheType,
-        @Nonnull Set<String> cacheAliases) implements CacheConfiguration {
+        @Nonnull Set<String> cacheAliases,
+        boolean useStampBasedComparison,
+        @Nonnegative int probableConcurrentModificationThreads) implements CacheConfiguration {
 
     public ImmutableCacheConfiguration(@Nonnull String cacheName, @Nonnull CacheType cacheType) {
-        this(cacheName, cacheType, Collections.emptySet());
+        this(cacheName, cacheType, Collections.emptySet(), false, 0);
     }
 
     public ImmutableCacheConfiguration {
@@ -42,6 +48,10 @@ public record ImmutableCacheConfiguration(
 
         if (cacheType == CacheType.REPLICATED && !cacheAliases.isEmpty()) {
             throw new InvalidCacheConfigurationException("Aliases allowed only for invalidation cache");
+        }
+
+        if (useStampBasedComparison && probableConcurrentModificationThreads <= 0) {
+            throw new InvalidCacheConfigurationException("When stamp based comparison enabled then current of concurrent modification threads must be positive");
         }
     }
 
@@ -63,12 +73,6 @@ public record ImmutableCacheConfiguration(
         return cacheName.hashCode();
     }
 
-    @Override
-    @Nonnull
-    public Set<String> cacheAliases() {
-        return Collections.unmodifiableSet(this.cacheAliases);
-    }
-
     /**
      * Возвращает построитель для формирования объекта конфигурации кэша.
      *
@@ -85,6 +89,8 @@ public record ImmutableCacheConfiguration(
 
         private String cacheName;
         private CacheType cacheType;
+        private boolean useStampBasedComparison;
+        private int probableConcurrentModificationThreads = 16;
         private final Set<String> cacheAliases = new HashSet<>();
 
         /**
@@ -141,6 +147,34 @@ public record ImmutableCacheConfiguration(
         }
 
         /**
+         * Устанавливает признак использования меток времени при применении изменений с удаленных серверов к локальному кэшу.<br>
+         * Перед установкой значения нужно внимательно ознакомиться с документацией к {@linkplain CacheConfiguration#useStampBasedComparison()}.<br>
+         * По-умолчанию {@code false}.
+         *
+         * @param useStampBasedComparison признак использования меток времени.
+         * @return не может быть {@code null}.
+         */
+        @Nonnull
+        public Builder useStampBasedComparison(final boolean useStampBasedComparison) {
+            this.useStampBasedComparison = useStampBasedComparison;
+            return this;
+        }
+
+        /**
+         * Устанавливает вероятное количество параллельных потоков модификации элементов кэша.
+         * По-умолчанию используется значение {@code 16}, если явно не задано.<br>
+         * Если {@code useStampBasedComparison == false}, то значение игнорируется.
+         *
+         * @param probableConcurrentModificationThreads вероятное количество параллельных потоков модификации элементов кэша.
+         * @return не может быть {@code null}.
+         */
+        @Nonnull
+        public Builder setProbableConcurrentModificationThreads(@Nonnegative final int probableConcurrentModificationThreads) {
+            this.probableConcurrentModificationThreads = probableConcurrentModificationThreads;
+            return this;
+        }
+
+        /**
          * Формирует объект конфигурации кэша на основе переданных данных.
          *
          * @return построитель для дальнейшего формирования конфигурации, не может быть {@code null}.
@@ -150,7 +184,9 @@ public record ImmutableCacheConfiguration(
             return new ImmutableCacheConfiguration(
                     this.cacheName,
                     this.cacheType,
-                    new HashSet<>(this.cacheAliases)
+                    new HashSet<>(this.cacheAliases),
+                    this.useStampBasedComparison,
+                    this.probableConcurrentModificationThreads
             );
         }
     }

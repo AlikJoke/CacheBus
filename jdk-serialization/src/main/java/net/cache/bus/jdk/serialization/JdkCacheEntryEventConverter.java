@@ -56,6 +56,7 @@ public final class JdkCacheEntryEventConverter implements CacheEntryEventConvert
              final var ois = new ObjectInputStream(bis)) {
             final byte keyType = ois.readByte();
             final K key = (K) (keyType == 1 ? ois.readUTF() : ois.readObject());
+            final long eventTime = ois.readLong();
             final CacheEntryEventType eventType = CacheEntryEventType.valueOf(ois.readByte());
             if (eventType == null) {
                 throw new NullPointerException();
@@ -66,7 +67,7 @@ public final class JdkCacheEntryEventConverter implements CacheEntryEventConvert
             final V oldValue = (V) ois.readObject();
             final V newValue = (V) ois.readObject();
 
-            return new ImmutableCacheEntryEvent<>(key, oldValue, newValue, eventType, cacheName);
+            return new ImmutableCacheEntryEvent<>(key, oldValue, newValue, eventTime, eventType, cacheName);
         } catch (IOException | ClassNotFoundException e) {
             logger.error("Unable to deserialize from binary event", e);
             throw new RuntimeException(e);
@@ -86,6 +87,8 @@ public final class JdkCacheEntryEventConverter implements CacheEntryEventConvert
         } else {
             output.writeObject(event.key());
         }
+
+        output.writeLong(event.eventTime());
 
         output.writeByte(event.eventType().getId());
         output.writeUTF(event.cacheName());

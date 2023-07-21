@@ -47,6 +47,7 @@ public final class DefaultCacheBus implements ExtendedCacheBus {
     private final Map<String, Set<String>> cachesByAliases;
     private final CompositeCacheBusState state;
     private final CacheBusMetricsRegistry metrics;
+    private final CacheEntryEventTimestampStore eventTimestampStore;
 
     private volatile boolean started;
     private volatile CacheEventMessageConsumer messageConsumer;
@@ -59,6 +60,12 @@ public final class DefaultCacheBus implements ExtendedCacheBus {
         this.metrics = configuration.metricsRegistry();
 
         final Set<CacheConfiguration> cacheConfigurations = configuration.cacheConfigurationSource().pull();
+        final Set<CacheConfiguration> cacheConfigurationsWithStampBasedComparison =
+                cacheConfigurations
+                        .stream()
+                        .filter(CacheConfiguration::useStampBasedComparison)
+                        .collect(Collectors.toSet());
+        this.eventTimestampStore = new InMemoryCacheEntryEventTimestampStore(cacheConfigurationsWithStampBasedComparison);
         this.cacheConfigurationsByName = cacheConfigurations
                                             .stream()
                                             .collect(Collectors.toUnmodifiableMap(CacheConfiguration::cacheName, Function.identity()));
@@ -82,15 +89,23 @@ public final class DefaultCacheBus implements ExtendedCacheBus {
 
     @Override
     public <K extends Serializable, V extends Serializable> void send(@Nonnull CacheEntryEvent<K, V> event) {
+
+        final CacheConfiguration cacheConfiguration = this.cacheConfigurationsByName.get(event.cacheName());
+        if (!started || cacheConfiguration == null) {
+            return;
+        }
+
+        if (cacheConfiguration.useStampBasedComparison()) {
+            this.eventTimestampStore.save(event);
+        }
+
         // To prevent calls from the receiving execution thread
-        if (!this.started || locked.get() != null && locked.get()) {
+        if (locked.get() != null && locked.get()) {
             return;
         }
 
         this.metrics.incrementCounter(KnownMetrics.LOCAL_EVENTS_COMMON_COUNT);
-
-        final CacheConfiguration cacheConfiguration = this.cacheConfigurationsByName.get(event.cacheName());
-        if (cacheConfiguration == null || !needToSendEvent(cacheConfiguration, event.eventType())) {
+        if (!needToSendEvent(cacheConfiguration, event.eventType())) {
             return;
         }
 
@@ -208,20 +223,28 @@ public final class DefaultCacheBus implements ExtendedCacheBus {
 
         final CacheProviderConfiguration providerConfiguration = this.configuration.providerConfiguration();
         final Optional<Cache<Serializable, Serializable>> cache = providerConfiguration.cacheManager().getCache(cacheConfiguration.cacheName());
-        cache.ifPresent(c -> processEvent(cacheConfiguration.cacheType(), c, event));
+        cache.ifPresent(c -> processEvent(cacheConfiguration, c, event));
     }
 
     private void processEvent(
-            final CacheType cacheType,
+            final CacheConfiguration cacheConfiguration,
             final Cache<Serializable, Serializable> cache,
             final CacheEntryEvent<Serializable, Serializable> event) {
 
-        logger.debug("Process event {} with cacheType {}", event, cacheType.name());
+        logger.debug("Process event {} with cacheType {}", event, cacheConfiguration.cacheType().name());
 
         locked.set(Boolean.TRUE);
 
+        final long storedLocalTimestamp =
+                cacheConfiguration.useStampBasedComparison()
+                    ? this.eventTimestampStore.load(cache.getName(), event.key())
+                    : -1;
+        if (event.eventTime() <= storedLocalTimestamp) {
+            return;
+        }
+
         try {
-            switch (cacheType) {
+            switch (cacheConfiguration.cacheType()) {
                 case INVALIDATED -> {
                     event.applyToInvalidatedCache(cache);
                     this.metrics.incrementCounter(KnownMetrics.APPLIED_INV_EVENTS_COUNT);
