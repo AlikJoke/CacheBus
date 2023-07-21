@@ -48,7 +48,7 @@ public final class XmlCacheConfigurationSource implements CacheConfigurationSour
     private static final String CACHE_NAME_ATTR = "name";
     private static final String CACHE_TYPE_ATTR = "type";
     private static final String CACHE_STAMP_BASED_COMPARISON_ATTR = "stamp-based-comparison";
-    private static final String CACHE_PROBABLE_MDF_THREADS_ATTR = "probable-concurrent-modification-threads";
+    private static final String CACHE_AVG_ELEMENTS_COUNT_ATTR = "probable-avg-elements-count";
     private static final String CACHE_ALIASES_ELEMENT = "aliases";
     private static final String CACHE_ALIAS_ELEMENT = "alias";
 
@@ -112,11 +112,11 @@ public final class XmlCacheConfigurationSource implements CacheConfigurationSour
             final CacheType cacheType = CacheType.valueOf(cacheTypeString.toUpperCase());
             final Set<String> aliases = parseAliases(cacheElement);
             final boolean stampBasedComparison = Boolean.parseBoolean(cacheElement.getAttribute(CACHE_STAMP_BASED_COMPARISON_ATTR));
-            final String probableConcurrentModificationThreadsStr = cacheElement.getAttribute(CACHE_PROBABLE_MDF_THREADS_ATTR);
+            final String probableAvgElementsCountStr = cacheElement.getAttribute(CACHE_AVG_ELEMENTS_COUNT_ATTR);
 
             final ImmutableCacheConfiguration.Builder builder = ImmutableCacheConfiguration.builder();
-            if (!probableConcurrentModificationThreadsStr.isEmpty()) {
-                builder.setProbableConcurrentModificationThreads(Integer.parseInt(probableConcurrentModificationThreadsStr));
+            if (!probableAvgElementsCountStr.isEmpty()) {
+                builder.setProbableAverageElementsCount(Integer.parseInt(probableAvgElementsCountStr));
             }
 
             final CacheConfiguration cacheConfiguration = builder

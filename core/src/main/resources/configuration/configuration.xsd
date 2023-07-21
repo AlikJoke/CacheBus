@@ -22,7 +22,7 @@
         <xs:attribute type="xs:string" name="name" use="required"/>
         <xs:attribute type="cacheTypeEnum" name="type" use="required"/>
         <xs:attribute type="xs:boolean" name="stamp-based-comparison" default="false"/>
-        <xs:attribute type="xs:integer" name="probable-concurrent-modification-threads" default="16"/>
+        <xs:attribute type="xs:integer" name="probable-avg-elements-count" default="128"/>
     </xs:complexType>
 
     <xs:simpleType name="cacheTypeEnum" final="restriction">

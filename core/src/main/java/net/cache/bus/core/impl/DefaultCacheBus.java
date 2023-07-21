@@ -91,17 +91,13 @@ public final class DefaultCacheBus implements ExtendedCacheBus {
     public <K extends Serializable, V extends Serializable> void send(@Nonnull CacheEntryEvent<K, V> event) {
 
         final CacheConfiguration cacheConfiguration = this.cacheConfigurationsByName.get(event.cacheName());
-        if (!started || cacheConfiguration == null) {
+        // Flag 'locked' used to prevent calls from the receiving execution thread
+        if (!started || cacheConfiguration == null || locked.get() != null && locked.get()) {
             return;
         }
 
         if (cacheConfiguration.useStampBasedComparison()) {
             this.eventTimestampStore.save(event);
-        }
-
-        // To prevent calls from the receiving execution thread
-        if (locked.get() != null && locked.get()) {
-            return;
         }
 
         this.metrics.incrementCounter(KnownMetrics.LOCAL_EVENTS_COMMON_COUNT);
@@ -235,11 +231,16 @@ public final class DefaultCacheBus implements ExtendedCacheBus {
 
         locked.set(Boolean.TRUE);
 
-        final long storedLocalTimestamp =
-                cacheConfiguration.useStampBasedComparison()
-                    ? this.eventTimestampStore.load(cache.getName(), event.key())
-                    : -1;
-        if (event.eventTime() <= storedLocalTimestamp) {
+        /*
+         * Если условие save не прошли, значит есть более свежая модификация => пропускаем событие.
+         * Иначе, если save вернул true, то модифицируем кэш. Тут может получиться, что поток приложения выполнит
+         * модификацию элемента в локальном кэше в то время, что мы прошли save() и приступили к применению события:
+         * в этом случае сработает защита от конфликтов в net.cache.bus.core.CacheEntryEvent.applyToReplicatedCache,
+         * в результате чего значение в локальном кэше будет вычищено.
+         * Для инвалидационных кэшей такая ситуация не критична, т.к. значение все равно будет удалено по событию
+         * из локального кэша.
+         */
+        if (cacheConfiguration.useStampBasedComparison() && !this.eventTimestampStore.save(event)) {
             return;
         }
 

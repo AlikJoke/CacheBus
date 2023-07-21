@@ -64,7 +64,7 @@ public class XmlCacheConfigurationSourceTest {
                         .setCacheType(CacheType.INVALIDATED)
                         .setCacheAliases(Set.of("test1_1", "test1_2"))
                         .useStampBasedComparison(true)
-                        .setProbableConcurrentModificationThreads(32)
+                        .setProbableAverageElementsCount(256)
                     .build();
         configsToCompare.add(cacheConfig1);
         configsToCompare.add(buildCacheConfig("test2", CacheType.INVALIDATED));

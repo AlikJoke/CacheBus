@@ -1,14 +1,29 @@
 package net.cache.bus.core;
 
-import javax.annotation.Nonnegative;
+import net.cache.bus.core.configuration.CacheConfiguration;
+
 import javax.annotation.Nonnull;
 
+/**
+ * Хранилище временных меток модификации элементов кэшей, используемое для отслеживания
+ * конкурентных обновлений элементов локального кэша потоками приложения и потоками шины,
+ * применяющими изменения элемента кэша с других серверов.
+ *
+ * @author Alik
+ */
 public interface CacheEntryEventTimestampStore {
 
-    void save(@Nonnull String cache, @Nonnull Object key, @Nonnegative long timestamp);
-
-    void save(@Nonnull CacheEntryEvent<?, ?> event);
-
-    @Nonnegative
-    long load(@Nonnull String cache, @Nonnull Object key);
+    /**
+     * Сохраняет в хранилище меток информацию о временной метке из события, если на момент сохранения
+     * в хранилище не оказалось более актуальной временной метки, чем в событии. Если таковое в хранилище есть
+     * (или появилось в момент сохранения), то сохранение метки не производится
+     * (иными словами, такая ситуация означает, что применять к локальному кэшу данное событие не требуется).
+     *
+     * @param event событие для применения, временная метка которого сохраняется; не может быть {@code null}.
+     * @return {@code true}, если в хранилище не оказалось на данный момент метки более свежей
+     * и сохранение метки прошло успешно, {@code false} в противном случае (т.е. метка не была сохранена).
+     * @see CacheEntryEvent#eventTime()
+     * @see CacheConfiguration#useStampBasedComparison()
+     */
+    boolean save(@Nonnull CacheEntryEvent<?, ?> event);
 }

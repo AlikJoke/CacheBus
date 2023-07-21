@@ -17,12 +17,12 @@ import java.util.Set;
 /**
  * Неизменяемая реализация конфигурации одного кэша для шины.
  *
- * @param cacheName                             имя кэша, к которому относится конфигурация, не может быть {@code null}.
- * @param cacheType                             тип кэша, не может быть {@code null}.
- * @param cacheAliases                          дополнительные алиасы кэша, не может быть {@code null}.
- * @param useStampBasedComparison               нужно ли использовать метки времени для определения необходимости применения изменений к локальному кэшу
- * @param probableConcurrentModificationThreads вероятное количество параллельных потоков, выполняющих модификацию элементов данного кэша,
- *                                              не может быть отрицательным; если {@code useStampBasedComparison == false}, то данное свойство задать не требуется.
+ * @param cacheName                    имя кэша, к которому относится конфигурация, не может быть {@code null}.
+ * @param cacheType                    тип кэша, не может быть {@code null}.
+ * @param cacheAliases                 дополнительные алиасы кэша, не может быть {@code null}.
+ * @param useStampBasedComparison      нужно ли использовать метки времени для определения необходимости применения изменений к локальному кэшу
+ * @param probableAverageElementsCount вероятное количество элементов в кэше (в среднем).
+ *                                     не может быть отрицательным; если {@code useStampBasedComparison == false}, то данное свойство задать не требуется.
  * @author Alik
  * @see CacheConfiguration
  */
@@ -33,7 +33,7 @@ public record ImmutableCacheConfiguration(
         @Nonnull CacheType cacheType,
         @Nonnull Set<String> cacheAliases,
         boolean useStampBasedComparison,
-        @Nonnegative int probableConcurrentModificationThreads) implements CacheConfiguration {
+        @Nonnegative int probableAverageElementsCount) implements CacheConfiguration {
 
     public ImmutableCacheConfiguration(@Nonnull String cacheName, @Nonnull CacheType cacheType) {
         this(cacheName, cacheType, Collections.emptySet(), false, 0);
@@ -50,8 +50,8 @@ public record ImmutableCacheConfiguration(
             throw new InvalidCacheConfigurationException("Aliases allowed only for invalidation cache");
         }
 
-        if (useStampBasedComparison && probableConcurrentModificationThreads <= 0) {
-            throw new InvalidCacheConfigurationException("When stamp based comparison enabled then current of concurrent modification threads must be positive");
+        if (useStampBasedComparison && probableAverageElementsCount <= 0) {
+            throw new InvalidCacheConfigurationException("When stamp based comparison enabled then probable average cache elements count must be positive");
         }
     }
 
@@ -90,7 +90,7 @@ public record ImmutableCacheConfiguration(
         private String cacheName;
         private CacheType cacheType;
         private boolean useStampBasedComparison;
-        private int probableConcurrentModificationThreads = 16;
+        private int probableAverageElementsCount = 128;
         private final Set<String> cacheAliases = new HashSet<>();
 
         /**
@@ -161,16 +161,17 @@ public record ImmutableCacheConfiguration(
         }
 
         /**
-         * Устанавливает вероятное количество параллельных потоков модификации элементов кэша.
-         * По-умолчанию используется значение {@code 16}, если явно не задано.<br>
+         * Устанавливает ожидаемое (предполагаемое) количество элементов в кэше в среднем.
+         * Значение не должно быть точным, достаточно приблизительного значения.
+         * По-умолчанию используется значение {@code 128}, если явно не задано.<br>
          * Если {@code useStampBasedComparison == false}, то значение игнорируется.
          *
-         * @param probableConcurrentModificationThreads вероятное количество параллельных потоков модификации элементов кэша.
+         * @param probableAverageElementsCount вероятное количество элементов в кэше в среднем.
          * @return не может быть {@code null}.
          */
         @Nonnull
-        public Builder setProbableConcurrentModificationThreads(@Nonnegative final int probableConcurrentModificationThreads) {
-            this.probableConcurrentModificationThreads = probableConcurrentModificationThreads;
+        public Builder setProbableAverageElementsCount(@Nonnegative final int probableAverageElementsCount) {
+            this.probableAverageElementsCount = probableAverageElementsCount;
             return this;
         }
 
@@ -186,7 +187,7 @@ public record ImmutableCacheConfiguration(
                     this.cacheType,
                     new HashSet<>(this.cacheAliases),
                     this.useStampBasedComparison,
-                    this.probableConcurrentModificationThreads
+                    this.probableAverageElementsCount
             );
         }
     }

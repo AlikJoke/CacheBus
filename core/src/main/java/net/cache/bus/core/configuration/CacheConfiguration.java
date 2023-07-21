@@ -1,5 +1,6 @@
 package net.cache.bus.core.configuration;
 
+import javax.annotation.Nonnegative;
 import javax.annotation.Nonnull;
 import java.util.Set;
 
@@ -56,5 +57,15 @@ public interface CacheConfiguration {
      */
     boolean useStampBasedComparison();
 
-    int probableConcurrentModificationThreads();
+    /**
+     * Возвращает предполагаемое вероятное количество элементов в кэше (в среднем).<br>
+     * Чем точнее задано значение, тем более эффективно будет работать обработка временных меток
+     * для элементов кэша при использовании сравнений изменений элементов кэша на локальном и
+     * удаленных серверах.
+     *
+     * @return вероятное количество элементов в кэше, не может быть отрицательным;
+     * если {@code useStampBasedComparison() == false}, то значение игнорируется.
+     */
+    @Nonnegative
+    int probableAverageElementsCount();
 }
