@@ -59,13 +59,14 @@ public final class DefaultCacheBus implements ExtendedCacheBus {
         this.configuration = Objects.requireNonNull(configuration, "configuration");
         this.metrics = configuration.metricsRegistry();
 
-        final Set<CacheConfiguration> cacheConfigurations = configuration.cacheConfigurationSource().pull();
+        final CacheSetConfiguration cacheSetConfiguration = configuration.cacheConfigurationSource().pull();
+        final Set<CacheConfiguration> cacheConfigurations = cacheSetConfiguration.cacheConfigurations();
         final Set<CacheConfiguration> cacheConfigurationsWithStampBasedComparison =
                 cacheConfigurations
                         .stream()
-                        .filter(CacheConfiguration::useStampBasedComparison)
+                        .filter(CacheConfiguration::useTimestampBasedComparison)
                         .collect(Collectors.toSet());
-        this.eventTimestampStore = new InMemoryCacheEntryEventTimestampStore(cacheConfigurationsWithStampBasedComparison);
+        this.eventTimestampStore = new InMemoryCacheEntryEventTimestampStore(cacheConfigurationsWithStampBasedComparison, cacheSetConfiguration.useAsyncCleaning());
         this.cacheConfigurationsByName = cacheConfigurations
                                             .stream()
                                             .collect(Collectors.toUnmodifiableMap(CacheConfiguration::cacheName, Function.identity()));
@@ -96,7 +97,7 @@ public final class DefaultCacheBus implements ExtendedCacheBus {
             return;
         }
 
-        if (cacheConfiguration.useStampBasedComparison()) {
+        if (cacheConfiguration.useTimestampBasedComparison()) {
             this.eventTimestampStore.save(event);
         }
 
@@ -240,7 +241,7 @@ public final class DefaultCacheBus implements ExtendedCacheBus {
          * Для инвалидационных кэшей такая ситуация не критична, т.к. значение все равно будет удалено по событию
          * из локального кэша.
          */
-        if (cacheConfiguration.useStampBasedComparison() && !this.eventTimestampStore.save(event)) {
+        if (cacheConfiguration.useTimestampBasedComparison() && !this.eventTimestampStore.save(event)) {
             return;
         }
 

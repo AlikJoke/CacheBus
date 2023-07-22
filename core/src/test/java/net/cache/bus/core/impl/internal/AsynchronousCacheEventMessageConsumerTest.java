@@ -4,8 +4,8 @@ import net.cache.bus.core.CacheBus;
 import net.cache.bus.core.CacheEntryEvent;
 import net.cache.bus.core.configuration.CacheBusConfiguration;
 import net.cache.bus.core.configuration.CacheBusTransportConfiguration;
-import net.cache.bus.core.configuration.CacheConfigurationSource;
 import net.cache.bus.core.configuration.CacheProviderConfiguration;
+import net.cache.bus.core.configuration.CacheConfigurationSource;
 import net.cache.bus.core.impl.configuration.ImmutableCacheBusConfiguration;
 import net.cache.bus.core.impl.internal.util.StripedRingBuffersContainer;
 import net.cache.bus.core.metrics.NoOpCacheBusMetricsRegistry;
@@ -23,7 +23,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 
 import static net.cache.bus.core.impl.internal.AsyncMessageProcessingState.THREADS_WAITING_ON_OFFER_LABEL;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.Mockito.mock;
 
 public class AsynchronousCacheEventMessageConsumerTest {
@@ -88,11 +89,11 @@ public class AsynchronousCacheEventMessageConsumerTest {
     static class TestCacheBus implements CacheBus {
 
         private final Map<String, List<byte[]>> eventsByThread = new ConcurrentHashMap<>();
-        private CacheBusConfiguration configuration =
+        private final CacheBusConfiguration configuration =
                 ImmutableCacheBusConfiguration
                         .builder()
                             .setProviderConfiguration(mock(CacheProviderConfiguration.class))
-                            .setCacheConfigurationBuilder(mock(CacheConfigurationSource.class))
+                            .setCacheConfigurationSource(mock(CacheConfigurationSource.class))
                             .setTransportConfiguration(mock(CacheBusTransportConfiguration.class))
                         .build();
 

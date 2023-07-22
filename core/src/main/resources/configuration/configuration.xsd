@@ -9,26 +9,44 @@
         </xs:sequence>
     </xs:complexType>
 
+    <xs:complexType name="timestampConfigType">
+        <xs:attribute type="positiveInt" name="probable-avg-elements-count" default="128"/>
+        <xs:attribute type="positiveLong" name="timestamp-expiration" default="1800000"/>
+    </xs:complexType>
+
     <xs:complexType name="configurationType">
         <xs:sequence>
             <xs:element type="cacheType" name="cache" maxOccurs="unbounded" minOccurs="0"/>
         </xs:sequence>
+        <xs:attribute type="xs:boolean" name="timestamp-async-cleaning" default="false"/>
     </xs:complexType>
 
     <xs:complexType name="cacheType">
         <xs:sequence>
             <xs:element type="aliasesType" name="aliases" minOccurs="0"/>
+            <xs:element type="timestampConfigType" name="timestamp-configuration" minOccurs="0"/>
         </xs:sequence>
         <xs:attribute type="xs:string" name="name" use="required"/>
         <xs:attribute type="cacheTypeEnum" name="type" use="required"/>
-        <xs:attribute type="xs:boolean" name="stamp-based-comparison" default="false"/>
-        <xs:attribute type="xs:integer" name="probable-avg-elements-count" default="128"/>
+        <xs:attribute type="xs:boolean" name="timestamp-based-comparison" default="false"/>
     </xs:complexType>
 
     <xs:simpleType name="cacheTypeEnum" final="restriction">
         <xs:restriction base="xs:string">
             <xs:enumeration value="invalidated"/>
             <xs:enumeration value="replicated"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="positiveInt">
+        <xs:restriction base="xs:int">
+            <xs:minInclusive value="1"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="positiveLong">
+        <xs:restriction base="xs:long">
+            <xs:minInclusive value="1"/>
         </xs:restriction>
     </xs:simpleType>
 </xs:schema>

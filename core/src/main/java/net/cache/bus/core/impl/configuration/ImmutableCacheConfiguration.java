@@ -9,20 +9,17 @@ import javax.annotation.Nonnull;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 import javax.annotation.concurrent.ThreadSafe;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Неизменяемая реализация конфигурации одного кэша для шины.
  *
- * @param cacheName                    имя кэша, к которому относится конфигурация, не может быть {@code null}.
- * @param cacheType                    тип кэша, не может быть {@code null}.
- * @param cacheAliases                 дополнительные алиасы кэша, не может быть {@code null}.
- * @param useStampBasedComparison      нужно ли использовать метки времени для определения необходимости применения изменений к локальному кэшу
- * @param probableAverageElementsCount вероятное количество элементов в кэше (в среднем).
- *                                     не может быть отрицательным; если {@code useStampBasedComparison == false}, то данное свойство задать не требуется.
+ * @param cacheName                   имя кэша, к которому относится конфигурация, не может быть {@code null}.
+ * @param cacheType                   тип кэша, не может быть {@code null}.
+ * @param cacheAliases                дополнительные алиасы кэша, не может быть {@code null}.
+ * @param useTimestampBasedComparison нужно ли использовать метки времени для определения необходимости применения изменений к локальному кэшу.
+ * @param timestampConfiguration      конфигурация работы с временными метками элементов кэшей, не может отсутствовать, если {@code useTimestampBasedComparison == true}.
  * @author Alik
  * @see CacheConfiguration
  */
@@ -32,11 +29,11 @@ public record ImmutableCacheConfiguration(
         @Nonnull String cacheName,
         @Nonnull CacheType cacheType,
         @Nonnull Set<String> cacheAliases,
-        boolean useStampBasedComparison,
-        @Nonnegative int probableAverageElementsCount) implements CacheConfiguration {
+        boolean useTimestampBasedComparison,
+        @Nonnegative Optional<TimestampCacheConfiguration> timestampConfiguration) implements CacheConfiguration {
 
     public ImmutableCacheConfiguration(@Nonnull String cacheName, @Nonnull CacheType cacheType) {
-        this(cacheName, cacheType, Collections.emptySet(), false, 0);
+        this(cacheName, cacheType, Collections.emptySet(), false, Optional.empty());
     }
 
     public ImmutableCacheConfiguration {
@@ -50,8 +47,8 @@ public record ImmutableCacheConfiguration(
             throw new InvalidCacheConfigurationException("Aliases allowed only for invalidation cache");
         }
 
-        if (useStampBasedComparison && probableAverageElementsCount <= 0) {
-            throw new InvalidCacheConfigurationException("When stamp based comparison enabled then probable average cache elements count must be positive");
+        if (useTimestampBasedComparison && timestampConfiguration.isEmpty()) {
+            throw new InvalidCacheConfigurationException("When stamp based comparison enabled then timestamp configuration must present");
         }
     }
 
@@ -89,8 +86,8 @@ public record ImmutableCacheConfiguration(
 
         private String cacheName;
         private CacheType cacheType;
-        private boolean useStampBasedComparison;
-        private int probableAverageElementsCount = 128;
+        private boolean useTimestampBasedComparison;
+        private TimestampCacheConfiguration timestampConfiguration = new ImmutableTimestampCacheConfiguration(128, TimeUnit.MINUTES.toMillis(30));
         private final Set<String> cacheAliases = new HashSet<>();
 
         /**
@@ -148,30 +145,30 @@ public record ImmutableCacheConfiguration(
 
         /**
          * Устанавливает признак использования меток времени при применении изменений с удаленных серверов к локальному кэшу.<br>
-         * Перед установкой значения нужно внимательно ознакомиться с документацией к {@linkplain CacheConfiguration#useStampBasedComparison()}.<br>
+         * Перед установкой значения нужно внимательно ознакомиться с документацией к {@linkplain CacheConfiguration#useTimestampBasedComparison()}.<br>
          * По-умолчанию {@code false}.
          *
-         * @param useStampBasedComparison признак использования меток времени.
+         * @param useTimestampBasedComparison признак использования меток времени.
          * @return не может быть {@code null}.
          */
         @Nonnull
-        public Builder useStampBasedComparison(final boolean useStampBasedComparison) {
-            this.useStampBasedComparison = useStampBasedComparison;
+        public Builder useTimestampBasedComparison(final boolean useTimestampBasedComparison) {
+            this.useTimestampBasedComparison = useTimestampBasedComparison;
             return this;
         }
 
         /**
-         * Устанавливает ожидаемое (предполагаемое) количество элементов в кэше в среднем.
-         * Значение не должно быть точным, достаточно приблизительного значения.
-         * По-умолчанию используется значение {@code 128}, если явно не задано.<br>
-         * Если {@code useStampBasedComparison == false}, то значение игнорируется.
+         * Устанавливает конфигурацию, используемую для работы с временными метками элементов кэша.
+         * По-умолчанию используется значение {@code 128} в качестве {@linkplain TimestampCacheConfiguration#probableAverageElementsCount()}
+         * и 30 минут в качестве {@linkplain TimestampCacheConfiguration#timestampExpiration()}, если явно не задано.<br>
+         * Если {@code useTimestampBasedComparison == false}, то значение игнорируется.
          *
-         * @param probableAverageElementsCount вероятное количество элементов в кэше в среднем.
+         * @param timestampConfiguration конфигурация работы с временными метками элементов кэша, может быть {@code null}.
          * @return не может быть {@code null}.
          */
         @Nonnull
-        public Builder setProbableAverageElementsCount(@Nonnegative final int probableAverageElementsCount) {
-            this.probableAverageElementsCount = probableAverageElementsCount;
+        public Builder setTimestampConfiguration(final TimestampCacheConfiguration timestampConfiguration) {
+            this.timestampConfiguration = timestampConfiguration;
             return this;
         }
 
@@ -186,8 +183,8 @@ public record ImmutableCacheConfiguration(
                     this.cacheName,
                     this.cacheType,
                     new HashSet<>(this.cacheAliases),
-                    this.useStampBasedComparison,
-                    this.probableAverageElementsCount
+                    this.useTimestampBasedComparison,
+                    Optional.ofNullable(this.timestampConfiguration)
             );
         }
     }

@@ -11,17 +11,18 @@ import java.util.Set;
  * @author Alik
  * @see CacheConfiguration
  * @see CacheBusConfiguration
+ * @see CacheSetConfiguration
  * @see SimpleCacheConfigurationSource
  */
 public interface CacheConfigurationSource {
 
     /**
-     * Возвращает конфигурации кэшей из источника.
+     * Возвращает конфигурацию кэшей из источника.
      *
      * @return не может быть {@code null}.
      */
     @Nonnull
-    Set<CacheConfiguration> pull();
+    CacheSetConfiguration pull();
 
     /**
      * Возвращает источник конфигурации кэшей по-умолчанию, конфигурируемый вручную.
@@ -47,11 +48,24 @@ public interface CacheConfigurationSource {
     final class SimpleCacheConfigurationSource implements CacheConfigurationSource {
 
         private final Set<CacheConfiguration> configurations = new HashSet<>();
+        private boolean useAsyncCleaning;
 
         @Nonnull
         @Override
-        public Set<CacheConfiguration> pull() {
-            return new HashSet<>(this.configurations);
+        public CacheSetConfiguration pull() {
+            final Set<CacheConfiguration> cacheConfigurations = Set.copyOf(this.configurations);
+            return new CacheSetConfiguration() {
+                @Nonnull
+                @Override
+                public Set<CacheConfiguration> cacheConfigurations() {
+                    return cacheConfigurations;
+                }
+
+                @Override
+                public boolean useAsyncCleaning() {
+                    return useAsyncCleaning;
+                }
+            };
         }
 
         /**
@@ -89,10 +103,24 @@ public interface CacheConfigurationSource {
             return this;
         }
 
+        /**
+         * Устанавливает признак использования асинхронного пула для очистки устаревших временных
+         * меток изменения элементов кэша.
+         *
+         * @param useAsyncCleaning признак использования асинхронного пула для очистки устаревших временных меток
+         * @return не может быть {@code null}.
+         */
+        @Nonnull
+        public SimpleCacheConfigurationSource useAsyncCleaning(boolean useAsyncCleaning) {
+            this.useAsyncCleaning = useAsyncCleaning;
+            return this;
+        }
+
         @Override
         public String toString() {
-            return "SimpleCacheConfigurationSource{" +
+            return "SimpleCacheSetConfigurationSource{" +
                     "configurations=" + configurations +
+                    ", useAsyncCleaning=" + useAsyncCleaning +
                     '}';
         }
     }

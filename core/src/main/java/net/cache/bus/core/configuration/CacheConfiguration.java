@@ -2,6 +2,7 @@ package net.cache.bus.core.configuration;
 
 import javax.annotation.Nonnegative;
 import javax.annotation.Nonnull;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -55,17 +56,45 @@ public interface CacheConfiguration {
      * @return признак использования меток времени для определения необходимости применения удаленных
      * изменений к локальному кэшу, {@code true}, если метки используются, {@code false} в противном случае.
      */
-    boolean useStampBasedComparison();
+    boolean useTimestampBasedComparison();
 
     /**
-     * Возвращает предполагаемое вероятное количество элементов в кэше (в среднем).<br>
-     * Чем точнее задано значение, тем более эффективно будет работать обработка временных меток
-     * для элементов кэша при использовании сравнений изменений элементов кэша на локальном и
-     * удаленных серверах.
+     * Возвращает конфигурацию временных меток элементов кэша, если используется режим сравнения изменений
+     * на основе меток времени ({@code useTimestampBasedComparison() == true}.
      *
-     * @return вероятное количество элементов в кэше, не может быть отрицательным;
-     * если {@code useStampBasedComparison() == false}, то значение игнорируется.
+     * @return конфигурация временных меток, не может быть {@code null}.
+     * @see TimestampCacheConfiguration
      */
-    @Nonnegative
-    int probableAverageElementsCount();
+    @Nonnull
+    Optional<TimestampCacheConfiguration> timestampConfiguration();
+
+    /**
+     *
+     */
+    interface TimestampCacheConfiguration {
+
+        /**
+         * Возвращает предполагаемое вероятное количество элементов в кэше (в среднем).<br>
+         * Чем точнее задано значение, тем более эффективно будет работать обработка временных меток
+         * для элементов кэша при использовании сравнений изменений элементов кэша на локальном и
+         * удаленных серверах.
+         *
+         * @return вероятное количество элементов в кэше, не может быть отрицательным;
+         * если {@code useTimestampBasedComparison() == false}, то значение игнорируется.
+         */
+        @Nonnegative
+        int probableAverageElementsCount();
+
+        /**
+         * Возвращает срок в миллисекундах, через который хранимая метка об изменении элемента кэша считается просроченной и может быть удалена из хранилища меток.<br>
+         * Данный срок требуется для того, чтобы не нужные уже метки не копились в хранилище, занимая место в памяти.
+         * Например, если {@code timestampExpiration() == 60_000}, то при очередном запуске очистки меток будут удалены метки, которые являются более старыми, чем
+         * {@code java.lang.System.currentTimeMillis() - timestampExpiration()}.<br>
+         * Используется только в случае, если {@code useTimestampBasedComparison() == true}, в противном случае задавать данный параметр необязательно.
+         *
+         * @return срок в миллисекундах, через который хранимая метка считается просроченной и может быть удалена, не может быть отрицательным.
+         */
+        @Nonnegative
+        long timestampExpiration();
+    }
 }

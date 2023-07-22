@@ -23,7 +23,7 @@ public interface CacheEntryEventTimestampStore {
      * @return {@code true}, если в хранилище не оказалось на данный момент метки более свежей
      * и сохранение метки прошло успешно, {@code false} в противном случае (т.е. метка не была сохранена).
      * @see CacheEntryEvent#eventTime()
-     * @see CacheConfiguration#useStampBasedComparison()
+     * @see CacheConfiguration#useTimestampBasedComparison()
      */
     boolean save(@Nonnull CacheEntryEvent<?, ?> event);
 }

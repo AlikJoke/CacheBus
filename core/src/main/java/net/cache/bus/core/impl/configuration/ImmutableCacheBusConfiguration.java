@@ -27,7 +27,7 @@ public record ImmutableCacheBusConfiguration(
         @Nonnull CacheBusMetricsRegistry metricsRegistry) implements CacheBusConfiguration {
 
     public ImmutableCacheBusConfiguration {
-        Objects.requireNonNull(cacheConfigurationSource, "cacheConfigurationBuilder");
+        Objects.requireNonNull(cacheConfigurationSource, "cacheConfigurationSource");
         Objects.requireNonNull(providerConfiguration, "providerConfiguration");
         Objects.requireNonNull(transportConfiguration, "transportConfiguration");
         Objects.requireNonNull(transportConfiguration, "metricsRegistry");
@@ -66,7 +66,7 @@ public record ImmutableCacheBusConfiguration(
          * @see CacheConfigurationSource
          */
         @Nonnull
-        public Builder setCacheConfigurationBuilder(@Nonnull CacheConfigurationSource cacheConfigurationSource) {
+        public Builder setCacheConfigurationSource(@Nonnull CacheConfigurationSource cacheConfigurationSource) {
             this.cacheConfigurationSource = cacheConfigurationSource;
             return this;
         }

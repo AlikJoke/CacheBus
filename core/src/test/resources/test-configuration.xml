@@ -1,11 +1,13 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <configuration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-               xsi:noNamespaceSchemaLocation="../../main/resources/configuration/configuration.xsd">
-    <cache name="test1" type="invalidated" stamp-based-comparison="true" probable-avg-elements-count="256">
+               xsi:noNamespaceSchemaLocation="../../main/resources/configuration/configuration.xsd"
+               timestamp-async-cleaning="true">
+    <cache name="test1" type="invalidated" timestamp-based-comparison="true">
         <aliases>
             <alias>test1_1</alias>
             <alias>test1_2</alias>
         </aliases>
+        <timestamp-configuration probable-avg-elements-count="256" timestamp-expiration="60000"/>
     </cache>
     <cache name="test2" type="invalidated"/>
     <cache name="test3" type="replicated"/>

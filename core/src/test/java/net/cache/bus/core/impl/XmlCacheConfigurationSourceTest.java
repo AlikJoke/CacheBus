@@ -1,9 +1,11 @@
 package net.cache.bus.core.impl;
 
 import net.cache.bus.core.configuration.CacheConfiguration;
+import net.cache.bus.core.configuration.CacheSetConfiguration;
 import net.cache.bus.core.configuration.CacheType;
 import net.cache.bus.core.configuration.InvalidCacheConfigurationException;
 import net.cache.bus.core.impl.configuration.ImmutableCacheConfiguration;
+import net.cache.bus.core.impl.configuration.ImmutableTimestampCacheConfiguration;
 import net.cache.bus.core.impl.configuration.XmlCacheConfigurationSource;
 import org.junit.jupiter.api.Test;
 
@@ -52,9 +54,10 @@ public class XmlCacheConfigurationSourceTest {
 
     private void makeChecksValid(final XmlCacheConfigurationSource source) {
 
-        final Set<CacheConfiguration> configurations = source.pull();
+        final CacheSetConfiguration configurations = source.pull();
 
-        assertEquals(3, configurations.size(), "Configurations count must be equal");
+        assertTrue(configurations.useAsyncCleaning(), "Async cleaning must be enabled");
+        assertEquals(3, configurations.cacheConfigurations().size(), "Configurations count must be equal");
 
         final List<CacheConfiguration> configsToCompare = new ArrayList<>();
         final var cacheConfig1 =
@@ -63,8 +66,8 @@ public class XmlCacheConfigurationSourceTest {
                         .setCacheName("test1")
                         .setCacheType(CacheType.INVALIDATED)
                         .setCacheAliases(Set.of("test1_1", "test1_2"))
-                        .useStampBasedComparison(true)
-                        .setProbableAverageElementsCount(256)
+                        .useTimestampBasedComparison(true)
+                        .setTimestampConfiguration(new ImmutableTimestampCacheConfiguration(256, 60000))
                     .build();
         configsToCompare.add(cacheConfig1);
         configsToCompare.add(buildCacheConfig("test2", CacheType.INVALIDATED));
@@ -72,6 +75,7 @@ public class XmlCacheConfigurationSourceTest {
 
         configsToCompare.forEach(cc -> {
             final CacheConfiguration config = configurations
+                                                    .cacheConfigurations()
                                                     .stream()
                                                     .filter(cc::equals)
                                                     .findAny()
@@ -83,11 +87,12 @@ public class XmlCacheConfigurationSourceTest {
 
         final CacheConfiguration configWithStampBasedComparison =
                 configurations
+                        .cacheConfigurations()
                         .stream()
                         .filter(configsToCompare.get(0)::equals)
                         .findAny()
                         .orElseThrow();
-        assertTrue(configWithStampBasedComparison.useStampBasedComparison(), "Stamp based comparison should be enabled for test1 cache config");
+        assertTrue(configWithStampBasedComparison.useTimestampBasedComparison(), "Stamp based comparison should be enabled for test1 cache config");
     }
 
     private CacheConfiguration buildCacheConfig(String cacheName, CacheType cacheType) {

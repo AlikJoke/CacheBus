@@ -23,6 +23,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import javax.annotation.Nonnull;
 import java.io.Serializable;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Executors;
 
@@ -301,9 +302,9 @@ public class DefaultCacheBusTest {
         final CacheProviderConfiguration providerConfiguration = new CacheProviderConfigurationTemplate(cacheManager, eventListenerRegistrar) {};
         return ImmutableCacheBusConfiguration
                     .builder()
-                        .setCacheConfigurationBuilder(
+                        .setCacheConfigurationSource(
                                 CacheConfigurationSource.createDefault()
-                                        .add(new ImmutableCacheConfiguration(INV_CACHE, CacheType.INVALIDATED, Set.of(INV_CACHE_ALIAS), false, 0))
+                                        .add(new ImmutableCacheConfiguration(INV_CACHE, CacheType.INVALIDATED, Set.of(INV_CACHE_ALIAS), false, Optional.empty()))
                                         .add(new ImmutableCacheConfiguration(REPL_CACHE, CacheType.REPLICATED))
                         )
                         .setProviderConfiguration(providerConfiguration)

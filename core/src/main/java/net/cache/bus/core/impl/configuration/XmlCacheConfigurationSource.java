@@ -1,9 +1,6 @@
 package net.cache.bus.core.impl.configuration;
 
-import net.cache.bus.core.configuration.CacheConfiguration;
-import net.cache.bus.core.configuration.CacheConfigurationSource;
-import net.cache.bus.core.configuration.CacheType;
-import net.cache.bus.core.configuration.InvalidCacheConfigurationException;
+import net.cache.bus.core.configuration.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
@@ -45,10 +42,13 @@ public final class XmlCacheConfigurationSource implements CacheConfigurationSour
     private static final String SCHEMA_PATH = "/configuration/configuration.xsd";
 
     private static final String CACHE_ELEMENT = "cache";
+    private static final String USE_ASYNC_CLEANING_ATTR = "timestamp-async-cleaning";
     private static final String CACHE_NAME_ATTR = "name";
     private static final String CACHE_TYPE_ATTR = "type";
-    private static final String CACHE_STAMP_BASED_COMPARISON_ATTR = "stamp-based-comparison";
-    private static final String CACHE_AVG_ELEMENTS_COUNT_ATTR = "probable-avg-elements-count";
+    private static final String CACHE_STAMP_BASED_COMPARISON_ATTR = "timestamp-based-comparison";
+    private static final String CACHE_TSC_ELEMENT = "timestamp-configuration";
+    private static final String CACHE_TSC_AVG_ELEMENTS_COUNT_ATTR = "probable-avg-elements-count";
+    private static final String CACHE_TSC_TIMESTAMP_EXPIRATION_ATTR = "timestamp-expiration";
     private static final String CACHE_ALIASES_ELEMENT = "aliases";
     private static final String CACHE_ALIAS_ELEMENT = "alias";
 
@@ -67,7 +67,7 @@ public final class XmlCacheConfigurationSource implements CacheConfigurationSour
 
     @Nonnull
     @Override
-    public Set<CacheConfiguration> pull() {
+    public CacheSetConfiguration pull() {
 
         logger.debug("Pull configurations from xml was called: {}", this);
 
@@ -93,10 +93,11 @@ public final class XmlCacheConfigurationSource implements CacheConfigurationSour
                 '}';
     }
 
-    private Set<CacheConfiguration> buildConfigurationsFromDocument(final Document document) {
+    private CacheSetConfiguration buildConfigurationsFromDocument(final Document document) {
 
         final Set<CacheConfiguration> result = new HashSet<>();
 
+        final boolean useAsyncCleaning = Boolean.parseBoolean(document.getDocumentElement().getAttribute(USE_ASYNC_CLEANING_ATTR));
         final NodeList caches = document.getElementsByTagName(CACHE_ELEMENT);
         for (int cacheIndex = 0; cacheIndex < caches.getLength(); cacheIndex++) {
 
@@ -112,25 +113,42 @@ public final class XmlCacheConfigurationSource implements CacheConfigurationSour
             final CacheType cacheType = CacheType.valueOf(cacheTypeString.toUpperCase());
             final Set<String> aliases = parseAliases(cacheElement);
             final boolean stampBasedComparison = Boolean.parseBoolean(cacheElement.getAttribute(CACHE_STAMP_BASED_COMPARISON_ATTR));
-            final String probableAvgElementsCountStr = cacheElement.getAttribute(CACHE_AVG_ELEMENTS_COUNT_ATTR);
 
-            final ImmutableCacheConfiguration.Builder builder = ImmutableCacheConfiguration.builder();
-            if (!probableAvgElementsCountStr.isEmpty()) {
-                builder.setProbableAverageElementsCount(Integer.parseInt(probableAvgElementsCountStr));
-            }
+            final CacheConfiguration.TimestampCacheConfiguration timestampCacheConfiguration = createTimestampConfiguration(cacheElement);
 
-            final CacheConfiguration cacheConfiguration = builder
-                                                            .setCacheName(cacheName)
-                                                            .setCacheType(cacheType)
-                                                            .setCacheAliases(aliases)
-                                                            .useStampBasedComparison(stampBasedComparison)
-                                                          .build();
+            final CacheConfiguration cacheConfiguration =
+                    ImmutableCacheConfiguration
+                            .builder()
+                                .setCacheName(cacheName)
+                                .setCacheType(cacheType)
+                                .setCacheAliases(aliases)
+                                .useTimestampBasedComparison(stampBasedComparison)
+                                .setTimestampConfiguration(timestampCacheConfiguration)
+                            .build();
             result.add(cacheConfiguration);
         }
 
         logger.debug("Configuration was build: {}", result);
 
-        return Collections.unmodifiableSet(result);
+        return new ImmutableCacheSetConfiguration(Collections.unmodifiableSet(result), useAsyncCleaning);
+    }
+
+    private CacheConfiguration.TimestampCacheConfiguration createTimestampConfiguration(final Element cacheElement) {
+
+        final NodeList timestampConfigNode = cacheElement.getElementsByTagName(CACHE_TSC_ELEMENT);
+        if (timestampConfigNode.getLength() == 0) {
+            return null;
+        }
+
+        final Element timestampElement = (Element) timestampConfigNode.item(0);
+
+        final String probableAvgElementsCountStr = timestampElement.getAttribute(CACHE_TSC_AVG_ELEMENTS_COUNT_ATTR);
+        final String timestampExpirationStr = timestampElement.getAttribute(CACHE_TSC_TIMESTAMP_EXPIRATION_ATTR);
+
+        return new ImmutableTimestampCacheConfiguration(
+                Integer.parseInt(probableAvgElementsCountStr),
+                Long.parseLong(timestampExpirationStr)
+        );
     }
 
     private Set<String> parseAliases(final Element cacheElement) {
