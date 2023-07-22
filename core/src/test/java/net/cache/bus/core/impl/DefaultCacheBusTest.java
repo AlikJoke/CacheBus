@@ -2,10 +2,7 @@ package net.cache.bus.core.impl;
 
 import net.cache.bus.core.*;
 import net.cache.bus.core.configuration.*;
-import net.cache.bus.core.impl.configuration.CacheProviderConfigurationTemplate;
-import net.cache.bus.core.impl.configuration.ImmutableCacheBusConfiguration;
-import net.cache.bus.core.impl.configuration.ImmutableCacheBusTransportConfiguration;
-import net.cache.bus.core.impl.configuration.ImmutableCacheConfiguration;
+import net.cache.bus.core.impl.configuration.*;
 import net.cache.bus.core.impl.internal.ImmutableCacheEntryOutputMessage;
 import net.cache.bus.core.impl.test.FakeCache;
 import net.cache.bus.core.impl.test.FakeCacheBusMessageChannel;
@@ -225,6 +222,10 @@ public class DefaultCacheBusTest {
         final CacheEntryEvent<Serializable, Serializable> event6 = new ImmutableCacheEntryEvent<>("6", "v6", "v7", CacheEntryEventType.UPDATED, INV_CACHE_ALIAS);
         when(eventConverter.fromBinary(binaryEventValue6)).thenReturn(event6);
 
+        final byte[] binaryEventValue7 = new byte[] {14, 42};
+        final CacheEntryEvent<Serializable, Serializable> event7 = new ImmutableCacheEntryEvent<>("2", null, "v4", System.currentTimeMillis() - 10, CacheEntryEventType.ADDED, REPL_CACHE);
+        when(eventConverter.fromBinary(binaryEventValue7)).thenReturn(event7);
+
         // action
         cacheBus.start();
 
@@ -234,6 +235,7 @@ public class DefaultCacheBusTest {
         cacheBus.receive(binaryEventValue4);
         cacheBus.receive(binaryEventValue5);
         cacheBus.receive(binaryEventValue6);
+        cacheBus.receive(binaryEventValue7);
 
         // checks
         final CacheManager cacheManager = configuration.providerConfiguration().cacheManager();
@@ -250,7 +252,8 @@ public class DefaultCacheBusTest {
                                                                             .map(FakeCache.class::cast)
                                                                             .orElseThrow();
         assertTrue(replCache.get(event3.key()).isEmpty(), "Value must be evicted after applying eviction event to replicated cache");
-        assertTrue(replCache.get(event4.key()).filter(v -> v.equals(event4.newValue())).isPresent(), "Value must be added after applying added event to replicated cache");
+        assertTrue(replCache.get(event4.key()).filter(v -> v.equals(event4.newValue())).isPresent(), "Value must be added after first applying added event to replicated cache " +
+                "(and should not be applied second add event due to timestamp configuration))");
         assertTrue(replCache.get(event5.key()).isEmpty(), "Value must be evicted after applying update event with not matching old value to replicated cache");
 
         // clearing
@@ -305,7 +308,7 @@ public class DefaultCacheBusTest {
                         .setCacheConfigurationSource(
                                 CacheConfigurationSource.createDefault()
                                         .add(new ImmutableCacheConfiguration(INV_CACHE, CacheType.INVALIDATED, Set.of(INV_CACHE_ALIAS), false, Optional.empty()))
-                                        .add(new ImmutableCacheConfiguration(REPL_CACHE, CacheType.REPLICATED))
+                                        .add(new ImmutableCacheConfiguration(REPL_CACHE, CacheType.REPLICATED, Set.of(), true, Optional.of(new ImmutableTimestampCacheConfiguration(32, 10_000))))
                         )
                         .setProviderConfiguration(providerConfiguration)
                         .setTransportConfiguration(transportConfiguration)

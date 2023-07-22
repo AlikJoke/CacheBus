@@ -85,14 +85,33 @@ public class XmlCacheConfigurationSourceTest {
             assertEquals(cc.cacheAliases(), config.cacheAliases(), "Cache aliases must be equal");
         });
 
-        final CacheConfiguration configWithStampBasedComparison =
+        final CacheConfiguration configForTest1Cache =
                 configurations
                         .cacheConfigurations()
                         .stream()
                         .filter(configsToCompare.get(0)::equals)
                         .findAny()
                         .orElseThrow();
-        assertTrue(configWithStampBasedComparison.useTimestampBasedComparison(), "Stamp based comparison should be enabled for test1 cache config");
+        assertTrue(configForTest1Cache.useTimestampBasedComparison(), "Stamp based comparison should be enabled for test1 cache config");
+        assertTrue(configForTest1Cache.timestampConfiguration().isPresent(), "Stamp configuration must present");
+        configForTest1Cache.timestampConfiguration().ifPresent(config -> {
+            assertEquals(256, config.probableAverageElementsCount(), "Probable avg elements count must be equal");
+            assertEquals(60000, config.timestampExpiration(), "Timestamp expiration must be equal");
+        });
+
+        final CacheConfiguration configForTest2Cache =
+                configurations
+                        .cacheConfigurations()
+                        .stream()
+                        .filter(configsToCompare.get(1)::equals)
+                        .findAny()
+                        .orElseThrow();
+        assertTrue(configForTest2Cache.useTimestampBasedComparison(), "Stamp based comparison should be enabled for test2 cache config");
+        assertTrue(configForTest2Cache.timestampConfiguration().isPresent(), "Stamp configuration must present");
+        configForTest2Cache.timestampConfiguration().ifPresent(config -> {
+            assertEquals(128, config.probableAverageElementsCount(), "Probable avg elements count must be equal to default value");
+            assertEquals(1800000, config.timestampExpiration(), "Timestamp expiration must be equal to default");
+        });
     }
 
     private CacheConfiguration buildCacheConfig(String cacheName, CacheType cacheType) {

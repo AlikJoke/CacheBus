@@ -230,8 +230,6 @@ public final class DefaultCacheBus implements ExtendedCacheBus {
 
         logger.debug("Process event {} with cacheType {}", event, cacheConfiguration.cacheType().name());
 
-        locked.set(Boolean.TRUE);
-
         /*
          * Если условие save не прошли, значит есть более свежая модификация => пропускаем событие.
          * Иначе, если save вернул true, то модифицируем кэш. Тут может получиться, что поток приложения выполнит
@@ -245,7 +243,10 @@ public final class DefaultCacheBus implements ExtendedCacheBus {
             return;
         }
 
+        locked.set(Boolean.TRUE);
+
         try {
+
             switch (cacheConfiguration.cacheType()) {
                 case INVALIDATED -> {
                     event.applyToInvalidatedCache(cache);

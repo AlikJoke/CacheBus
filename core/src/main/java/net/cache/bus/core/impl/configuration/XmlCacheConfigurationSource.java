@@ -116,15 +116,18 @@ public final class XmlCacheConfigurationSource implements CacheConfigurationSour
 
             final CacheConfiguration.TimestampCacheConfiguration timestampCacheConfiguration = createTimestampConfiguration(cacheElement);
 
+            final ImmutableCacheConfiguration.Builder builder = ImmutableCacheConfiguration.builder();
+            if (stampBasedComparison && timestampCacheConfiguration != null) {
+                builder.setTimestampConfiguration(timestampCacheConfiguration);
+            }
+
             final CacheConfiguration cacheConfiguration =
-                    ImmutableCacheConfiguration
-                            .builder()
-                                .setCacheName(cacheName)
-                                .setCacheType(cacheType)
-                                .setCacheAliases(aliases)
-                                .useTimestampBasedComparison(stampBasedComparison)
-                                .setTimestampConfiguration(timestampCacheConfiguration)
-                            .build();
+                    builder
+                            .setCacheName(cacheName)
+                            .setCacheType(cacheType)
+                            .setCacheAliases(aliases)
+                            .useTimestampBasedComparison(stampBasedComparison)
+                    .build();
             result.add(cacheConfiguration);
         }
 
