@@ -11,11 +11,11 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 /**
- * Упрощенная структура очереди, основанная на потокобезопасной очереди {@link ConcurrentLinkedQueue}.
- * Дополняет {@link ConcurrentLinkedQueue} методами с блокированием при получении данных из очереди,
- * когда очередь пуста.
+ * Simplified queue structure based on the thread-safe queue {@link ConcurrentLinkedQueue}.
+ * Complements {@link ConcurrentLinkedQueue} with methods that block when retrieving data from the queue
+ * when the queue is empty.
  *
- * @param <E> тип хранимых в очереди элементов данных
+ * @param <E> the type of elements stored in the queue
  * @author Alik
  * @see ConcurrentLinkedQueue
  */
@@ -26,12 +26,12 @@ public final class ConcurrentLinkedBlockingQueue<E> {
     private final Queue<E> sourceQueue = new ConcurrentLinkedQueue<>();
 
     /**
-     * Возвращает элемент и удаляет его из головы очереди. Если очередь пуста, то блокируется и ждет появления данных в очереди
-     * на протяжении заданного тайм-аута. Если после ожидания по тайм-ауту очередь все так же пуста, то вернется {@code null}.
+     * Retrieves and removes the element at the head of the queue. If the queue empty, it blocks and waits for data to appear in the queue
+     * for the specified timeout. If the queue is still empty after waiting for the timeout, {@code null} will be returned.
      *
-     * @param timeout время тайм-аута ожидания появления в пустой очереди новых элементов, первый из которых можно будет вернуть; не может быть отрицательным.
-     * @param unit    единицы времени ожидания появления в пустой очереди новых элементов, не может быть {@code null}.
-     * @return элемент данных из головы очереди или {@code null}, если очередь пуста (после того, как пройдет время тайм-аута).
+     * @param timeout the timeout for waiting for new elements to appear in an empty queue; must not be negative.
+     * @param unit    the time units for waiting for new elements to appear in an empty queue; must not be {@code null}.
+     * @return the data element from the head of the queue, or {@code null} if the queue is empty (after the timeout).
      */
     @Nullable
     public E poll(@Nonnegative long timeout, @Nonnull TimeUnit unit) throws InterruptedException {
@@ -43,10 +43,11 @@ public final class ConcurrentLinkedBlockingQueue<E> {
     }
 
     /**
-     * Удаляет и возвращает элемент из головы очереди. Если очередь пуста, то блокируется до момента появления нового элемента в очереди, который можно вернуть.
+     * Removes and returns the element at the head of the queue.
+     * If the queue is empty, it blocks until a new element appears in the queue that can be returned.
      *
-     * @return элемент из головы очереди, не может быть {@code null}.
-     * @throws InterruptedException если поток был прерван извне
+     * @return the element from the head of the queue, cannot be {@code null}.
+     * @throws InterruptedException if the thread was interrupted from outside
      */
     @Nonnull
     public E take() throws InterruptedException {
@@ -62,9 +63,9 @@ public final class ConcurrentLinkedBlockingQueue<E> {
     }
 
     /**
-     * Добавляет в хвост очереди элемент данных.
+     * Adds element of data to the tail of the queue.
      *
-     * @param elem элемент данных, не может быть {@code null}.
+     * @param elem the data element, cannot be {@code null}.
      */
     public void offer(@Nonnull E elem) {
         this.sourceQueue.offer(elem);
@@ -72,16 +73,16 @@ public final class ConcurrentLinkedBlockingQueue<E> {
     }
 
     /**
-     * Выполняет переданное действие над каждым элементом данных очереди в цикле.
+     * Performs the given action each data element in the queue in a loop.
      *
-     * @param action действие для выполнения над элементом данных, не может быть {@code null}.
+     * @param action the action to be performed on each data element, cannot be {@code null}.
      */
     public void forEach(@Nonnull Consumer<? super E> action) {
         this.sourceQueue.forEach(action);
     }
 
     /**
-     * Очищает очередь.
+     * Clears the queue.
      */
     public void clear() {
         this.sourceQueue.clear();

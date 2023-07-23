@@ -16,26 +16,24 @@ import static net.cache.bus.transport.ChannelConstants.RECONNECT_RETRY_TIMEOUT;
 import static net.cache.bus.transport.ChannelConstants.RECONNECT_RETRY_TIMEOUT_UNITS;
 
 /**
- * Конфигурация для JMS-совместимого канала сообщений.
+ * Configuration for a JMS-compatible message channel.
  *
- * @param connectionFactory         фабрика соединений с брокером, не может быть {@code null}.
- * @param availableConnectionsCount максимальное количество соединений с брокером JMS,
- *                                  которое может использоваться каналом; значение не должно
- *                                  быть низким, т.к. низкое значение повлечет высокую
- *                                  конкуренцию за соединение при отправке данных; не может быть
- *                                  меньше {@code 2}; значение по-умолчанию составляет 9
- *                                  (8 соединений для отправки сообщений, т.е. 8 потоков могут
- *                                  одновременно отправлять данные без конкуренции за соединение
- *                                  + 1 соединение на получение сообщений с других серверов).
- * @param reconnectTimeoutMs        тайм-аут переподключения в миллисекундах при разрыве соединений,
- *                                  используемых для отправки сообщений в канал; по тайм-ауту
- *                                  произойдет прекращение попытки восстановить соединение и будет
- *                                  сгенерировано исключение; по-умолчанию используется значение
- *                                  {@link ChannelConstants#RECONNECT_RETRY_TIMEOUT} в минутах;
- *                                  не может быть отрицательным.
- * @param channel                   имя канала (в терминах JMS - топика), не может быть {@code null}.
- * @param subscribingPool           пул потоков, на котором производится получение сообщений из канала, не может быть {@code null}.
- * @param hostNameResolver          определитель хоста текущего сервера, не может быть {@code null}.
+ * @param connectionFactory         the connection factory connect to the broker, cannot be {@code null}.
+ * @param availableConnectionsCount the maximum number of connections to the JMS broker
+ *                                  that can be used by the channel; the value should not be too low,
+ *                                  as a low value will result in high competition for connections when sending data;
+ *                                  cannot be less than {@code 2}; the default value is 9
+ *                                  (8 connections for sending messages, i.e., 8 threads can
+ *                                  simultaneously send data without competing for a connection
+ *                                  + 1 connection for receiving messages from other servers).
+ * @param reconnectTimeoutMs        the reconnection timeout in milliseconds when connections used for sending messages
+ *                                  in the channel are disconnected; after the timeout,
+ *                                  the reconnection attempt will be stopped and an exception will be thrown;
+ *                                  the default value is {@link ChannelConstants#RECONNECT_RETRY_TIMEOUT} in minutes;
+ *                                  cannot be negative.
+ * @param channel                   the name of the channel (in JMS terms - topic), cannot be {@code null}.
+ * @param subscribingPool           the thread pool on which messages are received from the channel, cannot be {@code null}.
+ * @param hostNameResolver          the resolver for the current server's host, cannot be {@code null}.
  * @author Alik
  * @see Builder
  * @see net.cache.bus.jms.channel.JmsCacheBusMessageChannel
@@ -49,12 +47,11 @@ public record JmsCacheBusMessageChannelConfiguration(
         @Nonnull HostNameResolver hostNameResolver) implements CacheBusMessageChannelConfiguration {
 
     /**
-     * Минимально необходимое количество соединений с каналом (1 для отправки + 1 для чтения из канала).
+     * The minimum required number of connections the channel (1 for sending + 1 for reading from the channel).
      */
     private static final int MIN_CONNECTIONS_COUNT = 2;
-
     /**
-     * Количество соединений с каналом по-умолчанию (8 для отправки в канал + 1 для чтения из канала).
+     * The default number of connections to the channel (8 for sending to the channel + 1 for reading from the channel).
      */
     private static final int DEFAULT_CONNECTIONS_COUNT = 9;
 
@@ -91,9 +88,9 @@ public record JmsCacheBusMessageChannelConfiguration(
     }
 
     /**
-     * Фабричный метод создания построителя для формирования конфигурации для JMS-канала шины.
+     * Factory method for creating a builder to construct the configuration for a JMS bus channel.
      *
-     * @return не может быть {@code null}.
+     * @return cannot be {@code null}.
      */
     @Nonnull
     public static Builder builder() {
@@ -110,10 +107,10 @@ public record JmsCacheBusMessageChannelConfiguration(
         private HostNameResolver hostNameResolver = new StdHostNameResolver();
 
         /**
-         * Устанавливает фабрика соединений, через которую производится взаимодействие с брокером.
+         * Sets the connection factory used for interacting with the broker.
          *
-         * @param connectionFactory фабрика соединений, не может быть {@code null}.
-         * @return не может быть {@code null}.
+         * @param connectionFactory the connection factory, cannot be {@code null}.
+         * @return cannot be {@code null}.
          */
         @Nonnull
         public Builder setConnectionFactory(@Nonnull ConnectionFactory connectionFactory) {
@@ -122,15 +119,13 @@ public record JmsCacheBusMessageChannelConfiguration(
         }
 
         /**
-         * Устанавливает максимально допустимое для использования количество
-         * соединений с каналом для шины кэшей.<br>
-         * См. описание параметра в Java-doc к {@link JmsCacheBusMessageChannelConfiguration}.<br>
-         * Если не установить значение явно, то будет использоваться значение по-умолчанию
-         * {@link JmsCacheBusMessageChannelConfiguration#DEFAULT_CONNECTIONS_COUNT}.
+         * Sets the maximum number of connections allowed to be used by the channel for caching.<br>
+         * See the parameter description in the JavaDoc for {@link JmsCacheBusMessageChannelConfiguration}.<br>
+         * If not set explicitly, the default value {@link JmsCacheBusMessageChannelConfiguration#DEFAULT_CONNECTIONS_COUNT} will be used.
          *
-         * @param availableConnectionsCount максимально допустимое для использования количество
-         *                                  соединений с каналом, не может быть {@code < 2}.
-         * @return не может быть {@code null}.
+         * @param availableConnectionsCount the maximum number of connections allowed to be used by the channel,
+         *                                  cannot be {@code < 2}.
+         * @return cannot be {@code null}.
          */
         @Nonnull
         public Builder setAvailableConnectionsCount(@Nonnegative int availableConnectionsCount) {
@@ -139,15 +134,13 @@ public record JmsCacheBusMessageChannelConfiguration(
         }
 
         /**
-         * Устанавливает тайм-аут в миллисекундах для переподключения при разрыве соединения.<br>
-         * См. описание параметра в Java-doc к {@link JmsCacheBusMessageChannelConfiguration}.<br>
-         * Если не установить значение явно, то будет использоваться значение по-умолчанию
-         * {@link ChannelConstants#RECONNECT_RETRY_TIMEOUT} в единицах
-         * {@link ChannelConstants#RECONNECT_RETRY_TIMEOUT_UNITS}.
+         * Sets the reconnection timeout in milliseconds when a connection is disconnected.<br>
+         * See the parameter description the JavaDoc for {@link JmsCacheBusMessageChannelConfiguration}.<br>
+         * If not set explicitly, the default value {@link ChannelConstants#RECONNECT_RETRY_TIMEOUT} units
+         * {@link ChannelConstants#RECONNECT_RETRY_TIMEOUT_UNITS} will be used.
          *
-         * @param reconnectTimeoutMs тайм-аут для переподключения при разрыве соединения,
-         *                           не может быть отрицательным.
-         * @return не может быть {@code null}.
+         * @param reconnectTimeoutMs the reconnection timeout when a connection is disconnected, cannot be negative.
+         * @return cannot be {@code null}.
          */
         @Nonnull
         public Builder setReconnectTimeoutMs(@Nonnegative long reconnectTimeoutMs) {
@@ -156,10 +149,10 @@ public record JmsCacheBusMessageChannelConfiguration(
         }
 
         /**
-         * Устанавливает имя JMS-топика, из которого извлекаются и в который отправляются сообщения.
+         * Sets the name of the JMS topic from which messages are retrieved and to which messages are sent.
          *
-         * @param channel имя JMS-топика, не может быть {@code null}.
-         * @return не может быть {@code null}.
+         * @param channel the name of the JMS topic, cannot be {@code null}.
+         * @return cannot be {@code null}.
          */
         @Nonnull
         public Builder setChannel(@Nonnull String channel) {
@@ -168,10 +161,10 @@ public record JmsCacheBusMessageChannelConfiguration(
         }
 
         /**
-         * Устанавливает пул, на котором должно производиться получение сообщений из канала.
+         * Sets the thread pool on which message retrieval from the channel should occur.
          *
-         * @param subscribingPool пул потоков, не может быть {@code null}.
-         * @return не может быть {@code null}.
+         * @param subscribingPool the thread pool, cannot be {@code null}.
+         * @return cannot be {@code null}.
          */
         @Nonnull
         public Builder setSubscribingPool(@Nonnull ExecutorService subscribingPool) {
@@ -180,10 +173,10 @@ public record JmsCacheBusMessageChannelConfiguration(
         }
 
         /**
-         * Устанавливает определитель хоста. Если не задавать, то используется реализация по-умолчанию {@link StdHostNameResolver}.
+         * Sets the host resolver. If not specified, the default implementation {@link StdHostNameResolver} will be used.
          *
-         * @param hostNameResolver определитель хоста, не может быть {@code null}, если метод вызывается, а не используется реализация по-умолчанию.
-         * @return не может быть {@code null}
+         * @param hostNameResolver the host resolver, cannot be {@code null} when the method is called and not using the default implementation.
+         * @return cannot be {@code null}.
          */
         @Nonnull
         public Builder setHostNameResolver(@Nonnull HostNameResolver hostNameResolver) {
@@ -192,9 +185,9 @@ public record JmsCacheBusMessageChannelConfiguration(
         }
 
         /**
-         * Формирует на основе данных, переданных при построении объект конфигурации канала {@link JmsCacheBusMessageChannelConfiguration}.
+         * Constructs a {@link JmsCacheBusMessageChannelConfiguration} object based on the data provided during the object's construction.
          *
-         * @return не может быть {@code null}.
+         * @return cannot be {@code null}.
          * @see JmsCacheBusMessageChannelConfiguration
          */
         @Nonnull

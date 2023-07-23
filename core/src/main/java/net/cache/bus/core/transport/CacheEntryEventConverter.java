@@ -6,10 +6,10 @@ import javax.annotation.Nonnull;
 import java.io.Serializable;
 
 /**
- * Конвертер сообщений об изменении элементов кэша, используемый при передаче сообщения на другие сервера
- * и при получении сообщений с других серверов.
- * Определяет правила преобразования в "транспортное" бинарное представление данных из событий типа {@link CacheEntryEvent}
- * и обратного преобразования из бинарного представления в объект типа {@link CacheEntryEvent}.
+ * Cache element change message converter used for transmitting messages to other servers
+ * and receiving messages from other servers.<br>
+ * Defines the rules for converting data from {@link CacheEntryEvent} events into a "transport" binary representation
+ * and vice versa, converting from binary representation to an object of type {@link CacheEntryEvent}.
  *
  * @author Alik
  * @see CacheEntryEvent
@@ -17,13 +17,13 @@ import java.io.Serializable;
 public interface CacheEntryEventConverter {
 
     /**
-     * Выполняет сериализацию события об изменении элемента кэша в бинарное транспортное представление.
+     * Serializes the cache element change event into a binary transport representation.
      *
-     * @param event                событие об изменении элемента кэша, не может быть {@code null}.
-     * @param serializeValueFields признак, нужно ли сериализовывать поля со значениями
-     * @param <K>                  тип ключа элемента кэша, должен быть сериализуемым
-     * @param <V>                  тип значения элемента кэша, должен быть сериализуемым
-     * @return сериализованное бинарное представление события об изменении элемента кэша, не может быть {@code null}.
+     * @param event                the cache element change event, cannot be {@code null}.
+     * @param serializeValueFields indicates whether value fields should be serialized
+     * @param <K>                  the key type of the cache element, must be serializable
+     * @param <V>                  the value type of the cache element, must be serializable
+     * @return the serialized binary representation of the cache element change event, cannot be {@code null}.
      */
     @Nonnull
     <K extends Serializable, V extends Serializable> byte[] toBinary(
@@ -32,12 +32,12 @@ public interface CacheEntryEventConverter {
     );
 
     /**
-     * Выполняет десериализацию события об изменении элемента кэша из "транспортного" бинарного представления в объект типа {@link CacheEntryEvent}.
+     * Deserializes the cache element change event from a "transport" binary representation to an object of type {@link CacheEntryEvent}.
      *
-     * @param data событие об изменении элемента кэша в бинарном формате, не может быть {@code null}.
-     * @param <K>  тип ключа элемента кэша, должен быть сериализуемым
-     * @param <V>  тип значения элемента кэша, должен быть сериализуемым
-     * @return объект типа {@link CacheEntryEvent}, не может быть {@code null}.
+     * @param data the cache element change event in binary format, cannot be {@code null}.
+     * @param <K>  the key type of the cache element, must be serializable
+     * @param <V>  the value type of the cache element, must be serializable
+     * @return an object of type {@link CacheEntryEvent}, cannot be {@code null}.
      */
     @Nonnull
     <K extends Serializable, V extends Serializable> CacheEntryEvent<K, V> fromBinary(@Nonnull byte[] data);

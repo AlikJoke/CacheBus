@@ -8,8 +8,8 @@ import net.cache.bus.jcache.listeners.JCacheCacheEventListenerRegistrar;
 import javax.annotation.Nonnull;
 
 /**
- * Реализация конфигурации провайдера кэширования, совместимого со спецификацией JSR-107 (JCache),
- * упрощающая настройку шины событий.
+ * Implementation of a caching provider configuration compatible with the JSR-107 (JCache) specification,
+ * simplifying event bus setup.
  *
  * @author Alik
  * @see CacheProviderConfiguration

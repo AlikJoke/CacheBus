@@ -7,14 +7,14 @@ import java.util.Objects;
 import java.util.function.ToDoubleFunction;
 
 /**
- * Класс-контейнер дескрипторов разных типов метрик.
+ * A container class for descriptors of different metric types.
  *
  * @author Alik
  */
 public abstract class Metrics {
 
     /**
-     * Дескриптор метрики типа "счетчик", представляющей собой одно число, положительное или отрицательное.
+     * A descriptor for a "counter" metric, which represents a single positive or negative number.
      *
      * @author Alik
      */
@@ -32,8 +32,9 @@ public abstract class Metrics {
     }
 
     /**
-     * Дескриптор метрики, позволяющей получить текущее значение некоторой измеримой величины одного объекта.
-     * @param <T> тип объекта, чье текущее значение величины измеряется
+     * Descriptor for a metric that allows retrieving the current value of a measurable quantity of an object.
+     *
+     * @param <T> the type of the object whose current value being measured
      * @author Alik
      */
     public static class Gauge<T> extends Metric {
@@ -69,7 +70,8 @@ public abstract class Metrics {
     }
 
     /**
-     * Метрика типа "Сводка распределения величины".
+     * A metric of type "Distribution Summary".
+     *
      * @author Alik
      */
     public static class Summary extends Metric {
@@ -96,7 +98,7 @@ public abstract class Metrics {
     }
 
     /**
-     * Метрика "Таймер", основанная на измерении времени выполнения задачи.
+     * A "Timer" metric based on measuring the execution time of a task.
      *
      * @author Alik
      */

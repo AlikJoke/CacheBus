@@ -18,8 +18,8 @@ import java.io.ObjectOutput;
 import java.io.Serializable;
 
 /**
- * Реализация конвертера на основе библиотеки OneNio.
- * Является рекомендуемой по-умолчанию реализацией за счет своей скорости и компактности формата.
+ * Implementation of a converter based on the OneNio library.
+ * It is the default recommended implementation due to its speed and compactness of the format.
  *
  * @author Alik
  * @see CacheEntryEventConverter
@@ -80,7 +80,7 @@ public final class OneNioCacheEntryEventConverter implements CacheEntryEventConv
             final ObjectOutput output,
             final CacheEntryEvent<?, ?> event,
             final boolean serializeValueFields) throws IOException {
-        // Небольшая оптимизация для строк: подавляющее большинство ключей в кэшах - строки. readUTF экономнее, чем readObject для строк.
+        // A small optimization for strings: the vast majority of cache keys are strings. readUTF is more efficient than readObject for strings.
         final int keyType = getKeyType(event.key());
         output.writeByte(keyType);
 

@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * Состояние канала взаимодействия с другими серверами для локальной шины.
+ * State of the interaction channel with other servers for the local bus.
  *
  * @author Alik
  */

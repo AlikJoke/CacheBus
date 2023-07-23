@@ -25,7 +25,7 @@ import java.util.concurrent.Future;
 import static net.cache.bus.transport.ChannelConstants.*;
 
 /**
- * Реализация канала сообщений на основе JMS.
+ * Implementation of a message channel based on JMS.
  *
  * @author Alik
  * @see JmsCacheBusMessageChannelConfiguration
@@ -296,7 +296,7 @@ public final class JmsCacheBusMessageChannel implements CacheBusMessageChannel<J
 
     private void recoverConsumerSession(final Exception ex) {
 
-        // Поток прервали
+        // Thread was interrupted
         final JmsConsumerSessionConfiguration sessionConfiguration = this.consumerConfiguration;
         final ChannelState channelState = this.channelState;
         if (sessionConfiguration == null || channelState == null) {

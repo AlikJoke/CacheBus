@@ -5,8 +5,8 @@ import javax.annotation.Nullable;
 import java.util.concurrent.Callable;
 
 /**
- * Реализация реестра метрик, которая не выполняет никаких действий.<br>
- * Используется в случае отсутствия задания реального провайдера метрик (Dropwizard, Micrometer, etc).
+ * Implementation of a metrics registry that does not perform any actions.
+ * Used when there is no real metrics provider specified (Dropwizard, Micrometer, etc).
  *
  * @author Alik
  * @see CacheBusMetricsRegistry

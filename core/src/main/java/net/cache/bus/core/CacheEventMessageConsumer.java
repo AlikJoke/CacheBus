@@ -6,8 +6,8 @@ import javax.annotation.Nonnull;
 import java.io.Closeable;
 
 /**
- * Потребитель сообщений об изменении элементов кэша с других серверов,
- * выполняющий применение изменений к локальному кэшу.
+ * The consumer of cache element change messages from other servers,
+ * responsible for applying the changes to the local cache.
  *
  * @author Alik
  * @see CacheBus
@@ -15,25 +15,24 @@ import java.io.Closeable;
 public interface CacheEventMessageConsumer extends Closeable {
 
     /**
-     * Потребляет хэш-ключ сообщения и тело в бинарном формате и выполняет
-     * применение изменения к локальному кэшу.
+     * Consumes the message hash key and body in binary format and applies the change to the local cache.
      *
-     * @param messageHash хэш-ключ сообщения
-     * @param messageBody тело сообщения в бинарном формате, не может быть {@code null}.
+     * @param messageHash the hash key of the message
+     * @param messageBody the message body in binary format, cannot be {@code null}.
      */
     void accept(int messageHash, @Nonnull byte[] messageBody);
 
     /**
-     * Возвращает информацию о состоянии потребителя входящих сообщений с других серверов.
+     * Returns information about the state of the consumer of incoming messages from other servers.
      *
-     * @return не может быть {@code null}.
+     * @return cannot be {@code null}.
      * @see ComponentState
      */
     @Nonnull
     ComponentState state();
 
     /**
-     * Производит закрытие потребителя сообщений и связанных с ним ресурсов, если это необходимо.
+     * Closes the message consumer and associated resources if necessary.
      */
     @Override
     default void close() {

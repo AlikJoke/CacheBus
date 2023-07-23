@@ -9,7 +9,7 @@ import org.infinispan.manager.EmbeddedCacheManager;
 import javax.annotation.Nonnull;
 
 /**
- * Реализация конфигурации провайдера кэширования Infinispan, упрощающая настройку шины событий.
+ * Implementation of the Infinispan caching provider configuration that simplifies event bus setup.
  *
  * @author Alik
  * @see CacheProviderConfiguration

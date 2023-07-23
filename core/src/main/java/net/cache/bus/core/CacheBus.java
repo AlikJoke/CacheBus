@@ -8,9 +8,9 @@ import javax.annotation.Nonnull;
 import java.io.Serializable;
 
 /**
- * Базовая абстракция шины изменений в кэше, выполняющей распространение событий по серверам.
- * Берет на себя ответственность за передачу изменений в локальном кэше сервера на другие сервера,
- * а также получение изменений из локальных кэшей других серверов и применение их к текущему локальному серверу и его кэшам.
+ * The basic abstraction of the cache change bus that propagates events across servers.
+ * It is responsible for transmitting changes in the local cache of a server other servers,
+ * as well as receiving changes from the local caches of other servers and applying them to the current local server and its caches.
  *
  * @author Alik
  * @see CacheEntryEvent
@@ -20,42 +20,41 @@ import java.io.Serializable;
 public interface CacheBus {
 
     /**
-     * Выполняет отправку событий об изменении элементов локального кэша на другие сервера,
-     * заинтересованные в изменениях данного кэша.
+     * Sends events about changes in local cache items to other servers interested in the changes.
      *
-     * @param event событие изменения элемента локального кэша, не может быть {@code null}.
-     * @param <K>   тип ключа кэша
-     * @param <V>   тип значения кэша
+     * @param event the event of changing a local cache item, cannot be {@code null}.
+     * @param <K>   the type of the cache key
+     * @param <V>   the type of the cache value
      */
     <K extends Serializable, V extends Serializable> void send(@Nonnull CacheEntryEvent<K, V> event);
 
     /**
-     * Выполняет получение сериализованного бинарного представления события об изменении элемента кэша с других серверов
-     * и применяет его к локальному кэшу.
+     * Retrieves the serialized binary representation of the cache item change event from other servers
+     * and applies it to the local cache.
      *
-     * @param binaryEventData сериализованное бинарное представление события изменения элемента удаленного кэша, не может быть {@code null}.
+     * @param binaryEventData the serialized binary representation of the remote cache item change event, cannot be {@code null}.
      */
     void receive(@Nonnull byte[] binaryEventData);
 
     /**
-     * Устанавливает конфигурацию шины кэшей.
+     * Sets the cache bus configuration.
      *
-     * @param configuration конфигурация шины кэшей, не может быть {@code null}.
+     * @param configuration the cache bus configuration, cannot be {@code null}.
      */
     void withConfiguration(@Nonnull CacheBusConfiguration configuration);
 
     /**
-     * Возвращает используемую конфигурацию шины кэшей.
+     * Returns the cache bus configuration being used.
      *
-     * @return конфигурацию шины кэшей, не может быть {@code null}.
+     * @return the cache bus configuration, cannot be {@code null}.
      * @see CacheBusConfiguration
      */
     CacheBusConfiguration configuration();
 
     /**
-     * Возвращает состояние данной шины кэшей и еще компонентов.
+     * Returns the state this cache bus and other components.
      *
-     * @return не может быть {@code null}.
+     * @return cannot be {@code null}.
      * @see CacheBusState
      * @see ComponentState
      */

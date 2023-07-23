@@ -13,13 +13,10 @@ import javax.annotation.concurrent.ThreadSafe;
 import java.io.*;
 
 /**
- * Реализация конвертера на основе стандартной JDK-сериализации.
- * Не рекомендуется для использования в случае, если используется реплицируемый кэш
- * со сложной структурой значений или если ключи кэширования имеют сложную структуру.
- * Под "сложной" структурой тут имеется в виду структура, которая может часто меняться
- * или содержит не сериализуемые поля.
- * <br/>
- * Транспортный формат обладает всеми недостатками обычного формата JDK-сериализации.
+ * Implementation of a converter based on the standard JDK serialization.
+ * Not recommended for use in case a replicable cache with complex value structure is used or if caching keys have a complex structure.
+ * By "complex" structure, we mean a structure that can change frequently or contains non-serializable fields.<br>
+ * The transport format has all the disadvantages of the regular JDK serialization format.
  *
  * @author Alik
  * @see CacheEntryEventConverter
@@ -78,7 +75,7 @@ public final class JdkCacheEntryEventConverter implements CacheEntryEventConvert
             final ObjectOutput output,
             final CacheEntryEvent<?, ?> event,
             final boolean serializeValueFields) throws IOException {
-        // Небольшая оптимизация для строк: подавляющее большинство ключей в кэшах - строки. readUTF экономнее, чем readObject для строк.
+        // A small optimization for strings: the vast majority of cache keys are strings. readUTF is more efficient than readObject for strings.
         final int keyType = getKeyType(event.key());
         output.writeByte(keyType);
 

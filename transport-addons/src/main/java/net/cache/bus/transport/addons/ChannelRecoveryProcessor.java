@@ -9,7 +9,7 @@ import java.util.Objects;
 import java.util.Random;
 
 /**
- * Обработчик для выполнения переподключения к каналу сообщений шины кэшей.
+ * Handler for reconnecting to the message bus cache channel.
  *
  * @author Alik
  */
@@ -53,10 +53,9 @@ public final class ChannelRecoveryProcessor {
     }
 
     /**
-     * Производит попытки восстановления соединения в течение заданного времени.
+     * Attempts to restore the connection within a specified time.
      *
-     * @return {@code true} - если соединение удалось восстановить,
-     * {@code false} - иначе.
+     * @return {@code true} if the connection was successfully restored, {@code false} otherwise.
      */
     private boolean recover() {
 

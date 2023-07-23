@@ -4,7 +4,7 @@ import javax.annotation.Nonnull;
 import java.util.List;
 
 /**
- * Известные метрики по отношению к компонентам шины, которые шина и ее компоненты регистрируют.
+ * Known metrics related to bus components that the bus and its components register.
  *
  * @author Alik
  */

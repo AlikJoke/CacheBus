@@ -5,23 +5,22 @@ import net.cache.bus.core.configuration.CacheConfiguration;
 import javax.annotation.Nonnull;
 
 /**
- * Хранилище временных меток модификации элементов кэшей, используемое для отслеживания
- * конкурентных обновлений элементов локального кэша потоками приложения и потоками шины,
- * применяющими изменения элемента кэша с других серверов.
+ * Storage for modification timestamps of cache elements, used to track concurrent updates of local cache
+ * elements by application threads and bus threads applying changes cache elements from other servers.
  *
  * @author Alik
  */
 public interface CacheEntryEventTimestampStore {
 
     /**
-     * Сохраняет в хранилище меток информацию о временной метке из события, если на момент сохранения
-     * в хранилище не оказалось более актуальной временной метки, чем в событии. Если таковое в хранилище есть
-     * (или появилось в момент сохранения), то сохранение метки не производится
-     * (иными словами, такая ситуация означает, что применять к локальному кэшу данное событие не требуется).
+     * Stores the timestamp information from the event in the storage if at the time of storing
+     * there is no more recent timestamp in the storage than the event. If such a timestamp exists
+     * in the storage (or appears at the time storing), the timestamp is not stored
+     * (in other words, this situation means that applying this event the local cache is not required).
      *
-     * @param event событие для применения, временная метка которого сохраняется; не может быть {@code null}.
-     * @return {@code true}, если в хранилище не оказалось на данный момент метки более свежей
-     * и сохранение метки прошло успешно, {@code false} в противном случае (т.е. метка не была сохранена).
+     * @param event the event to apply and store the timestamp from; cannot be {@code null}.
+     * @return {@code true} if there no more recent timestamp in the storage at the moment
+     * and the timestamp is successfully stored, {@code false} otherwise (i.e., the timestamp was not stored).
      * @see CacheEntryEvent#eventTime()
      * @see CacheConfiguration#useTimestampBasedComparison()
      */

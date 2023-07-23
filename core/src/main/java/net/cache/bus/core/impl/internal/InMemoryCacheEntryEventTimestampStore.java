@@ -19,7 +19,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * on the storage implementation.
  *
  * @author Alik
- * @implNote When the threshold ({@code 128}) of the associative array size for each cache is exceeded and
+ * @implNote When the threshold ({@code 128}) of the associative array size for each cache is exceeded
  * and more than 30 seconds have passed since the last cleaning, it triggers cleanup
  * of expired timestamps according to the settings of the corresponding cache.
  * @see CacheEntryEventTimestampStore

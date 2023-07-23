@@ -3,10 +3,10 @@ package net.cache.bus.core;
 import java.io.Serializable;
 
 /**
- * Слушатель событий изменения кэша.
+ * Cache change event listener.
  *
- * @param <K> тип ключа кэша, должен быть сериализуемым
- * @param <V> тип значения кэша, должен быть сериализуемым
+ * @param <K> the cache key type, must be serializable
+ * @param <V> the cache value type, must be serializable
  * @author Alik
  */
 public interface CacheEventListener<K extends Serializable, V extends Serializable> {

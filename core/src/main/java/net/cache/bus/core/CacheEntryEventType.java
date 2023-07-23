@@ -8,7 +8,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
- * Тип изменения элемента кэша.
+ * Cache element change type.
  *
  * @author Alik
  * @see CacheEntryEvent
@@ -16,22 +16,22 @@ import java.util.stream.Collectors;
 public enum CacheEntryEventType {
 
     /**
-     * Добавление элемента в кэш
+     * Addition of element to the cache
      */
     ADDED(1),
 
     /**
-     * Удаление элемента кэша по TTL
+     * Expiration-based removal of a cache element
      */
     EXPIRED(2),
 
     /**
-     * Удаление элемента из кэша
+     * Removal of an element from the cache
      */
     EVICTED(3),
 
     /**
-     * Значение имеющегося в кэше элемента изменено
+     * Modification of an existing cache element
      */
     UPDATED(4);
 

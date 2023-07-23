@@ -4,33 +4,33 @@ import javax.annotation.Nonnull;
 import java.util.List;
 
 /**
- * Возвращает информацию о состоянии одного компонента шины.
+ * Returns information about the state of a single component of the bus.
  *
  * @author Alik
  */
 public interface ComponentState {
 
     /**
-     * Возвращает идентификатор компонента шина.
+     * Returns the identifier of the bus component.
      *
-     * @return не может быть {@code null}.
+     * @return cannot be {@code null}.
      */
     @Nonnull
     String componentId();
 
     /**
-     * Возвращает общий статус компонента шины.
+     * Returns the overall status of the bus component.
      *
-     * @return не может быть {@code null}.
+     * @return cannot be {@code null}.
      * @see Status
      */
     @Nonnull
     Status status();
 
     /**
-     * Возвращает признак наличия проблем в работе компонента.
+     * Returns whether the component has any severities indicating problems in its operation.
      *
-     * @return признак наличия проблем в работе компонента
+     * @return true if the component has severities, false otherwise.
      * @see ComponentState#severities()
      */
     default boolean hasSeverities() {
@@ -38,53 +38,53 @@ public interface ComponentState {
     }
 
     /**
-     * Возвращает список зарегистрированных проблем в работе компонента.
+     * Returns a list of registered severities indicating problems in the component's operation.
      *
-     * @return не может быть {@code null}.
+     * @return cannot be {@code null}.
      */
     @Nonnull
     List<SeverityInfo> severities();
 
     /**
-     * Информация об одной зарегистрированной проблеме в работе компонента.
+     * Information about a registered severity indicating a problem in the component's operation.
      *
      * @author Alik
      */
     interface SeverityInfo {
 
         /**
-         * Возвращает строковое представление проблемы в работе компонента.
+         * Returns the string representation of the problem in the component's operation.
          *
-         * @return не может быть {@code null}.
+         * @return cannot be {@code null}.
          */
         @Nonnull
         String asString();
     }
 
     /**
-     * Статус функционирования компонента.
+     * Status of the component's operation.
      *
      * @author Alik
      */
     enum Status {
 
         /**
-         * Запущен / активен
+         * Running / active.
          */
         UP_OK,
 
         /**
-         * Запущен, но находится в невосстановимом состоянии
+         * Running but in an unrecoverable state.
          */
         UP_FATAL_BROKEN,
 
         /**
-         * В процессе запуска / активируется
+         * Starting up / being activated.
          */
         UP_NOT_READY,
 
         /**
-         * Остановлен / неактивен
+         * Stopped / inactive.
          */
         DOWN
     }

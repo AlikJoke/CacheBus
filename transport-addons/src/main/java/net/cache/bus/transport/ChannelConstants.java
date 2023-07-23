@@ -3,34 +3,34 @@ package net.cache.bus.transport;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Общие константы для транспортных каналов.
+ * Common constants for transport channels.
  *
  * @author Alik
  */
 public abstract class ChannelConstants {
 
     /**
-     * Тип сообщения события об изменении кэша.
+     * Type of message for cache change event.
      */
     public static final String MESSAGE_TYPE = "CacheEvent";
 
     /**
-     * Тайм-аут получения соединения с каналом.
+     * Timeout for obtaining a connection to the channel.
      */
     public static final int POLL_CHANNEL_TIMEOUT = 5;
 
     /**
-     * Единицы изменения тайм-аута получения соединения с каналом.
+     * Units of timeout for obtaining a connection to the channel.
      */
     public static final TimeUnit POLL_CHANNEL_TIMEOUT_UNITS = TimeUnit.SECONDS;
 
     /**
-     * Тайм-аут переподключения к каналу для одного соединения.
+     * Timeout for reconnecting to the channel for a single connection.
      */
     public static final int RECONNECT_RETRY_TIMEOUT = 5;
 
     /**
-     * Единицы измерения тайм-аута переподключения к каналу для одного соединения.
+     * Units of measurement for timeout for reconnecting to the channel for a single connection.
      */
     public static final TimeUnit RECONNECT_RETRY_TIMEOUT_UNITS = TimeUnit.MINUTES;
 

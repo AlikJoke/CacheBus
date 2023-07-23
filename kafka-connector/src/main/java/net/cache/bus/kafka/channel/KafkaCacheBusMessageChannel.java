@@ -41,7 +41,7 @@ import java.util.concurrent.Future;
 import static net.cache.bus.transport.ChannelConstants.MESSAGE_TYPE;
 
 /**
- * Реализация канала сообщений на основе Apache Kafka.
+ * Implementation of message channel based on Apache Kafka.
  *
  * @author Alik
  * @see KafkaCacheBusMessageChannelConfiguration
@@ -241,14 +241,14 @@ public final class KafkaCacheBusMessageChannel implements CacheBusMessageChannel
 
         final ChannelState channelState = this.channelState;
         if (channelState == null) {
-            // Канал закрыли, больше делать нечего
+            // The channel has been closed, there is nothing else to do
             return;
         }
 
-        // Синхронизация на объекте конфигурации на случай параллельных потоков отправки сообщений
+        // Synchronization on the configuration object in case of parallel message sending threads
         synchronized (sessionConfiguration) {
 
-            // Если не совпало, значит другой поток уже восстановил соединение => можно пытаться отправить сообщение
+            // If it doesn't match, it means another thread has already restored the connection => it's safe to attempt message sending
             if (this.producerSessionConfiguration != sessionConfiguration) {
                 return;
             }
@@ -287,7 +287,7 @@ public final class KafkaCacheBusMessageChannel implements CacheBusMessageChannel
 
     private void recoverConsumerSession(final Exception ex, final KafkaSessionConfiguration sessionConfiguration) {
 
-        // Поток прервали
+        // Thread was interrupted
         final ChannelState channelState = this.channelState;
         if (sessionConfiguration == null) {
             return;

@@ -3,7 +3,7 @@ package net.cache.bus.core.metrics;
 import javax.annotation.Nonnull;
 
 /**
- * Компонент шины, ведущий учет метрик своего функционирования.
+ * A bus component that tracks metrics of its operation.
  *
  * @author Alik
  * @see CacheBusMetricsRegistry
@@ -11,9 +11,9 @@ import javax.annotation.Nonnull;
 public interface MetricsWriter {
 
     /**
-     * Устанавливает используемый для ведения метрик реестр.
+     * Sets the registry used for tracking metrics.
      *
-     * @param registry реестр, используемый для ведения метрик, не может быть {@code null}.
+     * @param registry the registry used for tracking metrics, cannot be {@code null}.
      */
     void setMetrics(@Nonnull CacheBusMetricsRegistry registry);
 }

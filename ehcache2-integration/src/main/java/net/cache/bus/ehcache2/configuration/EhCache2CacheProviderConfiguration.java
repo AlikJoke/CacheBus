@@ -9,7 +9,7 @@ import net.sf.ehcache.CacheManager;
 import javax.annotation.Nonnull;
 
 /**
- * Реализация конфигурации провайдера кэширования EhCache (v2), упрощающая настройку шины событий.
+ * Implementation of the EhCache (v2) caching provider configuration that simplifies event bus setup.
  *
  * @author Alik
  * @see CacheProviderConfiguration

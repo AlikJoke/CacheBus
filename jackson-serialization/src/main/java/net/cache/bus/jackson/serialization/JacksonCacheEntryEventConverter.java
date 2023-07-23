@@ -21,18 +21,15 @@ import java.util.Collections;
 import java.util.Set;
 
 /**
- * Реализация конвертера для сериализации / десериализации событий об изменении элементов кэшей
- * на основе библиотеки Jackson. Преобразование происходит в формат JSON.
- * <br/>
- * Конвертер требует специфичных настроек {@link ObjectMapper} и если требуется использовать
- * преднастроенный {@link ObjectMapper}, который используется для сериализации объектов, используемых
- * в качестве ключей и значений кэшей, для создания экземпляра конвертера необходимо
- * вызвать {@linkplain JacksonCacheEntryEventConverter#create(ObjectMapper)}.
- * Этот фабричный метод произведет копирование {@linkplain ObjectMapper}, после чего донастроит его до
- * необходимого состояния.
- * Если объекты ключей и значений не сериализуются по специальным правилам имеющимся в приложении
- * {@link ObjectMapper}, то лучше использовать метод {@link JacksonCacheEntryEventConverter#create()}
- * для создания экземпляра конвертера.
+ * Implementation of a converter for serializing/deserializing cache entry change events
+ * based on the Jackson library. The conversion is done in JSON format.<br>
+ * The converter requires specific settings from {@link ObjectMapper}, and if a pre-configured
+ * {@link ObjectMapper} is needed, which is used for serializing objects used as cache keys and values,
+ * the converter can be instantiated by calling {@linkplain JacksonCacheEntryEventConverter#create(ObjectMapper)}.
+ * This factory method will create a copy of the {@linkplain ObjectMapper} and then configure it to the required state.
+ * If the key and value objects are not serialized according to specific rules defined in the application's
+ * {@link ObjectMapper}, it is better to use the method {@link JacksonCacheEntryEventConverter#create()}
+ * to instantiate the converter.
  *
  * @author Alik
  * @see CacheEntryEventConverter
@@ -90,9 +87,9 @@ public final class JacksonCacheEntryEventConverter implements CacheEntryEventCon
     }
 
     /**
-     * Создает экземпляр конвертера со "стандартными" настройками {@link ObjectMapper}.
+     * Creates an instance of the converter with "default" {@link ObjectMapper} settings.
      *
-     * @return не может быть {@code null}.
+     * @return cannot be {@code null}.
      */
     @Nonnull
     public static CacheEntryEventConverter create() {
@@ -100,11 +97,11 @@ public final class JacksonCacheEntryEventConverter implements CacheEntryEventCon
     }
 
     /**
-     * Создает экземпляр конвертера с преднастроенным {@link ObjectMapper},
-     * который донастраивается до необходимого состояния (его копия, исходный параметр не меняется).
+     * Creates an instance of the converter with a pre-configured {@link ObjectMapper},
+     * which is further configured to the required state (a copy is made, the original parameter is not modified).
      *
-     * @param mapper преднастроенный {@link ObjectMapper}, не может быть {@code null}.
-     * @return не может быть {@code null}.
+     * @param mapper pre-configured {@link ObjectMapper}, cannot be {@code null}.
+     * @return cannot be {@code null}.
      */
     @Nonnull
     public static CacheEntryEventConverter create(@Nonnull ObjectMapper mapper) {

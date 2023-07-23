@@ -5,7 +5,7 @@ import javax.annotation.Nullable;
 import java.util.concurrent.Callable;
 
 /**
- * Реестр метрик шины кэшей.
+ * Registry of cache bus metrics.
  *
  * @author Alik
  * @see KnownMetrics
@@ -14,93 +14,94 @@ import java.util.concurrent.Callable;
 public interface CacheBusMetricsRegistry {
 
     /**
-     * Регистрирует дескриптор метрики типа "Счетчик" ({@linkplain net.cache.bus.core.metrics.Metrics.Counter}) в реестре.
+     * Registers a "Counter" metric descriptor ({@linkplain net.cache.bus.core.metrics.Metrics.Counter}) in the registry.
      *
-     * @param counter дескриптор метрики, не может быть {@code null}.
+     * @param counter the metric descriptor, cannot be {@code null}.
      * @see Metrics.Counter
      */
     void registerCounter(@Nonnull Metrics.Counter counter);
 
     /**
-     * Увеличивает значение счетчика на {@code +1}.<br>
-     * Перед использованием метрика должна быть зарегистрирована с помощью {@linkplain CacheBusMetricsRegistry#registerCounter(Metrics.Counter)}.
+     * Increases the counter value by {@code +1}.<br>
+     * The metric must be registered using
+     * {@linkplain CacheBusMetricsRegistry#registerCounter(Metrics.Counter)} before use.
      *
-     * @param metric описание метрики, не может быть {@code null}.
+     * @param metric the metric description, cannot be {@code null}.
      */
     void incrementCounter(@Nonnull KnownMetrics metric);
 
     /**
-     * Увеличивает значение счетчика на заданное значение {@code +incValue}.<br>
-     * Перед использованием метрика должна быть зарегистрирована с помощью {@linkplain CacheBusMetricsRegistry#registerCounter(Metrics.Counter)}.
+     * Increases the counter value by the specified {@code incValue}.<br>
+     * The metric must be registered using {@linkplain CacheBusMetricsRegistry#registerCounter(Metrics.Counter)} before use.
      *
-     * @param metric   описание метрики, не может быть {@code null}.
-     * @param incValue значение, на которое увеличивается счетчик.
+     * @param metric   the metric description, cannot be {@code null}.
+     * @param incValue the value by which the counter is increased.
      */
     void increaseCounter(@Nonnull KnownMetrics metric, double incValue);
 
     /**
-     * Уменьшает значение счетчика на {@code -1}.<br>
-     * Перед использованием метрика должна быть зарегистрирована с помощью {@linkplain CacheBusMetricsRegistry#registerCounter(Metrics.Counter)}.
+     * Decreases the counter value by {@code -1}.<br>
+     * The metric must be registered using {@linkplain CacheBusMetricsRegistry#registerCounter(Metrics.Counter)} before use.
      *
-     * @param metric описание метрики, не может быть {@code null}.
+     * @param metric the metric description, cannot be {@code null}.
      */
     void decrementCounter(@Nonnull KnownMetrics metric);
 
     /**
-     * Уменьшает значение счетчика на заданное значение {@code -decValue}.<br>
-     * Перед использованием метрика должна быть зарегистрирована с помощью {@linkplain CacheBusMetricsRegistry#registerCounter(Metrics.Counter)}.
+     * Decreases the counter value the specified {@code decValue}.<br>
+     * The metric must be registered using {@linkplain CacheBusMetricsRegistry#registerCounter(Metrics.Counter)} before use.
      *
-     * @param metric   описание метрики, не может быть {@code null}.
-     * @param decValue значение, на которое уменьшается счетчик.
+     * @param metric   the metric description, cannot be {@code null}.
+     * @param decValue the value by which the counter decreased.
      */
     void decreaseCounter(@Nonnull KnownMetrics metric, double decValue);
 
     /**
-     * Регистрирует дескриптор метрики типа {@linkplain net.cache.bus.core.metrics.Metrics.Summary} в реестре.
+     * Registers a {@linkplain net.cache.bus.core.metrics.Metrics.Summary} metric descriptor in the registry.
      *
-     * @param summary дескриптор метрики, не может быть {@code null}.
+     * @param summary the metric descriptor, cannot be {@code null}.
      * @see Metrics.Summary
      */
     void registerSummary(@Nonnull Metrics.Summary summary);
 
     /**
-     * Добавляет новое значение в распределение величины.
+     * Adds a new value to the distribution of a quantity.
      *
-     * @param metric метрика, не может быть {@code null}.
-     * @param value  новое значение, добавляемое в распределение.
+     * @param metric the metric, cannot be {@code null}.
+     * @param value  the new value to be added to the distribution.
      */
     void putToSummary(@Nonnull KnownMetrics metric, double value);
 
     /**
-     * Регистрирует дескриптор метрики типа {@linkplain net.cache.bus.core.metrics.Metrics.Gauge} в реестре.
+     * Registers a {@linkplain net.cache.bus.core.metrics.Metrics.Gauge} metric descriptor in the registry.
      *
-     * @param gauge дескриптор метрики, не может быть {@code null}.
+     * @param gauge the metric descriptor, cannot be {@code null}.
      * @see Metrics.Gauge
      */
     <T> void registerGauge(@Nonnull Metrics.Gauge<T> gauge);
 
     /**
-     * Регистрирует дескриптор метрики типа {@linkplain net.cache.bus.core.metrics.Metrics.Timer} в реестре.
+     * Registers a {@linkplain net.cache.bus.core.metrics.Metrics.Timer} metric descriptor in the registry.
      *
-     * @param timer дескриптор метрики, не может быть {@code null}.
+     * @param timer the metric descriptor, cannot {@code null}.
      * @see Metrics.Timer
      */
     void registerTimer(@Nonnull Metrics.Timer timer);
 
     /**
-     * Выполняет замеры времени выполнения действия.
+     * Measures the execution time of an action.
      *
-     * @param metric дескриптор метрики, не может быть {@code null}.
-     * @param action действие, время выполнения которого замеряется, не может быть {@code null}.
+     * @param metric the metric descriptor, cannot be {@code null}.
+     * @param action the action whose execution time is measured, cannot be {@code null}.
      */
     void recordExecutionTime(@Nonnull KnownMetrics metric, @Nonnull Runnable action);
 
     /**
-     * Выполняет замеры времени выполнения действия.
+     * Measures the execution time of an action.
      *
-     * @param metric дескриптор метрики, не может быть {@code null}.
-     * @param action действие, время выполнения которого замеряется, не может быть {@code null}.
-     * @return возвращаемое действием значение, может быть {@code null}.
+     * @param metric the metric descriptor, cannot be {@code null}.
+     * @param action the action whose execution time is measured, cannot be {@code null}.
+     * @return the value returned by the action, can be {@code null}.
      */
     @Nullable
     <T> T recordExecutionTime(@Nonnull KnownMetrics metric, @Nonnull Callable<T> action) throws Exception;

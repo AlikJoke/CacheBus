@@ -23,7 +23,7 @@ import java.util.concurrent.Future;
 /**
  * Implementation of an asynchronous message consumer from a channel based on circular buffers.
  * The receiving thread from the channel puts the message into the corresponding circular buffer,
- * calculated based on the hash keyof the message (to ensure sequential processing of messages with
+ * calculated based on the hash key of the message (to ensure sequential processing of messages with
  * the same key in one cache).
  *
  * @author Alik

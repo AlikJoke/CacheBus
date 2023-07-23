@@ -25,7 +25,7 @@ import java.util.concurrent.TimeoutException;
 import static net.cache.bus.transport.ChannelConstants.*;
 
 /**
- * Реализация канала сообщений на основе RabbitMQ.
+ * Implementation of channel based on RabbitMQ.
  *
  * @author Alik
  * @see RabbitCacheBusMessageChannelConfiguration
@@ -303,14 +303,14 @@ public final class RabbitCacheBusMessageChannel implements CacheBusMessageChanne
 
         final ChannelState channelState = this.channelState;
         if (channelState == null) {
-            // Канал закрыли, больше делать нечего
+            // The channel has been closed, there is nothing else to do
             return;
         }
 
-        // Синхронизация на объекте конфигурации на случай параллельных потоков отправки сообщений
+        // Synchronization on the configuration object in case of parallel message sending threads
         synchronized (sessionConfiguration) {
 
-            // Если не совпало, значит другой поток уже восстановил соединение => можно пытаться отправить сообщение
+            // If it doesn't match, it means another thread has already restored the connection => it's safe to attempt message sending
             if (this.producerSessionConfiguration != sessionConfiguration) {
                 return;
             }
@@ -318,8 +318,8 @@ public final class RabbitCacheBusMessageChannel implements CacheBusMessageChanne
             channelState.increaseCountOfProducersInRecoveryState();
             this.metrics.incrementCounter(KnownMetrics.PRODUCERS_IN_RECOVERY_COUNT);
 
-            // С высокой вероятностью, если есть проблема с одним каналом, то будут проблемы и с другими
-            // из-за общего соединения, поэтому полностью пересоздаем каналы
+            // With high probability, if there is a problem with one channel, there will be problems with others
+            // due to the shared connection, so we completely recreate the channels
             final ChannelRecoveryProcessor recoveryProcessor = new ChannelRecoveryProcessor(
                     sessionConfiguration::close,
                     () -> initializeProducerSession(sessionConfiguration.sharedConfiguration),
@@ -343,7 +343,7 @@ public final class RabbitCacheBusMessageChannel implements CacheBusMessageChanne
 
     private void recoverConsumerSession(final Exception ex) {
 
-        // Поток прервали
+        // Thread was interrupted
         final RabbitSessionConfiguration sessionConfiguration = this.consumerSessionConfiguration;
         final ChannelState channelState = this.channelState;
         if (sessionConfiguration == null || channelState == null) {

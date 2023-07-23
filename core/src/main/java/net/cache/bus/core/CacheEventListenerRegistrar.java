@@ -4,7 +4,7 @@ import javax.annotation.Nonnull;
 import java.io.Serializable;
 
 /**
- * Регистратор слушателей событий по изменению элементов кэша.
+ * Registers event listeners for cache element changes.
  *
  * @author Alik
  * @see Cache
@@ -13,12 +13,12 @@ import java.io.Serializable;
 public interface CacheEventListenerRegistrar {
 
     /**
-     * Регистрирует слушатели событий по изменению элементов кэша для заданного кэша.
+     * Registers event listeners for cache element changes for the specified cache     *
      *
-     * @param cacheBus шина кэшей, для которой регистрируется слушатель, не может быть {@code null}.
-     * @param cache    кэш, для которого производится регистрация слушателей, не может быть {@code null}.
-     * @param <K>      тип ключа кэша, должен быть сериализуемым
-     * @param <V>      тип значения кэша, должен быть сериализуемым
+     * @param cacheBus the cache bus for which the listener is being registered, cannot be {@code null}.
+     * @param cache    the cache for which the listeners are being registered, cannot be {@code null}.
+     * @param <K>      the cache key type, must be serializable
+     * @param <V>      the cache value type, must be serializable
      */
     <K extends Serializable, V extends Serializable> void registerFor(
             @Nonnull CacheBus cacheBus,
@@ -26,12 +26,12 @@ public interface CacheEventListenerRegistrar {
     );
 
     /**
-     * Снимает зарегистрированные ранее слушатели событий по изменению элементов кэша для заданного кэша.
+     * Unregisters previously registered event listeners for cache element changes for the specified cache.
      *
-     * @param cacheBus шина кэшей, для которой ранее были зарегистрированы слушатели, не может быть {@code null}.
-     * @param cache    кэш, для которого ранее были зарегистрированы слушатели, не может быть {@code null}.
-     * @param <K>      тип ключа кэша, должен быть сериализуемым
-     * @param <V>      тип значения кэша, должен быть сериализуемым
+     * @param cacheBus the cache bus for which the listeners were previously registered, cannot be {@code null}.
+     * @param cache    the cache for which the listeners were previously registered, cannot {@code null}.
+     * @param <K>      the cache key type, must be serializable
+     * @param <V>      the cache value type, must be serializable
      */
     <K extends Serializable, V extends Serializable> void unregisterFor(
             @Nonnull CacheBus cacheBus,

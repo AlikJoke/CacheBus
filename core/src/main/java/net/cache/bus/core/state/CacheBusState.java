@@ -3,7 +3,7 @@ package net.cache.bus.core.state;
 import javax.annotation.Nonnull;
 
 /**
- * Состояние шины кэшей. Содержит информацию о состоянии шины (в целом) и всех ее компонент в отдельности.
+ * Cache bus state. Contains information about the state of the cache bus (overall) and its individual components.
  *
  * @author Alik
  * @see ComponentState
@@ -11,33 +11,34 @@ import javax.annotation.Nonnull;
 public interface CacheBusState extends ComponentState {
 
     /**
-     * Возвращает информацию о состоянии канала входящих / исходящих сообщений.
+     * Returns information about the state of the channel for incoming/outgoing messages.
      *
-     * @return не может быть {@code null}.
+     * @return cannot be {@code null}.
      */
     @Nonnull
     ComponentState channelState();
 
     /**
-     * Возвращает информацию о состоянии очереди обработки поступивших с других
-     * серверов сообщений об изменении элементов кэша.
+     * Returns information about the state of the processing queue for incoming messages from other servers
+     * regarding cache item changes.
      *
-     * @return не может быть {@code null}.
+     * @return cannot be {@code null}.
      */
     @Nonnull
     ComponentState processingQueueState();
 
     /**
-     * Возвращает информацию о состоянии очереди отправки исходящих сообщений об изменении элементов кэша.
+     * Returns information about the state of the sending queue for outgoing messages regarding cache item changes.
      *
-     * @return не может быть {@code null}.
+     * @return cannot be {@code null}.
      */
     @Nonnull
     ComponentState sendingQueueState();
 
     /**
-     * Возвращает информацию о состоянии менеджера кэшей.
-     * @return не может быть {@code null}.
+     * Returns information about the state of the cache manager.
+     *
+     * @return cannot be {@code null}.
      */
     @Nonnull
     ComponentState cacheManagerState();

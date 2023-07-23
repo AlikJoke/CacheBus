@@ -19,30 +19,25 @@ import static net.cache.bus.transport.ChannelConstants.RECONNECT_RETRY_TIMEOUT;
 import static net.cache.bus.transport.ChannelConstants.RECONNECT_RETRY_TIMEOUT_UNITS;
 
 /**
- * Конфигурация для канала сообщений на основе Apache Kafka.
+ * Configuration for a message channel based on Apache Kafka.
  *
- * @param producerProperties свойства производителя сообщений Kafka, не может быть {@code null};
- *                           обязательно наличие {@link org.apache.kafka.clients.producer.ProducerConfig#BOOTSTRAP_SERVERS_CONFIG};
- *                           eсли используется аутентификация / авторизация на брокере, то должны
- *                           быть переданы необходимые параметры; eсли необходимо, клиентские
- *                           приложения могут производить дополнительную настройку параметров
- *                           производителя исходя из своих потребностей (однако часть параметров
- *                           может быть перезаписана реализацией канала).
- * @param consumerProperties свойства потребителя сообщений Kafka, не может быть {@code null};
- *                           обязательно наличие {@link org.apache.kafka.clients.consumer.ConsumerConfig#BOOTSTRAP_SERVERS_CONFIG};
- *                           если используется аутентификация / авторизация на брокере, то должны быть
- *                           переданы необходимые параметры; если необходимо, клиентские приложения
- *                           могут производить дополнительную настройку параметров потребителя исходя
- *                           из своих потребностей (однако часть параметров может быть перезаписана реализацией канала).
- * @param reconnectTimeoutMs тайм-аут переподключения в миллисекундах при разрыве соединений,
- *                           используемых для отправки сообщений в канал; по тайм-ауту
- *                           произойдет прекращение попытки восстановить соединение и будет
- *                           сгенерировано исключение; по-умолчанию используется значение
- *                           {@link ChannelConstants#RECONNECT_RETRY_TIMEOUT} в минутах;
- *                           не может быть отрицательным.
- * @param channel            имя канала (топика Kafka), не может быть {@code null}.
- * @param subscribingPool    пул потоков, на котором производится получение сообщений из канала, не может быть {@code null}.
- * @param hostNameResolver   определитель хоста текущего сервера, не может быть {@code null}.
+ * @param producerProperties Kafka message producer properties, cannot be {@code null};
+ *                           must include {@link org.apache.kafka.clients.producer.ProducerConfig#BOOTSTRAP_SERVERS_CONFIG};
+ *                           if authentication/authorization is used on the broker, the necessary parameters must be provided;
+ *                           if needed, client applications can further customize the producer properties based on their needs
+ *                           (however, some properties may be overwritten by the channel implementation).
+ * @param consumerProperties Kafka message consumer properties, cannot be {@code null};
+ *                           must include {@link org.apache.kafka.clients.consumer.ConsumerConfig#BOOTSTRAP_SERVERS_CONFIG};
+ *                           if authentication/authorization is used on the broker, the necessary parameters must be provided;
+ *                           if needed, client applications can further customize the consumer properties based on their needs
+ *                           (however, some properties may be overwritten by the channel implementation).
+ * @param reconnectTimeoutMs reconnection timeout in milliseconds for the connections used to send messages to the channel;
+ *                           after the timeout, the reconnection attempts will stop and an exception will be thrown;
+ *                           by default, the value from {@link ChannelConstants#RECONNECT_RETRY_TIMEOUT} in minutes is used;
+ *                           cannot be negative.
+ * @param channel            channel name (Kafka topic), cannot be {@code null}.
+ * @param subscribingPool    thread pool on which message retrieval from the channel is performed, cannot be {@code null}.
+ * @param hostNameResolver   resolver for the current server's host, cannot be {@code null}.
  * @author Alik
  * @see net.cache.bus.kafka.channel.KafkaCacheBusMessageChannel
  * @see Builder
@@ -89,9 +84,9 @@ public record KafkaCacheBusMessageChannelConfiguration(
     }
 
     /**
-     * Фабричный метод создания построителя для формирования конфигурации для Kafka-канала шины.
+     * Factory method for creating a builder to construct the configuration for a Kafka bus channel.
      *
-     * @return не может быть {@code null}.
+     * @return cannot be {@code null}.
      */
     @Nonnull
     public static Builder builder() {
@@ -109,14 +104,14 @@ public record KafkaCacheBusMessageChannelConfiguration(
         private ExecutorService subscribingPool;
 
         /**
-         * Устанавливает основные свойства производителя Kafka.<br>
-         * Обязательно наличие {@link org.apache.kafka.clients.producer.ProducerConfig#BOOTSTRAP_SERVERS_CONFIG}.
-         * Если используется аутентификация / авторизация на брокере, то должны быть переданы необходимые параметры.
-         * Если необходимо, клиентские приложения могут производить дополнительную настройку параметров
-         * производителя исходя из своих потребностей (однако часть параметров может быть перезаписана реализацией канала).
+         * Sets the main properties for the Kafka producer.<br>
+         * Must include {@link org.apache.kafka.clients.producer.ProducerConfig#BOOTSTRAP_SERVERS_CONFIG}.
+         * If authentication/authorization is used on the broker, the necessary parameters must be provided.
+         * If needed, client applications can further customize the producer properties based on their needs
+         * (however, some properties may be overwritten by the channel implementation).
          *
-         * @param producerProperties свойства производителя, не может быть {@code null}.
-         * @return не может быть {@code null}.
+         * @param producerProperties producer properties, cannot be {@code null}.
+         * @return cannot be {@code null}.
          */
         @Nonnull
         public Builder setProducerProperties(@Nonnull Map<String, Object> producerProperties) {
@@ -126,14 +121,14 @@ public record KafkaCacheBusMessageChannelConfiguration(
         }
 
         /**
-         * Устанавливает основные свойства потребителя Kafka.<br>
-         * Обязательно наличие {@link org.apache.kafka.clients.consumer.ConsumerConfig#BOOTSTRAP_SERVERS_CONFIG}.
-         * Если используется аутентификация / авторизация на брокере, то должны быть переданы необходимые параметры.
-         * Если необходимо, клиентские приложения могут производить дополнительную настройку параметров
-         * потребителя исходя из своих потребностей (однако часть параметров может быть перезаписана реализацией канала).
+         * Sets the main properties for the Kafka consumer.<br>
+         * Must include {@link org.apache.kafka.clients.consumer.ConsumerConfig#BOOTSTRAP_SERVERS_CONFIG}.
+         * If authentication/authorization is used on the broker, the necessary parameters must be provided.
+         * If needed, client applications can further customize the consumer properties based on their needs
+         * (however, some properties may be overwritten by the channel implementation).
          *
-         * @param consumerProperties свойства производителя, не может быть {@code null}.
-         * @return не может быть {@code null}.
+         * @param consumerProperties consumer properties, cannot be {@code null}.
+         * @return cannot be {@code null}.
          */
         @Nonnull
         public Builder setConsumerProperties(@Nonnull Map<String, Object> consumerProperties) {
@@ -143,15 +138,13 @@ public record KafkaCacheBusMessageChannelConfiguration(
         }
 
         /**
-         * Устанавливает тайм-аут в миллисекундах для переподключения при разрыве соединения.<br>
-         * См. описание параметра в Java-doc к {@link KafkaCacheBusMessageChannelConfiguration}.<br>
-         * Если не установить значение явно, то будет использоваться значение по-умолчанию
-         * {@link ChannelConstants#RECONNECT_RETRY_TIMEOUT} в единицах
-         * {@link ChannelConstants#RECONNECT_RETRY_TIMEOUT_UNITS}.
+         * Sets the reconnection timeout in milliseconds.<br>
+         * See the parameter description in the JavaDoc of {@link KafkaCacheBusMessageChannelConfiguration}.<br>
+         * If not set explicitly, the default value from {@link ChannelConstants#RECONNECT_RETRY_TIMEOUT}
+         * in {@link ChannelConstants#RECONNECT_RETRY_TIMEOUT_UNITS} units will be used.
          *
-         * @param reconnectTimeoutMs максимально допустимое для использования количество
-         *                           соединений с каналом, не может быть {@code < 2}.
-         * @return не может быть {@code null}.
+         * @param reconnectTimeoutMs maximum number of connections allowed to be used with the channel, cannot be {@code < 2}.
+         * @return cannot be {@code null}.
          */
         @Nonnull
         public Builder setReconnectTimeoutMs(@Nonnegative long reconnectTimeoutMs) {
@@ -160,10 +153,10 @@ public record KafkaCacheBusMessageChannelConfiguration(
         }
 
         /**
-         * Устанавливает имя Kafka-топика, из которого извлекаются и в который отправляются сообщения.
+         * Sets the Kafka topic name from which messages are retrieved and to which messages are sent.
          *
-         * @param channel имя JMS-топика, не может быть {@code null}.
-         * @return не может быть {@code null}.
+         * @param channel JMS topic name, cannot be {@code null}.
+         * @return cannot be {@code null}.
          */
         @Nonnull
         public Builder setChannel(@Nonnull String channel) {
@@ -172,10 +165,10 @@ public record KafkaCacheBusMessageChannelConfiguration(
         }
 
         /**
-         * Устанавливает определитель хоста. Если не задавать, то используется реализация по-умолчанию {@link StdHostNameResolver}.
+         * Sets the host resolver. If not specified, the default implementation {@link StdHostNameResolver} will be used.
          *
-         * @param hostNameResolver определитель хоста, не может быть {@code null}, если метод вызывается, а не используется реализация по-умолчанию.
-         * @return не может быть {@code null}
+         * @param hostNameResolver the host resolver, cannot be {@code null} when the method is called and not using the default implementation.
+         * @return cannot be {@code null}.
          */
         @Nonnull
         public Builder setHostNameResolver(@Nonnull HostNameResolver hostNameResolver) {
@@ -184,10 +177,10 @@ public record KafkaCacheBusMessageChannelConfiguration(
         }
 
         /**
-         * Устанавливает пул, на котором должно производиться получение сообщений из канала.
+         * Sets the thread pool on which message retrieval from the channel should occur.
          *
-         * @param subscribingPool пул потоков, не может быть {@code null}.
-         * @return не может быть {@code null}.
+         * @param subscribingPool the thread pool, cannot be {@code null}.
+         * @return cannot be {@code null}.
          */
         @Nonnull
         public Builder setSubscribingPool(@Nonnull ExecutorService subscribingPool) {
@@ -196,9 +189,9 @@ public record KafkaCacheBusMessageChannelConfiguration(
         }
 
         /**
-         * Формирует на основе данных, переданных при построении объект конфигурации канала {@link net.cache.bus.kafka.channel.KafkaCacheBusMessageChannel}.
+         * Constructs a {@link net.cache.bus.kafka.channel.KafkaCacheBusMessageChannel} object based on the data provided during the object's construction.
          *
-         * @return не может быть {@code null}.
+         * @return cannot be {@code null}.
          * @see KafkaCacheBusMessageChannelConfiguration
          */
         @Nonnull

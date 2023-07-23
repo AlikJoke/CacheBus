@@ -3,16 +3,16 @@ package net.cache.bus.core.transport;
 import javax.annotation.Nonnull;
 
 /**
- * Определитель имени текущего хоста.
+ * Determines the name of the current host.
  *
  * @author Alik
  */
 public interface HostNameResolver {
 
     /**
-     * Определяет имя хоста.
+     * Determines the host name.
      *
-     * @return не может быть {@code null}.
+     * @return cannot be {@code null}.
      */
     @Nonnull
     String resolve();

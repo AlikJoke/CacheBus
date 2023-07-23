@@ -17,11 +17,12 @@ import java.io.Serializable;
 import java.util.Objects;
 
 /**
- * Реализация шины кэшей ({@link CacheBus}) для настройки и управления шиной кэшей в среде Spring Framework.
- * В Spring-контексте приложения необходимо создать singleton-бин данного класса.
- * При {@code isAutoStart==true} данный бин активирует шину после завершения построения Spring-контекста ({@link ContextStartedEvent}),
- * в котором данный бин объявлен и останавливает шину при закрытии Spring-контекста ({@link ContextStoppedEvent}). <br/>
- * При {@code isAutoStart==false} приложение должно явно вызывать методы {@link #start()} и {@link #stop()}.<br>
+ * Implementation of a cache bus ({@link CacheBus}) for configuring and managing the cache bus in the
+ * Spring Framework environment. In the application's Spring context, a singleton bean of this class needs to be created.
+ * When {@code isAutoStart==true}, this bean activates the bus after the completion of the Spring context
+ * construction ({@link ContextStartedEvent}) where this bean is declared, and stops the bus when the Spring
+ * context is closed ({@link ContextStoppedEvent}).<br>
+ * When {@code isAutoStart==false}, the application needs to explicitly call the {@link #start()} and {@link #stop()} methods.
  *
  * @author Alik
  * @see SmartLifecycle
@@ -37,19 +38,19 @@ public class SpringCacheBusBean implements CacheBus, SmartLifecycle {
     private CacheBusConfiguration configuration;
 
     /**
-     * Создает реализацию шины с включенным автоматическим управлением жизненным циклом бина.<br>
-     * Обязательно после этого должен последовать вызов {@link SpringCacheBusBean#withConfiguration(CacheBusConfiguration)}.
+     * Creates an instance of the bus with automatic bean lifecycle management enabled.<br>
+     * Following this, a call to {@link SpringCacheBusBean#withConfiguration(CacheBusConfiguration)} must be made.
      */
     public SpringCacheBusBean() {
         this(true);
     }
 
     /**
-     * Создает реализацию шины с заданным параметром признаком автоматического управления жизненным циклом бина.<br>
-     * Обязательно после этого должен последовать вызов {@link SpringCacheBusBean#withConfiguration(CacheBusConfiguration)}.
+     * Creates an instance of the bus with the specified parameter for automatic bean lifecycle management.<br>
+     * Following this, a call to {@link SpringCacheBusBean#withConfiguration(CacheBusConfiguration)} must be made.
      *
-     * @param isAutoStart если {@code true}, то шина активируется после завершения построения Spring-контекста;
-     *                    если {@code false}, то для запуска шины приложение должно явно вызывать методы {@link #start()} и {@link #stop()}.
+     * @param isAutoStart if {@code true}, the bus is activated after the completion of the Spring context construction;
+     *                    if {@code false}, the application needs to explicitly call the {@link #start()} and {@link #stop()} methods.
      */
     @ConstructorProperties("isAutoStart")
     public SpringCacheBusBean(boolean isAutoStart) {
@@ -57,11 +58,11 @@ public class SpringCacheBusBean implements CacheBus, SmartLifecycle {
     }
 
     /**
-     * Создает реализацию шины с заданным параметром признаком автоматического управления жизненным циклом бина и заданной конфигурацией.
+     * Creates an instance of the bus with the specified parameter for automatic bean lifecycle management and the given configuration.
      *
-     * @param isAutoStart   если {@code true}, то шина активируется после завершения построения Spring-контекста;
-     *                      если {@code false}, то для запуска шины приложение должно явно вызывать методы {@link #start()} и {@link #stop()}.
-     * @param configuration конфигурация шины кэшей, не может быть {@code null}.
+     * @param isAutoStart   if {@code true}, the bus is activated after the completion of the Spring context construction;
+     *                      if {@code false}, the application needs to explicitly call the {@link #start()} and {@link #stop()} methods.
+     * @param configuration cache bus configuration, cannot be {@code null}.
      * @see CacheBusConfiguration
      * @see net.cache.bus.core.impl.configuration.ImmutableCacheBusConfiguration
      */
@@ -84,7 +85,7 @@ public class SpringCacheBusBean implements CacheBus, SmartLifecycle {
     /**
      * {@inheritDoc}
      *
-     * @throws LifecycleException если {@code isRunning == true}, т.е. если шина уже была запущена
+     * @throws LifecycleException if {@code isRunning == true}, i.e., if the bus has already been started.
      */
     @Override
     public void withConfiguration(@Nonnull CacheBusConfiguration configuration) {
@@ -113,7 +114,7 @@ public class SpringCacheBusBean implements CacheBus, SmartLifecycle {
     /**
      * {@inheritDoc}
      *
-     * @throws LifecycleException если {@code isRunning == true}, т.е. если шина уже была запущена
+     * @throws LifecycleException if {@code isRunning == true}, i.e., if the bus has already been started.
      */
     @Override
     public synchronized void start() {

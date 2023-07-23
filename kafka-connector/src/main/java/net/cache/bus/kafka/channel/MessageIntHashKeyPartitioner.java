@@ -8,12 +8,12 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Реализация распределителя сообщений по партициям топика Kafka в зависимости от числового хэша
- * события для гарантии того, что сообщения с одними хэшем (т.е. имеющие один ключ в рамках
- * одного кэша) попадут в одну партицию и порядок между ними будет сохранен.
+ * Implementation of a message distributor for Kafka topic partitions based on a numeric hash.
+ * Ensures that messages with the same hash (i.e., having the same key within a cache)
+ * are routed to the same partition and their order is preserved.
  *
- * @see Partitioner
  * @author Alik
+ * @see Partitioner
  */
 public final class MessageIntHashKeyPartitioner implements Partitioner {
 

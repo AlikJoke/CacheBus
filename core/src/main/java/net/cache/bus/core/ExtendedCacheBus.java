@@ -1,8 +1,8 @@
 package net.cache.bus.core;
 
 /**
- * Шина событий, поддерживающая управление жизненным циклом.
- * Является расширением стандартного {@link CacheBus}.
+ * Event bus supporting lifecycle management.<br>
+ * Extends the standard {@link Cache}.
  *
  * @author Alik
  * @see CacheBus
@@ -10,12 +10,12 @@ package net.cache.bus.core;
 public interface ExtendedCacheBus extends CacheBus {
 
     /**
-     * Выполняет активацию шины кэширования.
+     * Activates the caching bus.
      */
     void start();
 
     /**
-     * Выполняет остановку шины кэширования.
+     * Stops the caching bus.
      */
     void stop();
 }

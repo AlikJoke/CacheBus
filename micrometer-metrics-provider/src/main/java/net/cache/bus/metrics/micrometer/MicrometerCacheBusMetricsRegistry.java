@@ -12,6 +12,13 @@ import java.util.Objects;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * Implementation of a metrics registry for the cache bus based on the Micrometer Metrics library.
+ *
+ * @author Alik
+ * @see CacheBusMetricsRegistry
+ * @see MeterRegistry
+ */
 public final class MicrometerCacheBusMetricsRegistry implements CacheBusMetricsRegistry {
 
     private final Map<String, Counter> countersMap = new ConcurrentHashMap<>();

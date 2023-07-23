@@ -23,7 +23,7 @@ public interface CacheSetConfiguration {
 
     /**
      * Specifies whether an asynchronous pool should be used for evicting old timestamps
-     * (see {@linkplain CacheConfiguration.TimestampCacheConfiguration#timestampExpiration()}.<br>
+     * (see {@linkplain CacheConfiguration.TimestampCacheConfiguration#timestampExpiration()}).<br>
      * If the method returns {@code false}, eviction will occur when the next timestamp is stored in the timestamp
      * store (not every time, eviction may be triggered based on certain criteria or heuristics, such as exceeding
      * a certain number of stored timestamps).<br>

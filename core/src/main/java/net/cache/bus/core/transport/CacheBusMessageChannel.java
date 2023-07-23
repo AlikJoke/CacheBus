@@ -8,7 +8,7 @@ import net.cache.bus.core.state.ComponentState;
 import javax.annotation.Nonnull;
 
 /**
- * Абстракция канала сообщений об изменении элементов кэша.
+ * Abstraction of a cache element change message channel.
  *
  * @author Alik
  * @see CacheEntryEvent
@@ -18,37 +18,37 @@ import javax.annotation.Nonnull;
 public interface CacheBusMessageChannel<T extends CacheBusMessageChannelConfiguration> extends AutoCloseable {
 
     /**
-     * Производит активацию канала сообщений шины кэшей.
+     * Activates the cache bus message channel.
      *
-     * @param configuration конфигурация канала, не может быть {@code null}.
+     * @param configuration configuration of channel, cannot be {@code null}.
      * @see CacheBusMessageChannelConfiguration
      */
     void activate(@Nonnull T configuration);
 
     /**
-     * Выполняет отправку сериализованного события об изменении элемента кэша на другие сервера.
+     * Sends a serialized cache element change event message to other servers.
      *
-     * @param eventOutputMessage исходящее сообщение с информацией об изменении элемента кэша, не может быть {@code null}.
+     * @param eventOutputMessage the outgoing message with information about the cache element change cannot be {@code null}.
      */
     void send(@Nonnull CacheEntryOutputMessage eventOutputMessage);
 
     /**
-     * Создает подписку на входящий поток сообщений канала на выделенном пуле потоков.
+     * Creates a subscription to the incoming message stream of the channel on a dedicated thread pool.
      *
-     * @param consumer функция обработки сообщений, не может быть {@code null}.
+     * @param consumer the message processing function cannot be {@code null}.
      */
     void subscribe(@Nonnull CacheEventMessageConsumer consumer);
 
     /**
-     * Производит закрытие канала сообщений, после которого канал становится недоступен для отправок / получения сообщений.
+     * Closes the message channel, after which the channel becomes unavailable for sending/receiving messages.
      */
     @Override
     void close();
 
     /**
-     * Возвращает информацию о состоянии канала взаимодействия с другими серверами.
+     * Returns information about the state of the interaction channel with other servers.
      *
-     * @return не может быть {@code null}.
+     * @return cannot be {@code null}.
      * @see ComponentState
      */
     @Nonnull

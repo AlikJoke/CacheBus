@@ -9,7 +9,7 @@ import org.ehcache.core.EhcacheManager;
 import javax.annotation.Nonnull;
 
 /**
- * Реализация конфигурации провайдера кэширования EhCache (v3), упрощающая настройку шины событий.
+ * Implementation of the EhCache (v3) caching provider configuration that simplifies event bus setup.
  *
  * @author Alik
  * @see CacheProviderConfiguration

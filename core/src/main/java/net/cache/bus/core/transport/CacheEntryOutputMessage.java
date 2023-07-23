@@ -3,8 +3,8 @@ package net.cache.bus.core.transport;
 import javax.annotation.Nonnull;
 
 /**
- * Исходящее сообщение об изменении элемента кэша, содержащее бинарное
- * представление события изменения элемента кэша и метаинформацию об изменении.
+ * Outgoing cache element change message containing the binary
+ * representation of the cache element change event and metadata about the change.
  *
  * @author Alik
  * @see net.cache.bus.core.CacheEntryEvent
@@ -12,26 +12,26 @@ import javax.annotation.Nonnull;
 public interface CacheEntryOutputMessage {
 
     /**
-     * Возвращает имя кэша, в котором произошло изменение.
+     * Returns the name of the cache where the change occurred.
      *
-     * @return не может быть {@code null}.
+     * @return cannot be {@code null}.
      */
     @Nonnull
     String cacheName();
 
     /**
-     * Возвращает бинарное представление события об изменении элемента кэша
+     * Returns the binary representation of the cache element change event.
      *
-     * @return не может быть {@code null}.
+     * @return cannot be {@code null}.
      */
     @Nonnull
     byte[] cacheEntryMessageBody();
 
     /**
-     * Возвращает хэш-ключ сообщения.<br>
-     * Хэш должен высчитываться на основе двух полей: имени кэша и ключа, для которого произошло изменение.
+     * Returns the message hash key.<br>
+     * The hash should be calculated based on two fields: the cache name and the key for which the change occurred.
      *
-     * @return хэш-ключ соытия
+     * @return message hash key
      */
     int messageHashKey();
 }

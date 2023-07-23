@@ -7,8 +7,7 @@ import java.io.Serializable;
 import java.util.Optional;
 
 /**
- * Менеджер кэшей. Предоставляет доступ к кэшам разного рода, а также
- * различного вида общим настройкам о кэшировании.
+ * Cache manager. Provides access to caches various types, as well as general caching settings.
  *
  * @author Alik
  * @see Cache
@@ -16,33 +15,32 @@ import java.util.Optional;
 public interface CacheManager {
 
     /**
-     * Возвращает "нижестоящий" менеджер кэшей, на основе которого реализуется
-     * данный менеджер. Нижестоящий менеджер может не существовать, если
-     * реализация менеджера не основана на уже существующей реализации какого-то
-     * провайдера кэширования - в таком случае реализация должна генерировать
-     * исключение {@linkplain UnsupportedOperationException}.
+     * Returns the "underlying" cache manager on which this manager is based.
+     * The underlying manager may not exist if the manager's implementation is not based on an existing implementation
+     * of a caching provider - in such cases, the implementation should throw
+     * an {@linkplain UnsupportedOperationException}.
      *
-     * @param managerType тип исходного менеджера кэшей, не может быть {@code null}.
-     * @return нижестоящий менеджер кэшей некоторого провайдера кэширования, если таковой имеется; не может быть {@code null}.
-     * @throws UnsupportedOperationException если нижестоящий менеджер кэшей не существует
+     * @param managerType the type of the source cache manager, cannot be {@code null}.
+     * @return the underlying cache manager of a caching provider, if available; cannot {@code null}.
+     * @throws UnsupportedOperationException if the underlying cache manager does not exist
      */
     @Nonnull
     <T> T getUnderlyingCacheManager(@Nonnull Class<T> managerType);
 
     /**
-     * Возвращает информацию о состоянии менеджера кэшей.
+     * Returns information about the state of the cache manager.
      *
-     * @return не может быть {@code null}.
+     * @return cannot be {@code null}.
      * @see ComponentState
      */
     @Nonnull
     ComponentState state();
 
     /**
-     * Возвращает кэш по его имени.
+     * Returns a cache by its name.
      *
-     * @param cacheName имя кэша, не может быть {@code null}.
-     * @return объект кэша или {@linkplain Optional#empty()}, если кэша с таким именем не существует.
+     * @param cacheName the name the cache, cannot be {@code null}.
+     * @return the cache object or {linkplain Optional#empty()} if a cache with the given name does not exist.
      * @see Cache
      */
     @Nonnull

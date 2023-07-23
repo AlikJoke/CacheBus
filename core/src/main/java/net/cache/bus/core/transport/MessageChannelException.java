@@ -3,7 +3,7 @@ package net.cache.bus.core.transport;
 import javax.annotation.Nonnull;
 
 /**
- * Исключение, сообщающее о том, что при работе с каналом сообщений произошла исключительная ситуация.
+ * An exception indicating that an exceptional situation occurred while working with the message channel.
  *
  * @author Alik
  */
