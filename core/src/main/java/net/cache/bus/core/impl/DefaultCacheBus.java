@@ -25,8 +25,8 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
- * Реализация шины кэшей, используемая по-умолчанию. Содержит основную логику обработки событий об
- * изменении элементов кэша и служит посредником между локальными и удаленными кэшами.
+ * Default cache bus implementation. Contains the main logic for handling events
+ * of cache element changes and acts as an intermediary between local and remote caches.
  *
  * @author Alik
  * @see CacheBus
@@ -138,7 +138,7 @@ public final class DefaultCacheBus implements ExtendedCacheBus {
             applyEvent(event, cacheConfiguration);
         }
 
-        // Обработка изменений по кэшам из доп. алиасов инвалидационных кэшей
+        // Processing cache changes from additional cache invalidation aliases
         final Set<String> cachesByAlias = this.cachesByAliases.getOrDefault(event.cacheName(), Collections.emptySet());
         if (cachesByAlias.isEmpty()) {
             return;
@@ -231,13 +231,13 @@ public final class DefaultCacheBus implements ExtendedCacheBus {
         logger.debug("Process event {} with cacheType {}", event, cacheConfiguration.cacheType().name());
 
         /*
-         * Если условие save не прошли, значит есть более свежая модификация => пропускаем событие.
-         * Иначе, если save вернул true, то модифицируем кэш. Тут может получиться, что поток приложения выполнит
-         * модификацию элемента в локальном кэше в то время, что мы прошли save() и приступили к применению события:
-         * в этом случае сработает защита от конфликтов в net.cache.bus.core.CacheEntryEvent.applyToReplicatedCache,
-         * в результате чего значение в локальном кэше будет вычищено.
-         * Для инвалидационных кэшей такая ситуация не критична, т.к. значение все равно будет удалено по событию
-         * из локального кэша.
+         * If the save condition fails, it means there is a more recent modification => skip the event.
+         * Otherwise, if save returns true, modify the cache. In this case, it is possible for the application thread to perform
+         * a modification of the element in the local cache while we have passed save() and started applying the event:
+         * in this case, conflict protection will triggered in net.cache.bus.core.CacheEntryEvent.applyToReplicatedCache,
+         * resulting in the value being cleared in the local cache.
+         * For invalidation caches, this situation is not critical because the value will be removed anyway based on the event
+         * from the local cache.
          */
         if (cacheConfiguration.useTimestampBasedComparison() && !this.eventTimestampStore.save(event)) {
             return;
@@ -259,7 +259,7 @@ public final class DefaultCacheBus implements ExtendedCacheBus {
             }
         } catch (RuntimeException ex) {
             logger.info("Exception while processing of event, will be applied like to invalidated cache; event: " + event, ex);
-            // If we fail then remove value from cache by key and ack receiving of message
+            // If fail then we should remove value from cache by key and ack receiving of message
             event.applyToInvalidatedCache(cache);
             this.metrics.incrementCounter(KnownMetrics.APPLIED_AS_INV_EVENT_FALLBACK_COUNT);
         } finally {
@@ -308,7 +308,7 @@ public final class DefaultCacheBus implements ExtendedCacheBus {
 
         logger.debug("Cache event listeners initializing...");
 
-        // Регистрируем подписчиков на кэшах
+        // Registering subscribers on caches
         executeWithCacheEventListeners(
                 (registrar, cache) -> {
                     registrar.registerFor(this, cache);
@@ -325,7 +325,7 @@ public final class DefaultCacheBus implements ExtendedCacheBus {
         logger.debug("Message channel initializing...");
 
         /*
-         * Активируем канал сообщений
+         * Activating the message channel
          */
         final CacheBusTransportConfiguration transportConfiguration = this.configuration.transportConfiguration();
         final CacheBusMessageChannel<CacheBusMessageChannelConfiguration> channel = transportConfiguration.messageChannel();
@@ -339,7 +339,7 @@ public final class DefaultCacheBus implements ExtendedCacheBus {
         logger.debug("Message channel activated with configuration: {}", transportConfiguration.messageChannelConfiguration());
 
         /*
-         *  Формируем обработчик сообщений и подписываемся на входящий поток сообщений об изменениях элементов кэшей
+         *  Creating a message handler and subscribing to the incoming stream cache element change messages
          */
         final int buffersCount = transportConfiguration.maxConcurrentProcessingThreads();
         final int bufferCapacity = transportConfiguration.maxProcessingThreadBufferCapacity();
@@ -414,8 +414,8 @@ public final class DefaultCacheBus implements ExtendedCacheBus {
                 return Status.DOWN;
             }
 
-            // Если один из компонентов упал / не запустился / попал в неисправимое состояние,
-            // то шина считается активной, но не способной продолжать нормальную работу
+            // If one of the components fails / does not start / enters an irreparable state,
+            // the bus is considered active but unable to continue normal operation
             if (channelState().status() == Status.DOWN
                     || channelState().status() == Status.UP_FATAL_BROKEN
                     || processingQueueState().status() == Status.DOWN

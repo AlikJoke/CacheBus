@@ -5,12 +5,11 @@ import net.cache.bus.core.configuration.CacheConfiguration;
 import javax.annotation.Nonnegative;
 
 /**
- * Неизменяемая реализация конфигурации работы с временными метками элементов кэшей.
+ * Immutable implementation of cache element timestamp configuration.
  *
- * @param probableAverageElementsCount вероятное количество элементов в кэше (в среднем).
- * @param timestampExpiration          временной интервал, через который метка может быть удалена
- *                                     из списка хранимых меток в случае, если за этот интервал
- *                                     метка не обновлялась.
+ * @param probableAverageElementsCount the probable number of elements in the cache (on average).
+ * @param timestampExpiration          the time interval after which a timestamp can be removed
+ *                                     from the list of stored timestamps if it hasn't been updated within this interval.
  * @author Alik
  * @see net.cache.bus.core.configuration.CacheConfiguration.TimestampCacheConfiguration
  */

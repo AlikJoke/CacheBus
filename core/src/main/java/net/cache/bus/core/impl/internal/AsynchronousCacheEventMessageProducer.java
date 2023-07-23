@@ -21,9 +21,9 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
 /**
- * Реализация асинхронного отправителя событий в канал на основе кольцевых буферов.
- * Поток отправки в канал кладет сообщение в соответствующий кольцевой буфер, вычисляемый по хэш-ключу
- * сообщения (для обеспечения гарантии последовательной отправки событий с одним ключом элемента в одном кэше).
+ * Implementation of an asynchronous event sender to a channel based on circular buffers.
+ * The sending thread to the channel puts the message into the corresponding circular buffer, calculated
+ * based the hash key of the message (to ensure sequential sending of events with the same key in one cache).
  *
  * @author Alik
  * @see RingBuffer

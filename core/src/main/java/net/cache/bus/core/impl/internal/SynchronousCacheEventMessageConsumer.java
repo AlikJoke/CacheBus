@@ -11,8 +11,8 @@ import javax.annotation.concurrent.ThreadSafe;
 import java.util.Objects;
 
 /**
- * Синхронная реализация потребителя сообщений из канала, которая сразу
- * в том же потоке вызывает обработку полученного сообщения.
+ * Synchronous implementation of a message consumer from a channel that immediately
+ * processes the received message in the same thread.
  *
  * @author Alik
  * @see CacheBus#receive(byte[])

@@ -16,14 +16,14 @@ import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 
 /**
- * Неизменяемая реализация конфигурации транспорта для шины кэшей.<br>
- * Для формирования конфигурации необходимо использовать построитель через фабричный метод {@linkplain ImmutableCacheBusTransportConfiguration#builder()}.
+ * Immutable implementation of cache bus transport configuration.<br>
+ * To create a configuration, use the builder through the factory method {@linkplain ImmutableCacheBusTransportConfiguration#builder()}.
  *
- * @param converter                      конвертер, используемый для преобразования данных перед передачей в канал сообщений и при получении из него, не может быть {@code null}.
- * @param messageChannel                 реализация канала сообщений для взаимодействия с удаленными кэшами, не может быть {@code null}.
- * @param messageChannelConfiguration    конфигурация канала сообщений, не может быть {@code null}.
- * @param processingPool                 пул потоков, на котором должна производиться обработка полученных от других серверов сообщений, не может быть {@code null}.
- * @param maxConcurrentProcessingThreads максимальное количество потоков, которое может использоваться для обработки сообщений с других серверов, не может быть отрицательным.
+ * @param converter                      the converter used to transform data before sending it over the message channel and when receiving it, cannot be {@code null}.
+ * @param messageChannel                 the implementation of the message channel for interacting with remote caches, cannot be {@code null}.
+ * @param messageChannelConfiguration    the configuration of the message channel, cannot {@code null}.
+ * @param processingPool                 the thread pool on which the received messages from other servers should be processed, cannot be {@code null}.
+ * @param maxConcurrentProcessingThreads the maximum number of threads that can be used to process messages from other servers, cannot be negative.
  * @author Alik
  * @see CacheBusTransportConfiguration
  * @see CacheBusTransportConfiguration
@@ -52,11 +52,11 @@ public record ImmutableCacheBusTransportConfiguration(
         Objects.requireNonNull(processingPool, "processingPool");
 
         if (maxConcurrentProcessingThreads < 0) {
-            throw new ConfigurationException("maxConcurrentProcessingThreads can not be negative");
+            throw new ConfigurationException("maxConcurrentProcessingThreads cannot be negative");
         }
 
         if (maxProcessingThreadBufferCapacity < 0) {
-            throw new ConfigurationException("maxProcessingThreadBufferCapacity can not be negative");
+            throw new ConfigurationException("maxProcessingThreadBufferCapacity cannot be negative");
         }
 
         if (useAsyncSending) {
@@ -65,7 +65,7 @@ public record ImmutableCacheBusTransportConfiguration(
             }
 
             if (maxAsyncSendingThreadBufferCapacity < 0) {
-                throw new ConfigurationException("maxAsyncSendingThreadBufferCapacity can not be negative");
+                throw new ConfigurationException("maxAsyncSendingThreadBufferCapacity cannot be negative");
             }
 
             Objects.requireNonNull(asyncSendingPool, "Async sending thread pool must be not null when async sending enabled");
@@ -73,9 +73,9 @@ public record ImmutableCacheBusTransportConfiguration(
     }
 
     /**
-     * Возвращает построитель для формирования объекта конфигурации.
+     * Returns a builder for creating a configuration object.
      *
-     * @return не может быть {@code null}.
+     * @return cannot be {@code null}.
      */
     @Nonnull
     public static Builder builder() {
@@ -97,10 +97,10 @@ public record ImmutableCacheBusTransportConfiguration(
         private int maxAsyncSendingThreadBufferCapacity = 0;
 
         /**
-         * Устанавливает используемую реализацию конвертера для сообщений, передаваемых через шину.
+         * Sets the implementation of the message converter for messages transmitted over the bus.
          *
-         * @param converter конвертер сообщений, не может быть {@code null}.
-         * @return не может быть {@code null}
+         * @param converter the message converter, cannot be {@code null}.
+         * @return cannot be {@code null}.
          * @see CacheEntryEventConverter
          */
         @Nonnull
@@ -110,10 +110,10 @@ public record ImmutableCacheBusTransportConfiguration(
         }
 
         /**
-         * Устанавливает используемую реализацию канала сообщений для шины.
+         * Sets the implementation of the message channel for the bus.
          *
-         * @param messageChannel канал сообщений шины, не может быть {@code null}.
-         * @return не может быть {@code null}
+         * @param messageChannel the bus message channel, cannot be {@code null}.
+         * @return cannot be {@code null}.
          * @see CacheBusMessageChannel
          */
         @Nonnull
@@ -123,10 +123,10 @@ public record ImmutableCacheBusTransportConfiguration(
         }
 
         /**
-         * Устанавливает конфигурацию канала сообщений для шины.
+         * Sets the configuration of the message channel for the bus.
          *
-         * @param messageChannelConfiguration конфигурация канала сообщения, не может быть {@code null}.
-         * @return не может быть {@code null}
+         * @param messageChannelConfiguration the message channel configuration, cannot be {@code null}.
+         * @return cannot be {@code null}.
          * @see CacheBusMessageChannelConfiguration
          */
         @Nonnull
@@ -136,10 +136,10 @@ public record ImmutableCacheBusTransportConfiguration(
         }
 
         /**
-         * Устанавливает пул потоков, на котором должна производиться обработка сообщений с других серверов.
+         * Sets the thread pool on which the messages from other servers should be processed.
          *
-         * @param processingPool пул потоков, не может быть {@code null}.
-         * @return не может быть {@code null}
+         * @param processingPool the thread pool, cannot be {@code null}.
+         * @return cannot be {@code null}.
          */
         @Nonnull
         public Builder setProcessingPool(@Nonnull final ExecutorService processingPool) {
@@ -148,12 +148,13 @@ public record ImmutableCacheBusTransportConfiguration(
         }
 
         /**
-         * Устанавливает максимальное количество потоков обработки поступающих сообщений с других серверов.
-         * По-умолчанию используется значение {@literal 1}, т.е. обработка производится независимо от
-         * потока получения (производитель и потребитель "развязаны") и выполняется в один поток.
+         * Sets the maximum number of threads for processing incoming messages from other servers.
+         * By default, the value {@literal 1} is used, meaning that processing is done independently of
+         * the receiving thread (producer and consumer are "decoupled") and executed in a single thread.
          *
-         * @param maxConcurrentProcessingThreads максимальное количество потоков, которое может использоваться для обработки поступающих сообщений, не может быть {@code maxConcurrentProcessingThreads < 0}
-         * @return не может быть {@code null}
+         * @param maxConcurrentProcessingThreads the maximum number of threads that can be used to process
+         *                                       incoming messages, cannot be {@code maxConcurrentProcessingThreads < 0}.
+         * @return cannot be {@code null}.
          */
         @Nonnull
         public Builder setMaxConcurrentReceivingThreads(@Nonnegative final int maxConcurrentProcessingThreads) {
@@ -162,11 +163,11 @@ public record ImmutableCacheBusTransportConfiguration(
         }
 
         /**
-         * Устанавливает максимальный размер буфера одного потока обработки поступающих сообщений, полученных из канала.
-         * По-умолчанию используется значение {@code 0}, которое интерпретируется как использование значения по-умолчанию ({@code 256}.
+         * Sets the maximum buffer size for a single processing thread handling incoming messages received from the channel.
+         * By default, the value {@code 0} is used, which is interpreted as using the default value ({@code 256}).
          *
-         * @param maxProcessingThreadBufferCapacity максимальный размер буфера одного потока, не может быть {@code maxProcessingThreadBufferCapacity < 0}
-         * @return не может быть {@code null}
+         * @param maxProcessingThreadBufferCapacity the maximum buffer size for a single thread, cannot be {@code maxProcessingThreadBufferCapacity < 0}.
+         * @return cannot be {@code null}.
          * @see CacheBusTransportConfiguration#maxProcessingThreadBufferCapacity()
          */
         @Nonnull
@@ -176,11 +177,11 @@ public record ImmutableCacheBusTransportConfiguration(
         }
 
         /**
-         * Устанавливает признак использования асинхронной отправки сообщений об изменении элементов кэша в канал.<br>
-         * Перед использованием необходимо взвесить все риски, см. {@linkplain CacheBusTransportConfiguration#useAsyncSending()}.
+         * Sets the flag indicating whether to use asynchronous sending of cache element change messages to the channel.<br>
+         * Before using this feature, all risks should be considered, see {@linkplain CacheBusTransportConfiguration#useAsyncSending()}.
          *
-         * @param useAsyncSending признак, использовать ли асинхронную отправку
-         * @return не может быть {@code null}.
+         * @param useAsyncSending the flag indicating whether to use asynchronous sending.
+         * @return cannot be {@code null}.
          */
         @Nonnull
         public Builder useAsyncSending(final boolean useAsyncSending) {
@@ -189,11 +190,11 @@ public record ImmutableCacheBusTransportConfiguration(
         }
 
         /**
-         * Устанавливает пул потоков, на котором должна производиться асинхронная отправка сообщений в канал.<br>
-         * Учитывается только в случае, если используется асинхронная отправка, {@code useAsyncSending(true)}.
+         * Sets the thread pool on which the asynchronous sending of messages the channel should be performed.<br>
+         * Only applicable if asynchronous sending is enabled, {@code useAsyncSending(true)}.
          *
-         * @param asyncSendingPool пул потоков, не может быть {@code null}.
-         * @return не может быть {@code null}
+         * @param asyncSendingPool the thread pool, cannot be {@code null}.
+         * @return cannot be {@code null}.
          */
         @Nonnull
         public Builder setAsyncSendingPool(@Nonnull final ExecutorService asyncSendingPool) {
@@ -202,14 +203,14 @@ public record ImmutableCacheBusTransportConfiguration(
         }
 
         /**
-         * Устанавливает максимальное количество потоков отправки исходящих сообщений в канал.
-         * По-умолчанию используется значение {@code 1}, т.е. отправка производится независимо от
-         * потока модификации (производитель и потребитель "развязаны", тут производитель - поток
-         * модификации данных в кэше, а потребитель - поток отправки в канал) и выполняется в один поток.
+         * Sets the maximum number of threads for sending outgoing messages to the channel.
+         * By default, the value {@code 1} used, meaning that sending is done independently of
+         * the modification thread (producer and consumer are "decoupled", where the producer is the thread
+         * modifying data in the cache, and the consumer is the thread sending the channel) and executed in a single thread.
          *
-         * @param maxAsyncSendingThreads максимальное количество потоков, которое может использоваться
-         *                               для отправки сообщений, не может быть {@code maxAsyncSendingThreads < 0}
-         * @return не может быть {@code null}
+         * @param maxAsyncSendingThreads the maximum number of threads that can be used for sending messages,
+         *                               cannot be {@code maxAsyncSendingThreads < 0}.
+         * @return cannot be {@code null}.
          */
         @Nonnull
         public Builder setMaxAsyncSendingThreads(@Nonnegative final int maxAsyncSendingThreads) {
@@ -218,12 +219,12 @@ public record ImmutableCacheBusTransportConfiguration(
         }
 
         /**
-         * Устанавливает максимальный размер буфера одного потока отправки исходящих сообщений в канал, получаемых
-         * из потоков модификации кэша (потоки основного приложения).<br>
-         * По-умолчанию используется значение {@code 0}, которое интерпретируется как использование значения по-умолчанию ({@code 32}.
+         * Sets the maximum buffer size for a single sending thread handling outgoing messages received
+         * from the cache modification threads (main application threads).<br>
+         * By default, the value {@code 0} is used, which is interpreted as using the default value ({@code 32}).
          *
-         * @param maxAsyncSendingThreadBufferCapacity максимальный размер буфера одного потока отправки, не может быть {@code maxProcessingThreadBufferCapacity < 0}
-         * @return не может быть {@code null}
+         * @param maxAsyncSendingThreadBufferCapacity the maximum buffer size for a single sending thread, cannot {@code maxProcessingThreadBufferCapacity < 0}.
+         * @return cannot be {@code null}.
          * @see CacheBusTransportConfiguration#maxAsyncSendingThreadBufferCapacity()
          */
         @Nonnull
@@ -233,9 +234,9 @@ public record ImmutableCacheBusTransportConfiguration(
         }
 
         /**
-         * Формирует объект конфигурации транспорта шины на основе переданных данных.
+         * Creates a transport bus configuration object based on the provided data.
          *
-         * @return не может быть {@code null}.
+         * @return cannot be {@code null}.
          * @see CacheBusTransportConfiguration
          */
         @Nonnull

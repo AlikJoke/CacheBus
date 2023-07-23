@@ -4,7 +4,7 @@ import javax.annotation.Nonnull;
 import java.util.Set;
 
 /**
- * Конфигурация кэшей данной шины кэшей.
+ * The configuration of caches for this cache bus.
  *
  * @author Alik
  * @see CacheConfiguration
@@ -13,28 +13,27 @@ import java.util.Set;
 public interface CacheSetConfiguration {
 
     /**
-     * Возвращает конфигурации кэшей, кластеризацией которых должна заниматься шина кэшей.
+     * Returns the configurations of caches that should be clustered by the cache bus.
      *
-     * @return не может быть {@code null}.
+     * @return cannot be {@code null}.
      * @see CacheConfiguration
      */
     @Nonnull
     Set<CacheConfiguration> cacheConfigurations();
 
     /**
-     * Задает необходимость использовать асинхронный пул для очистки старых временных меток
-     * (см. {@linkplain CacheConfiguration.TimestampCacheConfiguration#timestampExpiration()}.<br>
-     * В случае, если метод возвращает {@code false}, то очистка будет проводиться в момент, когда
-     * очередная метка будет сохраняться в хранилище меток (не каждый раз, очистка может запускаться
-     * на основании некоторого признака или эвристики, например, если количество хранимых меток
-     * превысило определенное количество).<br>
-     * В случае использования асинхронной очистки будет использоваться общий пул,
-     * на основе которого работает {@linkplain java.util.concurrent.CompletableFuture}.<br>
-     * Используется только в случае, если есть хотя бы один кэш, использующий временные метки,
-     * т.е. если {@code cacheConfigurations().stream().anyMatch(CacheConfiguration::useTimestampBasedComparison) == true}.
+     * Specifies whether an asynchronous pool should be used for evicting old timestamps
+     * (see {@linkplain CacheConfiguration.TimestampCacheConfiguration#timestampExpiration()}.<br>
+     * If the method returns {@code false}, eviction will occur when the next timestamp is stored in the timestamp
+     * store (not every time, eviction may be triggered based on certain criteria or heuristics, such as exceeding
+     * a certain number of stored timestamps).<br>
+     * If asynchronous eviction is used, a shared pool will be utilized, based on which
+     * {@linkplain java.util.concurrent.CompletableFuture} operates.<br>
+     * This is only applicable if there is at least one cache that uses timestamps, i.e.,
+     * if {@code cacheConfigurations().stream().anyMatch(CacheConfiguration::useTimestampBasedComparison) == true}.
      *
-     * @return {@code true}, если для очистки надо использовать асинхронный пул;
-     * {@code false}, если очистка должна производиться в потоках модификации хранилища меток.
+     * @return {@code true}, if asynchronous pool should be used for eviction;
+     * {@code false} if eviction should be performed in the modification threads of the timestamp store.
      */
     boolean useAsyncCleaning();
 }

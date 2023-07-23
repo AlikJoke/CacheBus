@@ -6,7 +6,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 /**
- * Источник конфигурации кэшей, подключенных к шине.
+ * Cache configuration source connected to the bus.
  *
  * @author Alik
  * @see CacheConfiguration
@@ -17,17 +17,17 @@ import java.util.Set;
 public interface CacheConfigurationSource {
 
     /**
-     * Возвращает конфигурацию кэшей из источника.
+     * Returns the cache configuration from the source.
      *
-     * @return не может быть {@code null}.
+     * @return cannot be {@code null}.
      */
     @Nonnull
     CacheSetConfiguration pull();
 
     /**
-     * Возвращает источник конфигурации кэшей по-умолчанию, конфигурируемый вручную.
+     * Returns the default cache configuration source, manually configurable.
      *
-     * @return не может быть {@code null}.
+     * @return cannot be {@code null}.
      * @see SimpleCacheConfigurationSource
      */
     @Nonnull
@@ -36,12 +36,12 @@ public interface CacheConfigurationSource {
     }
 
     /**
-     * Источник конфигурации кэшей, настраиваемый вручную.<br>
+     * Manually configurable cache configuration source.
      *
      * @author Alik
-     * @implSpec Реализация не является потокобезопасной, поэтому ссылку на источник передавать
-     * можно только в объект конфигурации шины. При публикации ссылки извне результат не определен,
-     * если источник будет модифицироваться в других потоках.
+     * @implSpec The implementation is not thread-safe, so the reference to the source can only be passed
+     * to the bus configuration object. When publishing the reference externally, the result is undefined
+     * if the source is modified in other threads.
      * @see CacheConfigurationSource
      */
     @NotThreadSafe
@@ -69,10 +69,10 @@ public interface CacheConfigurationSource {
         }
 
         /**
-         * Добавляет конфигурацию одного кэша в источник.
+         * Adds the configuration of a single cache to the source.
          *
-         * @param configuration конфигурация кэша, не может быть {@code null}.
-         * @return источник для дальнейшего построения, не может быть {@code null}.
+         * @param configuration the cache configuration, cannot be {@code null}.
+         * @return the source for further building, cannot be {@code null}.
          */
         @Nonnull
         public SimpleCacheConfigurationSource add(@Nonnull CacheConfiguration configuration) {
@@ -81,10 +81,10 @@ public interface CacheConfigurationSource {
         }
 
         /**
-         * Добавляет конфигурации кэшей в источник.
+         * Adds multiple cache configurations to the source.
          *
-         * @param configurations конфигурации кэшей, не может быть {@code null}.
-         * @return источник для дальнейшего построения, не может быть {@code null}.
+         * @param configurations the cache configurations, cannot be {@code null}.
+         * @return the source for further building, cannot be {@code null}.
          */
         @Nonnull
         public SimpleCacheConfigurationSource addAll(@Nonnull Set<CacheConfiguration> configurations) {
@@ -93,9 +93,9 @@ public interface CacheConfigurationSource {
         }
 
         /**
-         * Очищает источник кэшей.
+         * Clears the cache source.
          *
-         * @return источник для дальнейшего построения, не может быть {@code null}.
+         * @return the source for further building, cannot be {@code null}.
          */
         @Nonnull
         public SimpleCacheConfigurationSource clear() {
@@ -104,11 +104,12 @@ public interface CacheConfigurationSource {
         }
 
         /**
-         * Устанавливает признак использования асинхронного пула для очистки устаревших временных
-         * меток изменения элементов кэша.
+         * Sets the flag indicating the use of an asynchronous pool for cleaning outdated temporal
+         * change timestamps of cache elements.
          *
-         * @param useAsyncCleaning признак использования асинхронного пула для очистки устаревших временных меток
-         * @return не может быть {@code null}.
+         * @param useAsyncCleaning the flag indicating the use of an asynchronous pool for cleaning
+         *                         outdated temporal timestamps.
+         * @return cannot be {@code null}.
          */
         @Nonnull
         public SimpleCacheConfigurationSource useAsyncCleaning(boolean useAsyncCleaning) {

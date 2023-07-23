@@ -6,13 +6,13 @@ import javax.annotation.Nonnull;
 import java.util.concurrent.Semaphore;
 
 /**
- * Реализация структуры данных кольцевого буфера для обработки взаимодействия single producer vs single consumer.<br>
- * Особенность данной реализации в том, что она блокируется в случае, если производится добавление в буфер
- * и буфер полон, а также если производится чтение из буфера и буфер пуст. Методы возвращают управление в
- * этих случаях только тогда, когда в буфере появится место (при добавлении) или в буфере появятся
- * данные (при чтении).
+ * Implementation of a circular buffer data structure for handling single producer vs single consumer interaction.
+ * The peculiarity of this implementation is that it blocks if an addition is being made to the buffer and
+ * the buffer is full, or if a read is being made from the buffer and the buffer is empty.
+ * The methods only return control in these cases when there is space in the buffer (during addition)
+ * or when data appears in the buffer (during reading).
  *
- * @param <E> тип хранимых в буфере данных
+ * @param <E> the type of data stored in the buffer
  * @author Alik
  */
 public final class RingBuffer<E> {
@@ -32,8 +32,7 @@ public final class RingBuffer<E> {
         }
 
         this.capacity = capacity;
-        @SuppressWarnings("unchecked")
-        final E[] elements = (E[]) new Object[capacity];
+        @SuppressWarnings("unchecked") final E[] elements = (E[]) new Object[capacity];
         this.elements = elements;
         this.writeCounter = -1;
         this.readCounter = 0;
@@ -42,10 +41,10 @@ public final class RingBuffer<E> {
     }
 
     /**
-     * Добавляет элемент в буфер. Метод блокируется, если буфер полон.
+     * Adds an element to the buffer. The method blocks if the buffer is full.
      *
-     * @param elem элемент для добавления в буфер, не может быть {@code null}.
-     * @return признак, потребовалась ли блокировка при добавлении в буфер (т.е. буфер был полон)
+     * @param elem the element to add to the buffer, cannot be {@code null}.
+     * @return a flag indicating whether blocking was required during addition to the buffer (i.e., the buffer was full).
      */
     public boolean offer(@Nonnull final E elem) throws InterruptedException {
 
@@ -65,9 +64,9 @@ public final class RingBuffer<E> {
     }
 
     /**
-     * Возвращает элемент из буфера. Метод блокируется, если данных в буфере нет.
+     * Retrieves an element from the buffer. The method blocks if there is no data in the buffer.
      *
-     * @return элемент данных из буфера, не может быть {@code null}.
+     * @return the data element from the buffer, cannot be {@code null}.
      */
     @Nonnull
     public E poll() throws InterruptedException {
@@ -82,10 +81,20 @@ public final class RingBuffer<E> {
         return elem;
     }
 
+    /**
+     * Returns the current read index of the buffer.
+     *
+     * @return the current read index of the buffer.
+     */
     public int currentReadIndex() {
         return this.readCounter;
     }
 
+    /**
+     * Returns the current write index of the buffer.
+     *
+     * @return the current write index of the buffer.
+     */
     public int currentWritePosition() {
         return this.writeCounter;
     }

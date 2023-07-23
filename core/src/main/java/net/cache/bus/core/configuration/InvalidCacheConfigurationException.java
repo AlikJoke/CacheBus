@@ -3,7 +3,7 @@ package net.cache.bus.core.configuration;
 import javax.annotation.Nonnull;
 
 /**
- * Исключение, сообщающее о том, что конфигурация кэша является некорректной.
+ * Exception indicating that the cache configuration is invalid.
  *
  * @author Alik
  */

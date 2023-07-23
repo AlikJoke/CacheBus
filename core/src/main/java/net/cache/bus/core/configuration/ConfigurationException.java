@@ -3,7 +3,7 @@ package net.cache.bus.core.configuration;
 import javax.annotation.Nonnull;
 
 /**
- * Базовое исключение, сообщающее о том, что произошла исключительная ситуация, связанная с конфигурацией.
+ * Base exception indicating that an exceptional situation related to configuration has occurred.
  *
  * @author Alik
  */

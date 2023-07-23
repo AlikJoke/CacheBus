@@ -6,7 +6,7 @@ import javax.annotation.Nonnull;
 import java.util.Objects;
 
 /**
- * Реализация определителя хоста сервера на основе статического имени в виде строки.
+ * Implementation of a server host resolver based on a static name as a string.
  *
  * @author Alik
  * @see HostNameResolver

@@ -1,40 +1,92 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <xs:schema elementFormDefault="qualified" xmlns:xs="http://www.w3.org/2001/XMLSchema">
 
-    <xs:element name="configuration" type="configurationType"/>
+    <xs:element name="configuration" type="configurationType">
+        <xs:annotation>
+            <xs:documentation>Root element of the cache bus configuration.</xs:documentation>
+        </xs:annotation>
+    </xs:element>
 
     <xs:complexType name="aliasesType">
         <xs:sequence>
-            <xs:element type="xs:string" name="alias" maxOccurs="unbounded" minOccurs="0"/>
+            <xs:element type="xs:string" name="alias" maxOccurs="unbounded" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>Cache alias.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
         </xs:sequence>
     </xs:complexType>
 
     <xs:complexType name="timestampConfigType">
-        <xs:attribute type="positiveInt" name="probable-avg-elements-count" default="128"/>
-        <xs:attribute type="positiveLong" name="timestamp-expiration" default="1800000"/>
+        <xs:attribute type="positiveInt" name="probable-avg-elements-count" default="128">
+            <xs:annotation>
+                <xs:documentation>Probable (approximate) number of cache elements (on average). The default value is 128.</xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+        <xs:attribute type="positiveLong" name="timestamp-expiration" default="1800000">
+            <xs:annotation>
+                <xs:documentation>Time interval after which a timestamp is considered expired and can be removed from the list of stored timestamps. The default value is 30 minutes.</xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
     </xs:complexType>
 
     <xs:complexType name="configurationType">
         <xs:sequence>
-            <xs:element type="cacheType" name="cache" maxOccurs="unbounded" minOccurs="0"/>
+            <xs:element type="cacheType" name="cache" maxOccurs="unbounded" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>Cache configuration connected to the bus.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
         </xs:sequence>
-        <xs:attribute type="xs:boolean" name="timestamp-async-cleaning" default="false"/>
+        <xs:attribute type="xs:boolean" name="timestamp-async-cleaning" default="false">
+            <xs:annotation>
+                <xs:documentation>Flag indicating the use of asynchronous cleaning of timestamps for caches connected to the bus. Used when there are caches that use timestamps for comparing changes in cache elements. Synchronous cleaning is used by default.</xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
     </xs:complexType>
 
     <xs:complexType name="cacheType">
         <xs:sequence>
-            <xs:element type="aliasesType" name="aliases" minOccurs="0"/>
-            <xs:element type="timestampConfigType" name="timestamp-configuration" minOccurs="0"/>
+            <xs:element type="aliasesType" name="aliases" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>Cache aliases.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element type="timestampConfigType" name="timestamp-configuration" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>Configuration for working with cache timestamps. Used when 'timestamp-based-comparison="true"'</xs:documentation>
+                </xs:annotation>
+            </xs:element>
         </xs:sequence>
-        <xs:attribute type="xs:string" name="name" use="required"/>
-        <xs:attribute type="cacheTypeEnum" name="type" use="required"/>
-        <xs:attribute type="xs:boolean" name="timestamp-based-comparison" default="false"/>
+        <xs:attribute type="xs:string" name="name" use="required">
+            <xs:annotation>
+                <xs:documentation>Identifier (unique name) of the cache.</xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+        <xs:attribute type="cacheTypeEnum" name="type" use="required">
+            <xs:annotation>
+                <xs:documentation>Type of cache: invalidation replication.</xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+        <xs:attribute type="xs:boolean" name="timestamp-based-comparison" default="false">
+            <xs:annotation>
+                <xs:documentation>Flag indicating the use of timestamps for comparing changes in cache elements. Not used by default, as it incurs overhead for additional memory to store timestamps.</xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
     </xs:complexType>
 
     <xs:simpleType name="cacheTypeEnum" final="restriction">
         <xs:restriction base="xs:string">
-            <xs:enumeration value="invalidated"/>
-            <xs:enumeration value="replicated"/>
+            <xs:enumeration value="invalidated">
+                <xs:annotation>
+                    <xs:documentation>Invalidation cache.</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="replicated">
+                <xs:annotation>
+                    <xs:documentation>Replication cache.</xs:documentation>
+                </xs:annotation>
+            </xs:enumeration>
         </xs:restriction>
     </xs:simpleType>
 

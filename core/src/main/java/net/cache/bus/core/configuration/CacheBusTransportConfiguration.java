@@ -8,7 +8,7 @@ import javax.annotation.Nonnull;
 import java.util.concurrent.ExecutorService;
 
 /**
- * Конфигурация транспорта для данной шины кэшей.
+ * Configuration of the transport for the cache bus.
  *
  * @author Alik
  * @see CacheEntryEventConverter
@@ -18,122 +18,123 @@ import java.util.concurrent.ExecutorService;
 public interface CacheBusTransportConfiguration {
 
     /**
-     * Возвращает конвертер для формирования "транспортного" представления события
-     * об изменении элемента кэша и обратного преобразования из бинарного представления
-     * в объект типа {@link net.cache.bus.core.CacheEntryEvent}.
+     * Returns the converter for creating the "transport" representation of a cache entry event
+     * and converting back from binary representation to an object
+     * of type {@link net.cache.bus.core.CacheEntryEvent}.
      *
-     * @return не может быть {@code null}.
+     * @return cannot be {@code null}.
      * @see CacheEntryEventConverter
      */
     @Nonnull
     CacheEntryEventConverter converter();
 
     /**
-     * Возвращает канал сообщений, используемый для взаимодействия с другими серверами.
+     * Returns the message channel used for interaction with other servers.
      *
-     * @return канал сообщений, не может быть {@code null}.
+     * @return message channel, cannot be {@code null}.
      * @see CacheBusMessageChannel
      */
     @Nonnull
     CacheBusMessageChannel<CacheBusMessageChannelConfiguration> messageChannel();
 
     /**
-     * Возвращает конфигурацию канала сообщений шины кэшей.
+     * Returns the message channel configuration used for interaction with other servers.
      *
-     * @return не может быть {@code null}.
+     * @return cannot be {@code null}.
      * @see CacheBusMessageChannelConfiguration
      */
     @Nonnull
     CacheBusMessageChannelConfiguration messageChannelConfiguration();
 
     /**
-     * Возвращает пул потоков, на котором производится обработка сообщений
-     * (десериализация и применение к локальным кэшам) с других серверов.
+     * Returns the thread pool on which message processing (deserialization and application
+     * to local caches) from other servers is performed.
      *
-     * @return не может быть {@code null}.
+     * @return cannot be {@code null}.
      */
     @Nonnull
     ExecutorService processingPool();
 
     /**
-     * Возвращает максимальное количество потоков, которое может заниматься обработкой
-     * полученных с других серверов сообщений.
-     * @return максимальное количество потоков обработки, не может быть отрицательным;
-     * если значение {@code 0}, то получение из канала сообщений и их обработка производятся в одном потоке.
+     * Returns the maximum number of threads that can be used for processing messages received from other servers.
+     *
+     * @return the maximum number of processing threads, cannot be negative;
+     * if the value is {@code 0}, then message retrieval from the channel and processing are performed in a single thread.
      */
     @Nonnegative
     int maxConcurrentProcessingThreads();
 
     /**
-     * Возвращает максимальный размер буфера одного потока обработки сообщений.
-     * Каждый поток имеет свой буфер данного размера.
-     * Размер буфера влияет на пропускную способность обработки сообщений из канала, чем больше буфер,
-     * тем выше пропускная способность (ниже вероятность того, что произойдет блокировка потока записи
-     * (он же поток чтения из канала) из-за того, что потоки-обработчики сообщений не успевают обработать
-     * сообщения). С другой стороны, чем больше размер буфера, тем больше потребление памяти.<br>
-     * Если {@code maxConcurrentProcessingThreads() == 0}, то буферы не используются и значение будет проигнорировано.
+     * Returns the maximum buffer size of a single message processing thread.
+     * Each thread has its own buffer of this size.
+     * The buffer size affects the throughput of message processing from the channel. The larger the buffer,
+     * the higher the throughput (lower the chance of the write thread (also the read thread from the channel)
+     * being blocked because the message processing threads cannot keep up with processing the messages).
+     * On the other hand, the larger the buffer size, the higher the memory consumption.<br>
+     * If {@code maxConcurrentProcessingThreads() == 0}, then buffers are not used and the value will be ignored.
      *
-     * @return максимальный размер буфера одного потока обработки сообщений, не может быть отрицательным;
-     * при значении {@code 0} будет использоваться значение по-умолчанию ({@code 256}).
+     * @return the maximum buffer size of a single message processing thread, cannot be negative;
+     * if the value is {@code 0}, the default value ({@code 256}) will be used.
      */
     @Nonnegative
     int maxProcessingThreadBufferCapacity();
 
     /**
-     * Возвращает признак, надо ли использовать синхронную обработку полученных из канала сообщений.
+     * Returns whether synchronous processing should be used for messages received from the channel.
      *
-     * @return {@code true}, если надо использовать синхронную обработку сообщений, иначе {@code false}.
+     * @return {@code true} if synchronous processing should be used, otherwise {@code false}.
      */
     default boolean useSynchronousProcessing() {
         return maxConcurrentProcessingThreads() == 0;
     }
 
     /**
-     * Возвращает признак, нужно ли использовать асинхронную отправку сообщений в канал.
-     * Если используется, то отправка сообщений в канал будет производиться в отдельном потоке,
-     * не блокируя поток модификации данных в кэше. <br>
-     * Стоит учитывать, что использование данного режима влечет снижение уровня согласованности данных в кэше
-     * и риски конфликтов, так как увеличивается вероятность неупорядоченности обработки,
-     * хотя и повышает производительность обработки.<br>
-     * Если используются в основном инвалидационные кэши, то риски минимальны и можно использовать
-     * асинхронную отправку без каких-либо потерь, но для реплицируемых кэшей при большом потоке
-     * модификации данных в кэшах данный режим не рекомендуется.<br>
-     * Если используется, то обязательно должен быть задан пул потоков {@linkplain CacheBusTransportConfiguration#asyncSendingPool()}.
+     * Returns whether asynchronous message sending to the channel should be used.
+     * If enabled, message sending to the channel will be performed in a separate thread,
+     * without blocking the data modification thread in the cache.<br>
+     * It should be noted that using this mode reduces the level of data consistency in the cache
+     * and increases the risk of conflicts, as the probability of unordered processing increases,
+     * although it improves processing performance.<br>
+     * If mainly invalidation caches are used, the risks are minimal and asynchronous sending can be used
+     * without any loss, but for replicated caches with a high data modification rate,
+     * this mode is not recommended.<br>
+     * If enabled, the thread pool {@linkplain CacheBusTransportConfiguration#asyncSendingPool()} must be specified.
      *
-     * @return {@code true}, если асинхронная отправка используется, {@code false} - иначе.
+     * @return {@code true} asynchronous sending is used, {@code false} otherwise.
      */
     boolean useAsyncSending();
 
     /**
-     * Возвращает пул, на котором производится асинхронная отправка сообщений, если {@code useAsyncSending() == true}.
+     * Returns the pool on which asynchronous message sending is performed,
+     * if {@code useAsyncSending() == true}.
      *
-     * @return может быть {@code null}, если {@code useAsyncSending() == false}.
+     * @return can be {@code null} if {@code useAsyncSending() == false}.
      */
     ExecutorService asyncSendingPool();
 
     /**
-     * Возвращает максимальное количество потоков, которое может использоваться для асинхронной отправки сообщений в канал, если {@code useAsyncSending() == true}.
+     * Returns the maximum number threads that can be used for asynchronous message sending
+     * to the channel, if {@code useAsyncSending() == true}.
      *
-     * @return количество потоков асинхронной отправки, должно быть положительным; значение по-умолчанию
-     * {@code 1}, т.е. отправка будет производиться асинхронно, но только одним потоком.
+     * @return the number of asynchronous sending threads, must be positive; the default value is
+     * {@code 1}, i.e., messages will be sent asynchronously, but only by one thread.
      */
     @Nonnegative
     int maxAsyncSendingThreads();
 
     /**
-     * Возвращает максимальный размер буфера одного потока отправки сообщений.
-     * Каждый поток имеет свой буфер данного размера.<br>
-     * Размер буфера влияет на пропускную способность отправки сообщений в канал, чем больше буфер,
-     * тем выше пропускная способность (ниже вероятность того, что произойдет блокировка потока
-     * модификации данных в кэше из-за того, что потоки асинхронной отправки сообщений не успевают
-     * отправить сообщения в канал. С другой стороны, чем больше размер буфера, тем больше потребление
-     * памяти и тем больше вероятность того, что в случае завершения работы приложения изменения не успеют
-     * распространиться на другие сервера.<br>
-     * Если {@code useAsyncSending() == false}, то буферы асинхронной отправки не используются и
-     * значение будет проигнорировано.
+     * Returns the maximum size of the buffer for a single message sending thread.
+     * Each thread has its own buffer of this size.<br>
+     * The buffer size affects the throughput of message sending in the channel. The larger the buffer,
+     * the higher the throughput (lower probability of thread blocking due to asynchronous message sending threads
+     * not being able to send messages to the channel in time). On the other hand, the larger the buffer size,
+     * the higher the memory consumption and the higher the probability that changes will not propagate to other
+     * servers in case of application termination.<br>
+     * If {@code useAsyncSending() == false}, then asynchronous sending buffers are not used and
+     * the value will be ignored.
      *
-     * @return максимальный размер буфера одного потока отправки сообщений, не может быть отрицательным;
-     * при значении {@code 0} будет использоваться значение по-умолчанию ({@code 32}).
+     * @return the maximum size the buffer for a single message sending thread, cannot be negative;
+     * a value of {@code 0} will use the default value ({@code 32}).
      */
     @Nonnegative
     int maxAsyncSendingThreadBufferCapacity();

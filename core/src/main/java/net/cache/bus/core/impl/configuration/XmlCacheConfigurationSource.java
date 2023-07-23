@@ -28,7 +28,7 @@ import java.util.Objects;
 import java.util.Set;
 
 /**
- * Реализация источника конфигурации кэшей шины на основе конфигурационного XML-файла.
+ * Implementation of the cache bus configuration source based on a configuration XML file.
  *
  * @author Alik
  * @see CacheConfigurationSource

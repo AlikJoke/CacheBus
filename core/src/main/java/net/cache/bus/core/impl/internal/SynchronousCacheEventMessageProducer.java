@@ -10,7 +10,7 @@ import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.ThreadSafe;
 
 /**
- * Реализация синхронного отправителя событий в канал без каких-либо промежуточных этапов.
+ * Synchronous implementation of an event sender to a channel without any intermediate stages.
  *
  * @author Alik
  * @see net.cache.bus.core.transport.CacheBusMessageChannel

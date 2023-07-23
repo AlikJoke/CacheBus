@@ -8,7 +8,7 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 
 /**
- * Реализация определителя хоста сервера по-умолчанию на основе {@link InetAddress#getLocalHost()}.
+ * Default implementation of a server host resolver based on {@link InetAddress#getLocalHost()}.
  *
  * @author Alik
  * @see HostNameResolver

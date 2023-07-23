@@ -12,16 +12,16 @@ import java.io.Serializable;
 import java.util.Objects;
 
 /**
- * Неизменяемая реализация события об изменении элемента кэша.
+ * Immutable implementation of a cache element change event*
  *
- * @param key       ключ измененного элемента, не может быть {@code null}.
- * @param oldValue  старое значение измененного элемента, может быть {@code null}.
- * @param newValue  новое значение измененного элемента, может быть {@code null}.
- * @param eventTime время изменения элемента кэша в миллисекундах, не может быть отрицательным.
- * @param eventType тип события (изменения), не может быть {@code null}.
- * @param cacheName имя кэша, в котором произошло изменение, не может быть {@code null}.
- * @param <K>       тип ключа элемента кэша
- * @param <V>       тип значения элемента кэша
+ * @param key       the key of the modified element, cannot be {@code null}.
+ * @param oldValue  the old value the modified element, can be {@code null}.
+ * @param newValue  the new value of the modified element, can be {@code null}.
+ * @param eventTime the time of cache element change in milliseconds, cannot be negative.
+ * @param eventType the type of event (change), cannot be {@code null}.
+ * @param cacheName the name of the cache where the change occurred, cannot be {@code null}.
+ * @param <K>       the type of the cache element key
+ * @param <V>       the type of the cache element value
  * @author Alik
  * @see CacheEntryEvent
  */

@@ -13,13 +13,14 @@ import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Неизменяемая реализация конфигурации одного кэша для шины.
+ * Immutable implementation of a cache configuration for the bus.
  *
- * @param cacheName                   имя кэша, к которому относится конфигурация, не может быть {@code null}.
- * @param cacheType                   тип кэша, не может быть {@code null}.
- * @param cacheAliases                дополнительные алиасы кэша, не может быть {@code null}.
- * @param useTimestampBasedComparison нужно ли использовать метки времени для определения необходимости применения изменений к локальному кэшу.
- * @param timestampConfiguration      конфигурация работы с временными метками элементов кэшей, не может отсутствовать, если {@code useTimestampBasedComparison == true}.
+ * @param cacheName                   the name of the cache to which the configuration belongs, cannot be {@code null}.
+ * @param cacheType                   the type of the cache, cannot be {@code null}.
+ * @param cacheAliases                additional aliases for the cache, cannot be {@code null}.
+ * @param useTimestampBasedComparison indicates whether timestamps should be used to determine the need for applying changes to the local cache.
+ * @param timestampConfiguration      configuration for working with cache element timestamps, cannot be omitted
+ *                                    if {@code useTimestampBasedComparison == true}.
  * @author Alik
  * @see CacheConfiguration
  */
@@ -71,9 +72,9 @@ public record ImmutableCacheConfiguration(
     }
 
     /**
-     * Возвращает построитель для формирования объекта конфигурации кэша.
+     * Returns a builder for constructing a cache configuration object.
      *
-     * @return не может быть {@code null}.
+     * @return cannot be {@code null}.
      * @see Builder
      */
     @Nonnull
@@ -91,10 +92,10 @@ public record ImmutableCacheConfiguration(
         private final Set<String> cacheAliases = new HashSet<>();
 
         /**
-         * Устанавливает имя локального кэша.
+         * Sets the name of the local cache.
          *
-         * @param cacheName имя кэша, не может быть {@code null}.
-         * @return построитель для дальнейшего формирования конфигурации, не может быть {@code null}.
+         * @param cacheName name of the cache, cannot be {@code null}.
+         * @return the builder for further configuration, cannot be {@code null}.
          */
         @Nonnull
         public Builder setCacheName(@Nonnull String cacheName) {
@@ -103,10 +104,10 @@ public record ImmutableCacheConfiguration(
         }
 
         /**
-         * Устанавливает тип кэша.
+         * Sets the type of the cache.
          *
-         * @param cacheType тип кэша, не может быть {@code null}.
-         * @return построитель для дальнейшего формирования конфигурации, не может быть {@code null}.
+         * @param cacheType type of cache, cannot be {@code null}.
+         * @return the builder for further configuration, cannot be {@code null}.
          */
         @Nonnull
         public Builder setCacheType(@Nonnull CacheType cacheType) {
@@ -115,11 +116,11 @@ public record ImmutableCacheConfiguration(
         }
 
         /**
-         * Добавляет алиас кэша в список алиасов.<br>
-         * См. информацию об алиасах в документации к {@linkplain CacheConfiguration#cacheAliases()}.
+         * Adds a cache alias to the list of aliases.<br>
+         * See the documentation for {@linkplain CacheConfiguration#cacheAliases()} for more information on aliases.
          *
-         * @param cacheAlias алиас кэша, не может быть {@code null}.
-         * @return построитель для дальнейшего формирования конфигурации, не может быть {@code null}.
+         * @param cacheAlias alias of the cache, cannot be {@code null}.
+         * @return the builder for further configuration, cannot be {@code null}.
          * @see CacheConfiguration#cacheAliases()
          */
         @Nonnull
@@ -129,11 +130,11 @@ public record ImmutableCacheConfiguration(
         }
 
         /**
-         * Устанавливает список алиасов для кэша.<br>
-         * См. информацию об алиасах в документации к {@linkplain CacheConfiguration#cacheAliases()}.
+         * Sets the list of aliases for the cache.<br>
+         * See the documentation for {@linkplain CacheConfiguration#cacheAliases()} for more information on aliases..
          *
-         * @param cacheAliases алиасы кэша, не может быть {@code null}.
-         * @return построитель для дальнейшего формирования конфигурации, не может быть {@code null}.
+         * @param cacheAliases aliases of the cache, cannot be {@code null}.
+         * @return the builder for further configuration, cannot be {@code null}.
          * @see CacheConfiguration#cacheAliases()
          */
         @Nonnull
@@ -144,12 +145,12 @@ public record ImmutableCacheConfiguration(
         }
 
         /**
-         * Устанавливает признак использования меток времени при применении изменений с удаленных серверов к локальному кэшу.<br>
-         * Перед установкой значения нужно внимательно ознакомиться с документацией к {@linkplain CacheConfiguration#useTimestampBasedComparison()}.<br>
-         * По-умолчанию {@code false}.
+         * Sets the flag indicating whether timestamps should be used when applying changes from remote servers to the local cache.<br>
+         * Before setting the value, carefully review the documentation for {@linkplain CacheConfiguration#useTimestampBasedComparison()}.<br>
+         * By default, {@code false}.
          *
-         * @param useTimestampBasedComparison признак использования меток времени.
-         * @return не может быть {@code null}.
+         * @param useTimestampBasedComparison the flag indicating whether timestamps should be used.
+         * @return cannot be {@code null}.
          */
         @Nonnull
         public Builder useTimestampBasedComparison(final boolean useTimestampBasedComparison) {
@@ -158,13 +159,13 @@ public record ImmutableCacheConfiguration(
         }
 
         /**
-         * Устанавливает конфигурацию, используемую для работы с временными метками элементов кэша.
-         * По-умолчанию используется значение {@code 128} в качестве {@linkplain TimestampCacheConfiguration#probableAverageElementsCount()}
-         * и 30 минут в качестве {@linkplain TimestampCacheConfiguration#timestampExpiration()}, если явно не задано.<br>
-         * Если {@code useTimestampBasedComparison == false}, то значение игнорируется.
+         * Sets the configuration used for working with cache element timestamps.
+         * By default, a value of {@code 128} is used for {@linkplain TimestampCacheConfiguration#probableAverageElementsCount()}
+         * and 30 minutes for {@linkplain TimestampCacheConfiguration#timestampExpiration()}, not explicitly specified.<br>
+         * If {@code useTimestampBasedComparison == false}, the value is ignored.
          *
-         * @param timestampConfiguration конфигурация работы с временными метками элементов кэша, может быть {@code null}.
-         * @return не может быть {@code null}.
+         * @param timestampConfiguration configuration for working with cache element timestamps, can be {@code null}.
+         * @return cannot be {@code null}.
          */
         @Nonnull
         public Builder setTimestampConfiguration(final TimestampCacheConfiguration timestampConfiguration) {
@@ -173,9 +174,9 @@ public record ImmutableCacheConfiguration(
         }
 
         /**
-         * Формирует объект конфигурации кэша на основе переданных данных.
+         * Creates a cache configuration object based on the provided data.
          *
-         * @return построитель для дальнейшего формирования конфигурации, не может быть {@code null}.
+         * @return the builder for further configuration, cannot be {@code null}.
          */
         @Nonnull
         public CacheConfiguration build() {

@@ -6,7 +6,7 @@ import javax.annotation.Nonnegative;
 import javax.annotation.Nonnull;
 
 /**
- * Конфигурация канала сообщений шины кэшей.
+ * Cache bus message channel configuration.
  *
  * @author Alik
  * @see net.cache.bus.core.transport.CacheBusMessageChannel
@@ -14,30 +14,28 @@ import javax.annotation.Nonnull;
 public interface CacheBusMessageChannelConfiguration {
 
     /**
-     * Возвращает идентификатор канала сообщений.
+     * Returns the message channel identifier.
      *
-     * @return не может быть {@code null}.
+     * @return cannot be {@code null}.
      */
     @Nonnull
     String channel();
 
     /**
-     * Возвращает определитель имени текущего хоста для фильтрации сообщений с локального сервера.
+     * Returns the host name filter determinant for filtering messages from the local server.
      *
-     * @return не может быть {@code null}.
+     * @return cannot be {@code null}.
      * @see HostNameResolver
      */
     @Nonnull
     HostNameResolver hostNameResolver();
 
     /**
-     * Возвращает тайм-аут переподключения в миллисекундах при разрыве соединений,
-     * используемых для отправки сообщений в канал; по тайм-ауту
-     * произойдет прекращение попытки восстановить соединение и будет
-     * сгенерировано исключение; по-умолчанию используется значение
-     * {@code 5} в минутах.
+     * Returns the reconnection timeout in milliseconds when connections used for sending messages
+     * to the channel are disconnected; a timeout will result in the cessation of reconnection
+     * attempts and an exception will be thrown; by default, the value of {@code 5} minutes is used.
      *
-     * @return не может быть отрицательным.
+     * @return cannot be negative.
      */
     @Nonnegative
     long reconnectTimeoutMs();

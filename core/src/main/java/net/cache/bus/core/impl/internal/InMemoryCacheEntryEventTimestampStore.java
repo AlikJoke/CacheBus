@@ -14,12 +14,14 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Хранилище меток изменений элементов кэшей, основанное на {@linkplain ConcurrentHashMap} в памяти.<br>
- * Требования к реализации хранилища см. в документации к {@linkplain CacheEntryEventTimestampStore#save(CacheEntryEvent)}.
- * @implNote При превышении порога ({@code 128}) размера ассоциативного массива каждого кэша запускает очистку
- * от устаревших меток в соответствии с настройками соответствующего кэша.
+ * Storage of cache element change timestamps based on {@linkplain ConcurrentHashMap} in memory.<br>
+ * See the documentation of {@linkplain CacheEntryEventTimestampStore#save(CacheEntryEvent)} for requirements
+ * on the storage implementation.
  *
  * @author Alik
+ * @implNote When the threshold ({@code 128}) of the associative array size for each cache is exceeded and
+ * and more than 30 seconds have passed since the last cleaning, it triggers cleanup
+ * of expired timestamps according to the settings of the corresponding cache.
  * @see CacheEntryEventTimestampStore
  */
 public final class InMemoryCacheEntryEventTimestampStore implements CacheEntryEventTimestampStore {
@@ -53,8 +55,8 @@ public final class InMemoryCacheEntryEventTimestampStore implements CacheEntryEv
         callCleaningIfNeed(timestampsMap, event.cacheName());
 
         final Object key = event.key();
-        // Случай массовой очистки кэша обрабатываем особым образом, т.к. тут ключ фиктивный:
-        // возвращаем всегда true, т.к. все равно дальше будет полная очистка
+        // The case of mass clearing the cache is handled in a special way, because here the key is fictitious:
+        // we always return true, because will still be a complete cleanup
         if (key.equals(CacheEntryEvent.ALL_ENTRIES_KEY)) {
             return true;
         }

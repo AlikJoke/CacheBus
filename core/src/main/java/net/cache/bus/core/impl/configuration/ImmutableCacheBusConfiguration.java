@@ -11,8 +11,9 @@ import javax.annotation.concurrent.ThreadSafe;
 import java.util.Objects;
 
 /**
- * Реализация неизменяемой конфигурации шины кэшей. Для формирования рекомендуется использовать построитель,
- * получаемый с помощью фабричного метода {@linkplain ImmutableCacheBusConfiguration#builder()}.
+ * Implementation of an immutable cache bus configuration.<br>
+ * It is recommended to use the builder obtained through the factory method
+ * {@linkplain ImmutableCacheBusConfiguration#builder()} for construction.
  *
  * @author Alik
  * @see CacheBusConfiguration
@@ -39,10 +40,11 @@ public record ImmutableCacheBusConfiguration(
             @Nonnull CacheProviderConfiguration providerConfiguration) {
         this(cacheConfigurationSource, transportConfiguration, providerConfiguration, new NoOpCacheBusMetricsRegistry());
     }
+
     /**
-     * Возвращает объект строителя для формирования объекта конфигурации.
+     * Returns a builder object for constructing a configuration object.
      *
-     * @return не может быть {@code null}.
+     * @return cannot be {@code null}.
      */
     @Nonnull
     public static Builder builder() {
@@ -58,10 +60,10 @@ public record ImmutableCacheBusConfiguration(
         private CacheBusMetricsRegistry metricsRegistry = new NoOpCacheBusMetricsRegistry();
 
         /**
-         * Устанавливает построитель для формирования конфигурация кэшей, подключенных к шине.
+         * Sets the builder for constructing cache configurations connected to the bus.
          *
-         * @param cacheConfigurationSource построитель конфигураций кэшей шины, не может быть {@code null}.
-         * @return не может быть {@code null}.
+         * @param cacheConfigurationSource cache bus configuration builder, cannot be {@code null}.
+         * @return cannot be {@code null}.
          * @see CacheConfiguration
          * @see CacheConfigurationSource
          */
@@ -72,10 +74,10 @@ public record ImmutableCacheBusConfiguration(
         }
 
         /**
-         * Устанавливает конфигурацию транспорта шины событий.
+         * Sets the event bus transport configuration.
          *
-         * @param transportConfiguration конфигурация транспорта шины, не может быть {@code null}.
-         * @return не может быть {@code null}.
+         * @param transportConfiguration event bus transport configuration, cannot be {@code null}.
+         * @return cannot be {@code null}.
          * @see CacheBusTransportConfiguration
          */
         @Nonnull
@@ -85,10 +87,10 @@ public record ImmutableCacheBusConfiguration(
         }
 
         /**
-         * Устанавливает конфигурацию используемого провайдера кэширования для шины.
+         * Sets the cache provider configuration used by the bus.
          *
-         * @param providerConfiguration конфигурация провайдера кэширования, не может быть {@code null}.
-         * @return не может быть {@code null}.
+         * @param providerConfiguration cache provider configuration, cannot be {@code null}.
+         * @return cannot be {@code null}.
          * @see CacheProviderConfiguration
          */
         @Nonnull
@@ -98,11 +100,11 @@ public record ImmutableCacheBusConfiguration(
         }
 
         /**
-         * Устанавливает используемый реестр метрик. Если не задан, то используется No-Op реализация ({@linkplain NoOpCacheBusMetricsRegistry},
-         * которая не регистрирует метрики.
+         * Sets the metrics registry used. If not specified, a No-Op implementation
+         * ({@linkplain NoOpCacheBusMetricsRegistry}) is used, which does not register any metrics.
          *
-         * @param metricsRegistry реестр метрик для шины, не может быть {@code null}.
-         * @return не может быть {@code null}.
+         * @param metricsRegistry metrics registry for the bus, cannot be {@code null}.
+         * @return cannot be {@code null}.
          * @see CacheBusMetricsRegistry
          */
         @Nonnull
@@ -112,9 +114,9 @@ public record ImmutableCacheBusConfiguration(
         }
 
         /**
-         * Формирует объект конфигурации шины кэшей на основе переданных данных.
+         * Constructs a cache bus configuration object based the provided data.
          *
-         * @return не может быть {@code null}.
+         * @return cannot be {@code null}.
          * @see CacheBusConfiguration
          */
         @Nonnull

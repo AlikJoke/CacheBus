@@ -20,7 +20,7 @@ import javax.annotation.concurrent.ThreadSafe;
 import java.util.Objects;
 
 /**
- * Базовый отправитель событий в канал.
+ * Basic event sender a channel.
  *
  * @author Alik
  * @see CacheBusMessageChannel
@@ -59,9 +59,9 @@ public abstract class CacheEventMessageProducer implements AutoCloseable {
     }
 
     /**
-     * Возвращает информацию о состоянии производителя сообщений в канал.
+     * Returns information about the state of the message producer in the channel.
      *
-     * @return не может быть {@code null}.
+     * @return cannot be {@code null}.
      * @see ComponentState
      */
     @Nonnull

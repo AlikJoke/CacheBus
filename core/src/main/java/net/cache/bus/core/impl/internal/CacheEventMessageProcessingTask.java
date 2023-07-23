@@ -11,9 +11,9 @@ import javax.annotation.concurrent.ThreadSafe;
 import java.util.Objects;
 
 /**
- * Задача обработки поступивших с других серверов сообщений об изменении элементов кэша.
- * Сообщения для обработки задача получает из кольцевого буфера, куда поток получения из канала кладет их.
- * Если сообщений в буфере нет, то поток блокируется (контракт данной реализации кольцевого буфера.
+ * Task of processing incoming messages from other servers about cache element changes.
+ * The task retrieves messages for processing from the circular buffer where the receiving thread from the channel puts them.
+ * If there are no messages in the buffer, the thread blocks (contract of this circular buffer implementation).
  *
  * @author Alik
  * @see CacheBus#receive(byte[])

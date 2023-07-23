@@ -1,19 +1,19 @@
 package net.cache.bus.core.configuration;
 
 /**
- * Тип распределенного кэша.
+ * Distributed cache type.
  *
  * @author Alik
  */
 public enum CacheType {
 
     /**
-     * Инвалидационный кэш
+     * Invalidation cache
      */
     INVALIDATED(false),
 
     /**
-     * Реплицируемый кэш
+     * Replicable cache
      */
     REPLICATED(true);
 
@@ -24,9 +24,9 @@ public enum CacheType {
     }
 
     /**
-     * Возвращает признак, нужно ли сериализовывать поля с новым и старым значением элемента кэша.
+     * Returns a flag indicating whether serialize fields with the new and old values of the cache item.
      *
-     * @return признак, нужно ли сериализовывать поля с новым и старым значением элемента кэша.
+     * @return flag indicating whether to serialize fields with the new and old values of the cache item.
      */
     public boolean serializeValueFields() {
         return this.serializeValueFields;

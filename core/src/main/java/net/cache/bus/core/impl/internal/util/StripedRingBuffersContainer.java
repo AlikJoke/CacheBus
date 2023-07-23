@@ -4,11 +4,11 @@ import javax.annotation.Nonnegative;
 import javax.annotation.Nonnull;
 
 /**
- * Контейнер, содержащий кольцевые буферы. Обращения к буферам производится по индексу.
- * Индекс является "полосой", т.к. контейнер используется для разбиения данных на "полосы",
- * которые обрабатываются в разных потоках.
+ * A container that holds striped ring buffers. Buffers are accessed by index.<br>
+ * The index is referred to as a "stripe" because the container is used to divide data into "stripes"
+ * that are processed in different threads.
  *
- * @param <E> тип данных, хранимых в буферах
+ * @param <E> the type of data stored in the buffers
  * @author Alik
  * @see RingBuffer
  */
@@ -19,24 +19,23 @@ public final class StripedRingBuffersContainer<E> {
     private final RingBuffer<E>[] buffers;
 
     /**
-     * Конструктор контейнера, создающий набор буферов с размером по-умолчанию {@linkplain StripedRingBuffersContainer#RING_BUFFER_DEFAULT_CAPACITY}.
+     * Container constructor that creates a set of buffers with the default size {@linkplain StripedRingBuffersContainer#RING_BUFFER_DEFAULT_CAPACITY}.
      *
-     * @param stripes количество "полос" (количество буферов)
+     * @param stripes the number of stripes (number of buffers).
      */
     public StripedRingBuffersContainer(final int stripes) {
         this(stripes, RING_BUFFER_DEFAULT_CAPACITY);
     }
 
     /**
-     * Конструктор контейнера, создающий набор буферов заданного размера.
+     * Container constructor that creates a set of buffers with the specified size.
      *
-     * @param stripes количество "полос" (количество буферов); доводится до ближайшего четного (в меньшую сторону), если число нечетное.
-     * @param bufferCapacity вместимость (размер) каждого буфера
+     * @param stripes        the number stripes (number of buffers); rounded down to the nearest even number if odd.
+     * @param bufferCapacity the capacity (size) of each buffer.
      */
     public StripedRingBuffersContainer(final int stripes, final int bufferCapacity) {
         final int evenStripes = stripes % 2 == 1 ? stripes - 1 : stripes;
-        @SuppressWarnings("unchecked")
-        final RingBuffer<E>[] buffers = new RingBuffer[evenStripes];
+        @SuppressWarnings("unchecked") final RingBuffer<E>[] buffers = new RingBuffer[evenStripes];
         this.buffers = buffers;
 
         final int capacity = bufferCapacity <= 0 ? RING_BUFFER_DEFAULT_CAPACITY : bufferCapacity;
@@ -46,10 +45,10 @@ public final class StripedRingBuffersContainer<E> {
     }
 
     /**
-     * Возвращает кольцевой буфер по его индексу (полосе).
+     * Returns the circular buffer based on its index (stripe).
      *
-     * @param index индекс буфера
-     * @return кольцевой буфер с заданным индексом, не может быть {@code null}.
+     * @param index the buffer index; must be non-negative.
+     * @return the circular buffer with the specified index, cannot be {@code null}.
      */
     @Nonnull
     public RingBuffer<E> get(final int index) {
@@ -57,8 +56,9 @@ public final class StripedRingBuffersContainer<E> {
     }
 
     /**
-     * Возвращает размер контейнера (количество полос).
-     * @return количество полос, не может быть {@code null}.
+     * Returns the size of the container (number of stripes).
+     *
+     * @return the number of stripes, cannot be {@code null}.
      */
     @Nonnegative
     public int size() {

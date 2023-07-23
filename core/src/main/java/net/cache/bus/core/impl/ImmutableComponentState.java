@@ -7,11 +7,11 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * Неизменяемая реализация состояния одного компонента шины.
+ * Immutable implementation of the state of a single bus component.
  *
- * @param componentId идентификатор компонента, не может быть {@code null}.
- * @param status      статус функционирования компонента, не может быть {@code null}.
- * @param severities  набор зарегистрированных проблем в работе компонента, не может быть {@code null}.
+ * @param componentId the identifier of the component, cannot be {@code null}.
+ * @param status      the functioning status of the component, cannot be {@code null}.
+ * @param severities  the set of registered issues in the operation of the component, cannot be {@code null}
  * @author Alik
  * @see ComponentState
  * @see net.cache.bus.core.state.ComponentState.Status

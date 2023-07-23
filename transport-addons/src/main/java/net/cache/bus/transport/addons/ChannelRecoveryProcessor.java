@@ -38,7 +38,7 @@ public final class ChannelRecoveryProcessor {
         this.clean();
 
         if (!this.recover()) {
-            logger.error("Fatal disconnect, can not recover connection in {} ms", this.maxRecoveryAttemptTimeMillis);
+            logger.error("Fatal disconnect, cannot recover connection in {} ms", this.maxRecoveryAttemptTimeMillis);
             throw new NotRecoverableException(exception);
         }
     }

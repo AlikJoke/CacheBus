@@ -21,9 +21,10 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
 /**
- * Реализация асинхронного потребителя сообщений из канала на основе кольцевых буферов.
- * Поток получения из канала кладет сообщение в соответствующий кольцевой буфер, вычисляемый по хэш-ключу
- * сообщения (для обеспечения гарантии последовательной обработки сообщений с одним ключом элемента в одном кэше).
+ * Implementation of an asynchronous message consumer from a channel based on circular buffers.
+ * The receiving thread from the channel puts the message into the corresponding circular buffer,
+ * calculated based on the hash keyof the message (to ensure sequential processing of messages with
+ * the same key in one cache).
  *
  * @author Alik
  * @see RingBuffer

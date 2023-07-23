@@ -1,8 +1,8 @@
 package net.cache.bus.core.configuration;
 
 /**
- * Исключение, сообщающее о том, что кэш, подключенный к шине кэшей, объявлен
- * как распределенный в конфигурации провайдера кэширования.
+ * An exception indicating that the cache connected to the cache bus is declared as distributed
+ * in the caching provider configuration.
  *
  * @author Alik
  */

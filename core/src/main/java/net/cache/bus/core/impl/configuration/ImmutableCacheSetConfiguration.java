@@ -7,13 +7,12 @@ import javax.annotation.Nonnull;
 import java.util.Set;
 
 /**
- * Неизменяемая реализация конфигурации кэшей, подключенных к шине.
+ * Immutable implementation of cache bus configuration.
  *
- * @param cacheConfigurations набор конфигураций конкретных кэшей, не может быть {@code null}.
- * @param useAsyncCleaning    признак использования асинхронной очистки хранимых временных меток
- *                            изменения элементов кэша (применяется только в случае наличия хотя
- *                            бы одного кэша с используемым сравнением изменений элементов кэша
- *                            по временным меткам).
+ * @param cacheConfigurations a set of configurations for specific caches, cannot be {@code null}.
+ * @param useAsyncCleaning    indicates whether asynchronous cleaning of stored timestamps
+ *                            for cache element changes should be used (applies only if at least one cache
+ *                            uses timestamp-based comparison for cache element changes).
  * @author Alik
  * @see CacheSetConfiguration
  */

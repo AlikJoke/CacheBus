@@ -6,8 +6,7 @@ import net.cache.bus.core.CacheManager;
 import javax.annotation.Nonnull;
 
 /**
- * Конфигурация, специфичная провайдеру (реализации) кэширования,
- * которая необходима для работы шины кэшей.
+ * Configuration specific to the caching provider (implementation) that is required for the cache bus to function.
  *
  * @author Alik
  * @see CacheManager
@@ -16,18 +15,18 @@ import javax.annotation.Nonnull;
 public interface CacheProviderConfiguration {
 
     /**
-     * Возвращает менеджер кэшей.
+     * Returns the cache manager.
      *
-     * @return не может быть {@code null}.
+     * @return cannot be {@code null}.
      * @see CacheManager
      */
     @Nonnull
     CacheManager cacheManager();
 
     /**
-     * Возвращает регистратор слушателей событий изменения для кэшей.
+     * The method returns a listener registrar for cache change events.
      *
-     * @return не может быть {@code null}.
+     * @return cannot be {@code null}.
      * @see CacheEventListenerRegistrar
      */
     @Nonnull

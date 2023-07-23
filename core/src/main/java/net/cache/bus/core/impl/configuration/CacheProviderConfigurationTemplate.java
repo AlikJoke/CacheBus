@@ -7,7 +7,7 @@ import net.cache.bus.core.configuration.CacheProviderConfiguration;
 import javax.annotation.Nonnull;
 
 /**
- * Скелетная реализация конфигурации провайдера кэширования.
+ * Skeletal implementation of the caching provider configuration.
  *
  * @author Alik
  * @see CacheProviderConfiguration
