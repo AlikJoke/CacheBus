@@ -1,5 +1,6 @@
 package ru.joke.cache.bus.kafka.channel;
 
+import org.apache.kafka.common.errors.*;
 import ru.joke.cache.bus.core.CacheBus;
 import ru.joke.cache.bus.core.CacheEventMessageConsumer;
 import ru.joke.cache.bus.core.impl.ImmutableComponentState;
@@ -20,10 +21,6 @@ import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.KafkaException;
-import org.apache.kafka.common.errors.BrokerNotAvailableException;
-import org.apache.kafka.common.errors.FencedInstanceIdException;
-import org.apache.kafka.common.errors.OffsetOutOfRangeException;
-import org.apache.kafka.common.errors.RetriableException;
 import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.internals.RecordHeader;
 import org.apache.kafka.common.serialization.*;
@@ -137,9 +134,9 @@ public final class KafkaCacheBusMessageChannel implements CacheBusMessageChannel
             throw new MessageChannelException("Already in unsubscribed state");
         }
 
-        final KafkaSessionConfiguration oldConsumerConfiguration = this.consumerSessionConfiguration;
+        final KafkaConsumerSessionConfiguration oldConsumerConfiguration = this.consumerSessionConfiguration;
         this.consumerSessionConfiguration = null;
-        oldConsumerConfiguration.close();
+        oldConsumerConfiguration.closeGracefully();
 
         final KafkaSessionConfiguration oldProducerConfiguration = this.producerSessionConfiguration;
         this.producerSessionConfiguration = null;
@@ -207,6 +204,10 @@ public final class KafkaCacheBusMessageChannel implements CacheBusMessageChannel
                 }
 
                 kafkaConsumer.commitSync();
+            } catch (WakeupException | InterruptException ex) {
+                logger.warn("Consumer was interrupted", ex);
+                closeConsumer(kafkaConsumer);
+                return;
             } catch (RetriableException | OffsetOutOfRangeException | BrokerNotAvailableException | FencedInstanceIdException ex) {
                 recoverConsumerSession(ex, sessionConfiguration);
             } catch (KafkaException ex) {
@@ -426,6 +427,10 @@ public final class KafkaCacheBusMessageChannel implements CacheBusMessageChannel
 
         @Override
         public void close() {
+        }
+
+        void closeGracefully() {
+            this.kafkaConsumer.wakeup();
         }
     }
 }
